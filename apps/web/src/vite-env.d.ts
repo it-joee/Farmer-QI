@@ -2,7 +2,7 @@
 
 interface ImportMetaEnv {
   readonly VITE_SKIP_AUTH: string;
-  readonly VITE_API_URL: string;
+  readonly VITE_API_URL?: string;
 }
 
 interface ImportMeta {

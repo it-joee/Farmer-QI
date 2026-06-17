@@ -1,3 +1,5 @@
+import { apiAssetUrl } from "../lib/api-url";
+
 function initialsFromName(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "?";
@@ -12,11 +14,12 @@ interface FarmerProfileAvatarProps {
 
 export function FarmerProfileAvatar({ name, portraitUrl }: FarmerProfileAvatarProps) {
   const initials = initialsFromName(name);
+  const src = portraitUrl ? apiAssetUrl(portraitUrl) : null;
 
   return (
     <div className="farmer-profile-avatar">
-      {portraitUrl ? (
-        <img src={portraitUrl} alt={`${name} portrait`} />
+      {src ? (
+        <img src={src} alt={`${name} portrait`} />
       ) : (
         <span className="farmer-profile-avatar__initials" aria-label={`${name} initials`}>
           {initials}

@@ -1,0 +1,5 @@
+{
+  "installCommand": "cd ../.. && npm install && npm run build -w @farmeriq/shared",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist"
+}

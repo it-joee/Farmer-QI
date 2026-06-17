@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SKIP_AUTH } from "../auth";
 import { AppLogo } from "../components/layout/AppLogo";
+import { apiFetch } from "../lib/api-client";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ export function LoginPage() {
     e.preventDefault();
     setError("");
 
-    const res = await fetch("/api/auth/login", {
+    const res = await apiFetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),

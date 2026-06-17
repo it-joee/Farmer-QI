@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { FarmerPhoto } from "@farmeriq/shared";
+import { apiAssetUrl } from "../lib/api-url";
 
 interface FarmerPhotosSectionProps {
   photos: FarmerPhoto[];
@@ -28,7 +29,7 @@ export function FarmerPhotosSection({ photos }: FarmerPhotosSectionProps) {
           <div className="farmer-photos__group">
             <h4 className="farmer-photos__label">Farmer portrait</h4>
             <button type="button" className="farmer-photos__thumb" onClick={() => setPreview(portrait)}>
-              <img src={portrait.url} alt="Farmer portrait" />
+              <img src={apiAssetUrl(portrait.url)} alt="Farmer portrait" />
             </button>
           </div>
         )}
@@ -43,7 +44,7 @@ export function FarmerPhotosSection({ photos }: FarmerPhotosSectionProps) {
                   className="farmer-photos__thumb"
                   onClick={() => setPreview(photo)}
                 >
-                  <img src={photo.url} alt="Ghana Card" />
+                  <img src={apiAssetUrl(photo.url)} alt="Ghana Card" />
                 </button>
               ))}
             </div>
@@ -56,7 +57,7 @@ export function FarmerPhotosSection({ photos }: FarmerPhotosSectionProps) {
           <div className="photo-modal__content" onClick={(e) => e.stopPropagation()}>
             <img
               className="photo-modal__image"
-              src={preview.url}
+              src={apiAssetUrl(preview.url)}
               alt={preview.photo_type === "portrait" ? "Farmer portrait" : "Ghana Card"}
             />
             <button type="button" className="btn btn-secondary" onClick={() => setPreview(null)}>

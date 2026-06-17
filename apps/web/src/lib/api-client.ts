@@ -1,4 +1,5 @@
 import { getCurrentUser } from "../auth";
+import { apiUrl } from "./api-url";
 
 export function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const user = getCurrentUser();
@@ -12,5 +13,6 @@ export function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
     }
   }
 
-  return fetch(input, { ...init, headers });
+  const url = typeof input === "string" ? apiUrl(input) : input;
+  return fetch(url, { ...init, headers });
 }
