@@ -1,0 +1,74 @@
+/**
+ * FarmerIQ reference palette
+ * Extracted from the agricultural dashboard UI reference (Jun 2026).
+ * Values sampled from image pixels and grouped by role.
+ */
+:root {
+  /* ── Neutrals ── */
+  --palette-bg: #f7f8f7;
+  --palette-surface: #ffffff;
+  --palette-surface-muted: #f8f9f7;
+  --palette-border: #e8ebe8;
+  --palette-border-strong: #d8dcd8;
+
+  /* ── Text ── */
+  --palette-text: #181818;
+  --palette-text-secondary: #757575;
+  --palette-text-muted: #bdbdbd;
+  --palette-text-inverse: #ffffff;
+
+  /* ── Green (primary accent) ── */
+  --palette-green-50: #f4fbf0;
+  --palette-green-100: #e8f8d8;
+  --palette-green-200: #daf0cb;
+  --palette-green-300: #c8f0a8;
+  --palette-green-400: #b8e890;
+  --palette-green-500: #b0ec80;
+  --palette-green-600: #8fd066;
+
+  /* ── Orange / tan (secondary accent) ── */
+  --palette-orange-50: #fff8ef;
+  --palette-orange-100: #fff3e0;
+  --palette-orange-200: #ffd8a7;
+  --palette-orange-300: #fad1a0;
+  --palette-orange-400: #ebc48c;
+  --palette-orange-500: #deb781;
+  --palette-orange-600: #c9925a;
+
+  /* ── Wheat field map scale ── */
+  --palette-wheat-100: #f4fbf0;
+  --palette-wheat-200: #e8f8dc;
+  --palette-wheat-300: #c8f4a4;
+  --palette-wheat-400: #b8e890;
+  --palette-wheat-500: #9fd86e;
+
+  /* ── Corn field map scale ── */
+  --palette-corn-100: #fff8ef;
+  --palette-corn-200: #ffe8c8;
+  --palette-corn-300: #fad1a0;
+  --palette-corn-400: #ebc48c;
+  --palette-corn-500: #deb781;
+
+  /* ── Semantic aliases ── */
+  --palette-primary: var(--palette-green-300);
+  --palette-primary-hover: var(--palette-green-400);
+  --palette-primary-soft: var(--palette-green-100);
+  --palette-primary-track: var(--palette-green-100);
+
+  --palette-accent: var(--palette-orange-200);
+  --palette-accent-soft: var(--palette-orange-100);
+  --palette-accent-text: var(--palette-orange-600);
+
+  --palette-success: var(--palette-green-500);
+  --palette-warning-bg: var(--palette-orange-100);
+  --palette-warning-text: var(--palette-orange-600);
+
+  --palette-button-primary-bg: #181818;
+  --palette-button-primary-hover: #000000;
+  --palette-button-primary-text: #ffffff;
+
+  --palette-card-green: var(--palette-green-100);
+  --palette-card-green-soft: #e1efd7;
+  --palette-icon-green-bg: var(--palette-green-500);
+  --palette-calendar-active: var(--palette-green-500);
+}

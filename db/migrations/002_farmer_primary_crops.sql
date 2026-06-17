@@ -1,0 +1,1 @@
+ALTER TABLE farmers ADD COLUMN IF NOT EXISTS primary_crops TEXT[] NOT NULL DEFAULT '{}';

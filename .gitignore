@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Environment and secrets (never commit real keys)
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.production.local
+.env.test.local
+!.env.example
+
+# Credentials and key material
+*.pem
+*.key
+*.p12
+credentials.json
+secrets.json
+
+# Logs and OS
+*.log
+.DS_Store
+Thumbs.db
+
+# Uploaded farmer photos (local dev only)
+apps/api/uploads/*
+!apps/api/uploads/.gitkeep
