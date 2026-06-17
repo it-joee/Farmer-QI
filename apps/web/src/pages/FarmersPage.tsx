@@ -176,7 +176,11 @@ export function FarmersPage() {
                       <td>{record.form.phone || "—"}</td>
                       <td>
                         <span className={`sync-badge sync-badge--${record.status}`}>
-                          {record.status === "failed" ? "Sync failed" : "Pending sync"}
+                          {record.status === "failed"
+                            ? "Sync failed"
+                            : record.status === "syncing"
+                              ? "Syncing…"
+                              : "Pending sync"}
                         </span>
                         {record.lastError && (
                           <span className="sync-badge__error muted">{record.lastError}</span>
@@ -225,7 +229,7 @@ export function FarmersPage() {
                   <th>Region</th>
                   <th>Commodities</th>
                   <th>Mobile</th>
-                  <th>System ID</th>
+                  <th>Status</th>
                   <th className="table__actions-col">More</th>
                 </tr>
               </thead>
@@ -239,7 +243,7 @@ export function FarmersPage() {
                     <td>{(f.primary_crops ?? []).join(", ") || "—"}</td>
                     <td>{f.phone ?? "—"}</td>
                     <td>
-                      <code className="system-id">{f.id}</code>
+                      <span className="sync-badge sync-badge--synced">Synced</span>
                     </td>
                     <td className="table__actions-col">
                       <FarmerActionsMenu

@@ -40,24 +40,21 @@ jni-farmerIQ/
 
 ```bash
 npm install
-# Create .env.local in repo root — see docs/ENV.md (never commit this file)
+# Create env.local in repo root — see docs/ENV.md (never commit this file)
 
-# SKIP_AUTH=true lets you browse UI without login or Postgres
-
-# When ready for real data:
-# 1. Set SKIP_AUTH=false and VITE_SKIP_AUTH=false in .env.local
-# 2. Set up PostgreSQL and run: psql $DATABASE_URL -f db/schema.sql
-
-# Start API and web app
+# Start everything (API + web UI)
 npm run dev
 ```
 
-- API: http://localhost:3001
-- Web: http://localhost:5173
+**Open only:** http://localhost:5173
+
+That one URL is the app. The API runs in the background automatically — you never open port 3001 in the browser.
+
+If `npm run dev` says **port 3001 already in use**, stop any old dev terminals first (or close the extra `npm run dev:api` window), then run `npm run dev` again.
 
 ## Git and secrets
 
-`.gitignore` excludes all env files (`.env.local`, `env.example`, etc.). Variable names are listed in [docs/ENV.md](docs/ENV.md) — create `.env.local` locally only.
+`.gitignore` excludes all env files. Variable names are in [docs/ENV.md](docs/ENV.md) — put secrets in **`env.local`** locally only.
 
 ```bash
 git init

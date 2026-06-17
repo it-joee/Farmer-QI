@@ -1,6 +1,8 @@
 # Environment variables
 
-Create a **`.env.local`** file in the repo root (gitignored). Never commit env files to git.
+Create **`env.local`** in the repo root (gitignored). Never commit env files to git.
+
+Both the API and web dev server load, in order: `.env` → `.env.local` → **`env.local`** (highest priority).
 
 ## Required for local dev with database
 
@@ -24,8 +26,10 @@ Create a **`.env.local`** file in the repo root (gitignored). Never commit env f
 
 ## Supabase testing notes
 
-- Use **direct connection** (port 5432) for running migrations.
-- Use **pooler** (port 6543) for deployed/serverless API.
+- Use **direct connection** (port 5432, `db.xxx.supabase.co`) for SQL Editor only.
+- For **local dev on Windows** and **Vercel**, use the **Session pooler** URI from Supabase → **Connect** → Connection string → **Session pooler** (host looks like `aws-0-xxx.pooler.supabase.com`, port **5432** or **6543**).
+
+If save/sync fails and `/health` shows `ENOTFOUND` for `db.xxx.supabase.co`, your machine cannot reach Supabase’s direct host — switch to the **pooler** connection string in `env.local`.
 
 ## Vercel (API project — `apps/api`)
 

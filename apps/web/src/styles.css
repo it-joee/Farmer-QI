@@ -893,6 +893,11 @@ a {
   background: var(--palette-orange-100);
 }
 
+.sync-badge--synced {
+  color: var(--palette-green-600);
+  background: var(--palette-green-100);
+}
+
 .sync-badge--failed {
   color: #991b1b;
   background: #fee2e2;
