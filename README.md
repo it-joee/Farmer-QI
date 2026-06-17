@@ -39,7 +39,7 @@ jni-farmerIQ/
 
 ```bash
 npm install
-cp .env.example .env.local
+cp env.example .env.local
 # Edit .env.local with your keys — this file is gitignored and never pushed
 
 # SKIP_AUTH=true is on by default — browse UI without login or Postgres
@@ -57,7 +57,7 @@ npm run dev
 
 ## Git and secrets
 
-When you initialize git in this folder, `.gitignore` is already set up to exclude `.env.local`, other env files, and credential files. Only commit `.env.example` (placeholders, no real keys).
+When you initialize git in this folder, `.gitignore` excludes all `.env*` files (including `.env.local`). Use `env.example` as the template — copy it to `.env.local` locally; never commit env files.
 
 ```bash
 git init
