@@ -5,8 +5,10 @@ node_modules/
 dist/
 build/
 
-# Environment and secrets — never commit any .env* files
+# Environment and secrets — never commit env files
 .env*
+env.example
+env.local
 
 # Credentials and key material
 *.pem

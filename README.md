@@ -29,6 +29,7 @@ jni-farmerIQ/
 | [docs/SCOPE-NOTES.md](docs/SCOPE-NOTES.md) | Scope clarifications from stakeholder input |
 | [docs/UI.md](docs/UI.md) | Visual and UX standards |
 | [docs/TEST-DEPLOYMENT.md](docs/TEST-DEPLOYMENT.md) | **Testing period:** Supabase DB + Vercel hosting |
+| [docs/ENV.md](docs/ENV.md) | Environment variables (create `.env.local` locally) |
 
 ## Prerequisites
 
@@ -39,10 +40,9 @@ jni-farmerIQ/
 
 ```bash
 npm install
-cp env.example .env.local
-# Edit .env.local with your keys — this file is gitignored and never pushed
+# Create .env.local in repo root — see docs/ENV.md (never commit this file)
 
-# SKIP_AUTH=true is on by default — browse UI without login or Postgres
+# SKIP_AUTH=true lets you browse UI without login or Postgres
 
 # When ready for real data:
 # 1. Set SKIP_AUTH=false and VITE_SKIP_AUTH=false in .env.local
@@ -57,7 +57,7 @@ npm run dev
 
 ## Git and secrets
 
-When you initialize git in this folder, `.gitignore` excludes all `.env*` files (including `.env.local`). Use `env.example` as the template — copy it to `.env.local` locally; never commit env files.
+`.gitignore` excludes all env files (`.env.local`, `env.example`, etc.). Variable names are listed in [docs/ENV.md](docs/ENV.md) — create `.env.local` locally only.
 
 ```bash
 git init

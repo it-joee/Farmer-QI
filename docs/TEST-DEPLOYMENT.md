@@ -172,13 +172,7 @@ Until that entry point exists, you can still test **database + web UI** by:
 
 Before deploying to Vercel, confirm the database works from your machine:
 
-```bash
-cp env.example .env.local
-```
-
-Edit `.env.local` (gitignored — put Supabase URI and secrets here):
-
-```env
+Create `.env.local` in the repo root (see [ENV.md](ENV.md) for all variables). Example for Supabase:
 DATABASE_URL=postgresql://postgres.[ref]:[password]@...supabase.com:5432/postgres?sslmode=require
 SKIP_AUTH=false
 VITE_SKIP_AUTH=false
