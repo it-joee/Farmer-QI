@@ -12,7 +12,11 @@ import { userRoutes } from "./routes/users.js";
 const app = new Hono();
 
 function allowedOrigins(): string[] {
-  const origins = new Set<string>(["http://localhost:5173"]);
+  const origins = new Set<string>([
+    "http://localhost:5173",
+    "https://farmeriq.jniagri.ag",
+    "https://www.farmeriq.jniagri.ag",
+  ]);
   const configured = process.env.WEB_ORIGIN?.split(",").map((o) => o.trim()) ?? [];
   for (const origin of configured) {
     if (origin) origins.add(origin);
@@ -25,8 +29,8 @@ app.use(
   cors({
     origin: (origin) => {
       const allowed = allowedOrigins();
-      if (!origin || allowed.includes(origin)) return origin ?? allowed[0];
-      return allowed[0];
+      if (!origin) return allowed[0];
+      return allowed.includes(origin) ? origin : null;
     },
     allowHeaders: ["Content-Type", "X-Actor-Id", "X-Actor-Role", "X-Actor-Office-Id"],
     credentials: true,
