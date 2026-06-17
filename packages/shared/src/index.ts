@@ -141,12 +141,12 @@ export interface AuthResponse {
   user: User;
 }
 
-export type { FarmerPhoto, FarmerPhotoType } from "./photos";
-export * from "./plots";
-export * from "./crop-cycles";
-export * from "./conflicts";
-export * from "./reports";
-export * from "./events";
-export * from "./users";
-export * from "./normalize";
-export * from "./submissions";
+export type { FarmerPhoto, FarmerPhotoType } from "./photos.js";
+export * from "./plots.js";
+export * from "./crop-cycles.js";
+export * from "./conflicts.js";
+export * from "./reports.js";
+export * from "./events.js";
+export * from "./users.js";
+export * from "./normalize.js";
+export * from "./submissions.js";
