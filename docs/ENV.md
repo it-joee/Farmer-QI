@@ -27,8 +27,17 @@ Create a **`.env.local`** file in the repo root (gitignored). Never commit env f
 - Use **direct connection** (port 5432) for running migrations.
 - Use **pooler** (port 6543) for deployed/serverless API.
 
-## Vercel
+## Vercel (API project — `apps/api`)
 
-Set the same variables in the Vercel project dashboard — not in git.
+Add these in **Vercel → Project → Settings → Environment Variables** (Production + Preview):
+
+| Variable | Required | Notes |
+|----------|----------|-------|
+| `DATABASE_URL` | Yes | Supabase **pooler** URI (port 6543) + `?sslmode=require` |
+| `SKIP_AUTH` | Yes | `true` for testing without login |
+| `JWT_SECRET` | Yes | Any long random string |
+| `WEB_ORIGIN` | Yes | Your web app URL, e.g. `https://your-web.vercel.app` |
+
+Redeploy after adding variables. Visit `/health` to confirm the API is up.
 
 See also [TEST-DEPLOYMENT.md](TEST-DEPLOYMENT.md).

@@ -13,6 +13,7 @@ function loadEnvFile(name: string, override: boolean) {
   }
 }
 
-/** Optional defaults first, then `.env.local` overrides (your real keys). */
+/** Optional defaults first, then local overrides (your real keys). */
 loadEnvFile(".env", false);
 loadEnvFile(".env.local", true);
+loadEnvFile("env.local", true);
