@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useDropdownPlacement } from "../../hooks/useDropdownPlacement";
 
 export interface SelectOption {
   value: string;
@@ -12,7 +13,10 @@ interface SelectFieldProps {
   options: SelectOption[];
   placeholder?: string;
   required?: boolean;
-  variant?: "default" | "compact";
+  variant?: "default" | "compact" | "calendar";
+  menuPlacement?: "auto" | "below";
+  className?: string;
+  invalid?: boolean;
 }
 
 export function SelectField({
@@ -23,9 +27,16 @@ export function SelectField({
   placeholder = "Select",
   required,
   variant = "default",
+  menuPlacement = "auto",
+  className,
+  invalid,
 }: SelectFieldProps) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLUListElement>(null);
   const [open, setOpen] = useState(false);
+  const autoPlacement = useDropdownPlacement({ open: open && menuPlacement === "auto", triggerRef, menuRef });
+  const placement = menuPlacement === "below" ? "below" : autoPlacement;
   const selected = options.find((option) => option.value === value);
   const display = selected?.label ?? placeholder;
 
@@ -52,11 +63,20 @@ export function SelectField({
 
   return (
     <div
-      className={`select-field${variant === "compact" ? " select-field--compact" : ""}`}
+      className={[
+        "select-field",
+        variant === "compact" ? " select-field--compact" : "",
+        variant === "calendar" ? " select-field--calendar" : "",
+        invalid ? " select-field--invalid" : "",
+        className ?? "",
+      ]
+        .join("")
+        .trim()}
       ref={rootRef}
     >
       <button
         type="button"
+        ref={triggerRef}
         id={id}
         className="select-field__trigger"
         aria-expanded={open}
@@ -80,7 +100,12 @@ export function SelectField({
       )}
 
       {open && (
-        <ul className="select-field__menu" role="listbox" aria-labelledby={id}>
+        <ul
+          ref={menuRef}
+          className={`select-field__menu${placement === "above" ? " dropdown-panel--above" : ""}`}
+          role="listbox"
+          aria-labelledby={id}
+        >
           {options.map((option) => (
             <li key={option.value || "__empty"}>
               <button

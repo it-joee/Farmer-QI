@@ -4,6 +4,7 @@ import { Navigate } from "react-router-dom";
 import { canManageUsers } from "../auth";
 import { ROLE_LABELS } from "../components/layout/AppNav";
 import { SelectField } from "../components/fields/SelectField";
+import { UserListMobileCard } from "../components/UserListMobileCard";
 import { useRequireAuth } from "../hooks/useFarmers";
 import { createUser, fetchOffices, fetchUsers, updateUser, type OfficeOption } from "../lib/users";
 
@@ -165,41 +166,65 @@ export function UsersPage() {
         ) : users.length === 0 ? (
           <p className="muted">No users found.</p>
         ) : (
-          <div className="table-scroll">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>Office</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((row) => (
-                  <tr key={row.id}>
-                    <td>{row.full_name}</td>
-                    <td>{row.email}</td>
-                    <td>{ROLE_LABELS[row.role]}</td>
-                    <td>{row.office_name ?? "—"}</td>
-                    <td>{row.is_active ? "Active" : "Inactive"}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => void toggleActive(row)}
-                        disabled={row.id === user.id}
-                      >
-                        {row.is_active ? "Deactivate" : "Activate"}
-                      </button>
-                    </td>
+          <>
+            <div className="table-scroll farmer-list--desktop-only">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Office</th>
+                    <th>Status</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {users.map((row) => (
+                    <tr key={row.id}>
+                      <td>{row.full_name}</td>
+                      <td>{row.email}</td>
+                      <td>{ROLE_LABELS[row.role]}</td>
+                      <td>{row.office_name ?? "—"}</td>
+                      <td>{row.is_active ? "Active" : "Inactive"}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => void toggleActive(row)}
+                          disabled={row.id === user.id}
+                        >
+                          {row.is_active ? "Deactivate" : "Activate"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="farmer-list--mobile-only">
+              {users.map((row) => (
+                <UserListMobileCard
+                  key={row.id}
+                  name={row.full_name}
+                  email={row.email}
+                  roleLabel={ROLE_LABELS[row.role]}
+                  officeName={row.office_name}
+                  isActive={row.is_active}
+                  actions={
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => void toggleActive(row)}
+                      disabled={row.id === user.id}
+                    >
+                      {row.is_active ? "Deactivate" : "Activate"}
+                    </button>
+                  }
+                />
+              ))}
+            </div>
+          </>
         )}
       </section>
     </main>

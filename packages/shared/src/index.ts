@@ -111,6 +111,7 @@ export interface User {
 
 export interface Farmer {
   id: string;
+  reference_id?: string | null;
   ghana_card: string | null;
   full_name: string;
   age: number | null;
@@ -150,3 +151,4 @@ export * from "./events.js";
 export * from "./users.js";
 export * from "./normalize.js";
 export * from "./submissions.js";
+export * from "./farmer-id.js";

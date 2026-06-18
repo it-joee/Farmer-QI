@@ -114,7 +114,7 @@ export function PendingFarmerDetailPage() {
               {record.form.region ? ` · ${record.form.region}` : ""}
             </p>
             <p className="farmer-detail__id">
-              <span className="muted">Local ID</span>{" "}
+              <span className="muted">ID</span>{" "}
               <span className="reference-id">{formatFarmerLocalId(record.localId)}</span>
             </p>
           </div>

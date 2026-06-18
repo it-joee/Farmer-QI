@@ -4,11 +4,17 @@ import { BackButton } from "../components/BackButton";
 import {
   EventFormFields,
   eventFormToSubmitInput,
+  validateEventForm,
   type EventFormValues,
 } from "../components/EventFormFields";
 import { getCurrentUser } from "../auth";
 import { useOfflineSyncContext } from "../context/OfflineSyncContext";
 import { useRequireAuth } from "../hooks/useFarmers";
+import {
+  applyFieldValidation,
+  clearFieldError,
+  type FieldErrors,
+} from "../lib/form-validation";
 import { submitEvent } from "../lib/offline/event-sync";
 
 const INITIAL_VALUES: EventFormValues = {
@@ -20,18 +26,29 @@ const INITIAL_VALUES: EventFormValues = {
   mofaOfficer: "",
 };
 
+const EVENT_FIELD_IDS: Record<keyof EventFormValues, string> = {
+  title: "event-title",
+  eventDate: "event-date",
+  communityLocation: "event-community-location",
+  district: "event-district",
+  mofaOfficer: "event-mofa-officer",
+  description: "event-description",
+};
+
 export function NewEventPage() {
   const user = useRequireAuth();
   const navigate = useNavigate();
   const { refreshPending } = useOfflineSyncContext();
   const [values, setValues] = useState<EventFormValues>(INITIAL_VALUES);
-  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
 
   if (!user) return null;
 
   function handleChange<K extends keyof EventFormValues>(field: K, value: EventFormValues[K]) {
     setValues((prev) => ({ ...prev, [field]: value }));
+    setFieldErrors((prev) => clearFieldError(prev, EVENT_FIELD_IDS[field]));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -39,17 +56,10 @@ export function NewEventPage() {
     const actor = getCurrentUser();
     if (!actor) return;
 
-    if (!values.title.trim()) {
-      setError("Event title is required.");
-      return;
-    }
-    if (!values.eventDate) {
-      setError("Event date is required.");
-      return;
-    }
+    if (!applyFieldValidation(validateEventForm(values), setFieldErrors)) return;
 
     setSaving(true);
-    setError("");
+    setFormError("");
 
     try {
       const outcome = await submitEvent(eventFormToSubmitInput(values, actor.id));
@@ -65,7 +75,7 @@ export function NewEventPage() {
         navigate(`/events/${outcome.eventId}`);
       }
     } catch {
-      setError("Could not create event. Try again.");
+      setFormError("Could not create event. Try again.");
     } finally {
       setSaving(false);
     }
@@ -78,9 +88,9 @@ export function NewEventPage() {
       <p className="muted">Saved on this device if offline, then synced automatically when online.</p>
 
       <form className="card card--form" onSubmit={handleSubmit}>
-        {error && <p className="error">{error}</p>}
+        {formError && <p className="error">{formError}</p>}
 
-        <EventFormFields values={values} onChange={handleChange} />
+        <EventFormFields values={values} errors={fieldErrors} onChange={handleChange} />
 
         <div className="form-actions">
           <span />

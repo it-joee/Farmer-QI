@@ -23,6 +23,7 @@ export interface ReportSummary {
 
 export interface FarmerExportRow {
   id: string;
+  reference_id?: string | null;
   full_name: string;
   ghana_card: string | null;
   phone: string | null;

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { COMMODITIES } from "@farmeriq/shared";
 import { canRegisterFarmers, farmersScopeLabel, getCurrentUser } from "../auth";
 import { FarmerActionsMenu } from "../components/FarmerActionsMenu";
+import { FarmerListMobileCard } from "../components/FarmerListMobileCard";
 import { useOfflineSyncContext } from "../context/OfflineSyncContext";
 import { SelectField } from "../components/fields/SelectField";
 import { useFarmers, useRequireAuth } from "../hooks/useFarmers";
@@ -148,8 +149,9 @@ export function FarmersPage() {
         </div>
 
         {filteredPending.length > 0 && (
-          <div className="table-scroll">
-            <table className="table table--pending">
+          <>
+            <div className="table-scroll farmer-list--desktop-only">
+              <table className="table table--pending">
               <thead>
                 <tr>
                   <th>Name</th>
@@ -215,12 +217,54 @@ export function FarmersPage() {
                 })}
               </tbody>
             </table>
-          </div>
+            </div>
+            <div className="farmer-list--mobile-only">
+              {filteredPending.map((record) => {
+                const name = record.form.full_name;
+                const status =
+                  record.status === "failed"
+                    ? "failed"
+                    : record.status === "syncing"
+                      ? "syncing"
+                      : "pending";
+                return (
+                  <FarmerListMobileCard
+                    key={record.localId}
+                    name={name}
+                    community={record.form.community}
+                    phone={record.form.phone || null}
+                    status={status}
+                    onOpen={() => navigate(`/farmers/pending/${record.localId}`)}
+                    menuItems={[
+                      {
+                        label: "Full profile",
+                        onClick: () => navigate(`/farmers/pending/${record.localId}`),
+                      },
+                      {
+                        label: "Edit profile",
+                        onClick: () => navigate(`/farmers/pending/${record.localId}/edit`),
+                      },
+                      {
+                        label: "Retry sync",
+                        onClick: () => void handleRetrySync(record.localId),
+                      },
+                      {
+                        label: "Delete",
+                        variant: "danger",
+                        onClick: () => void handleDeletePending(record.localId, name),
+                      },
+                    ]}
+                  />
+                );
+              })}
+            </div>
+          </>
         )}
 
         {filtered.length > 0 && (
-          <div className="table-scroll">
-            <table className="table">
+          <>
+            <div className="table-scroll farmer-list--desktop-only">
+              <table className="table">
               <thead>
                 <tr>
                   <th>Name</th>
@@ -269,7 +313,35 @@ export function FarmersPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+            <div className="farmer-list--mobile-only">
+              {filtered.map((f) => (
+                <FarmerListMobileCard
+                  key={f.id}
+                  name={f.full_name}
+                  community={f.community}
+                  phone={f.phone}
+                  status="synced"
+                  onOpen={() => navigate(`/farmers/${f.id}`)}
+                  menuItems={[
+                    {
+                      label: "Full profile",
+                      onClick: () => navigate(`/farmers/${f.id}`),
+                    },
+                    {
+                      label: "Edit profile",
+                      onClick: () => navigate(`/farmers/${f.id}/edit`),
+                    },
+                    {
+                      label: "Delete",
+                      variant: "danger",
+                      onClick: () => void handleDeleteSynced(f.id, f.full_name),
+                    },
+                  ]}
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
     </main>

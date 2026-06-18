@@ -1,6 +1,30 @@
 import { useEffect, useRef, useState } from "react";
-
+import { useDropdownPlacement } from "../../hooks/useDropdownPlacement";
+import { SelectField } from "./SelectField";
 const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"] as const;
+
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+] as const;
+
+function buildYearOptions(minYear: number, maxYear: number): number[] {
+  const years: number[] = [];
+  for (let year = maxYear; year >= minYear; year--) {
+    years.push(year);
+  }
+  return years;
+}
 
 interface CalendarDay {
   day: number;
@@ -57,8 +81,9 @@ function buildCalendar(year: number, month: number): CalendarDay[] {
   return cells;
 }
 
-function monthLabel(year: number, month: number): string {
-  return new Date(year, month, 1).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+function defaultYearBounds() {
+  const currentYear = new Date().getFullYear();
+  return { minYear: currentYear - 120, maxYear: currentYear + 5 };
 }
 
 interface DateFieldProps {
@@ -67,6 +92,9 @@ interface DateFieldProps {
   onChange: (value: string) => void;
   placeholder?: string;
   required?: boolean;
+  minYear?: number;
+  maxYear?: number;
+  invalid?: boolean;
 }
 
 export function DateField({
@@ -75,9 +103,27 @@ export function DateField({
   onChange,
   placeholder = "Select date",
   required,
+  minYear: minYearProp,
+  maxYear: maxYearProp,
+  invalid,
 }: DateFieldProps) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  const placement = useDropdownPlacement({ open, triggerRef, menuRef: panelRef });
+  const { minYear, maxYear } = defaultYearBounds();
+  const yearMin = minYearProp ?? minYear;
+  const yearMax = maxYearProp ?? maxYear;
+  const yearOptions = buildYearOptions(yearMin, yearMax);
+  const monthOptions = MONTHS.map((name, index) => ({
+    value: String(index),
+    label: name,
+  }));
+  const yearSelectOptions = yearOptions.map((year) => ({
+    value: String(year),
+    label: String(year),
+  }));
   const initial = parseIso(value) ?? new Date();
   const [viewYear, setViewYear] = useState(initial.getFullYear());
   const [viewMonth, setViewMonth] = useState(initial.getMonth());
@@ -85,18 +131,20 @@ export function DateField({
   useEffect(() => {
     const date = parseIso(value);
     if (date) {
-      setViewYear(date.getFullYear());
+      setViewYear(Math.min(yearMax, Math.max(yearMin, date.getFullYear())));
       setViewMonth(date.getMonth());
     }
-  }, [value]);
+  }, [value, yearMin, yearMax]);
 
   useEffect(() => {
     if (!open) return;
 
     function handlePointerDown(event: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
-        setOpen(false);
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target) || panelRef.current?.contains(target)) {
+        return;
       }
+      setOpen(false);
     }
 
     function handleEscape(event: KeyboardEvent) {
@@ -113,7 +161,9 @@ export function DateField({
 
   function shiftMonth(delta: number) {
     const next = new Date(viewYear, viewMonth + delta, 1);
-    setViewYear(next.getFullYear());
+    const nextYear = next.getFullYear();
+    if (nextYear < yearMin || nextYear > yearMax) return;
+    setViewYear(nextYear);
     setViewMonth(next.getMonth());
   }
 
@@ -125,9 +175,10 @@ export function DateField({
   const days = buildCalendar(viewYear, viewMonth);
 
   return (
-    <div className="date-field" ref={rootRef}>
+    <div className={`date-field${invalid ? " date-field--invalid" : ""}`} ref={rootRef}>
       <button
         type="button"
+        ref={triggerRef}
         id={id}
         className="date-field__trigger"
         aria-expanded={open}
@@ -156,10 +207,34 @@ export function DateField({
       )}
 
       {open && (
-        <div className="date-field__popover" role="dialog" aria-label="Choose date">
+        <div
+          ref={panelRef}
+          className={`date-field__popover${placement === "above" ? " dropdown-panel--above" : ""}`}
+          role="dialog"
+          aria-label="Choose date"
+        >
           <div className="calendar">
             <div className="calendar__header">
-              <p className="calendar__title">{monthLabel(viewYear, viewMonth)}</p>
+              <div className="calendar__controls">
+                <SelectField
+                  id={`${id}-month`}
+                  value={String(viewMonth)}
+                  onChange={(next) => setViewMonth(Number(next))}
+                  options={monthOptions}
+                  variant="calendar"
+                  menuPlacement="below"
+                  className="calendar__select-field"
+                />
+                <SelectField
+                  id={`${id}-year`}
+                  value={String(viewYear)}
+                  onChange={(next) => setViewYear(Number(next))}
+                  options={yearSelectOptions}
+                  variant="calendar"
+                  menuPlacement="below"
+                  className="calendar__select-field calendar__select-field--year"
+                />
+              </div>
               <div className="calendar__nav">
                 <button type="button" className="calendar__nav-btn" aria-label="Previous month" onClick={() => shiftMonth(-1)}>
                   ‹

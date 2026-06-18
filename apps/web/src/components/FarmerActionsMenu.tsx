@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useDropdownPlacement } from "../hooks/useDropdownPlacement";
 
 export interface FarmerActionItem {
   label: string;
@@ -14,6 +15,9 @@ interface FarmerActionsMenuProps {
 export function FarmerActionsMenu({ items, label = "Farmer actions" }: FarmerActionsMenuProps) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const placement = useDropdownPlacement({ open, triggerRef, menuRef: panelRef });
 
   useEffect(() => {
     if (!open) return;
@@ -45,6 +49,7 @@ export function FarmerActionsMenu({ items, label = "Farmer actions" }: FarmerAct
     <div className="row-actions" ref={menuRef}>
       <button
         type="button"
+        ref={triggerRef}
         className="row-actions__trigger"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
@@ -60,7 +65,11 @@ export function FarmerActionsMenu({ items, label = "Farmer actions" }: FarmerAct
         </span>
       </button>
       {open && (
-        <div className="row-actions__menu" role="menu">
+        <div
+          ref={panelRef}
+          className={`row-actions__menu${placement === "above" ? " dropdown-panel--above" : ""}`}
+          role="menu"
+        >
           {items.map((item) => (
             <button
               key={item.label}

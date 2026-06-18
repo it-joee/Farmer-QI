@@ -1,5 +1,6 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { canRegisterFarmers } from "../auth";
+import { EventListMobileCard } from "../components/EventListMobileCard";
 import { useEvents, usePendingEventsList } from "../hooks/useEvents";
 import { useOfflineSyncContext } from "../context/OfflineSyncContext";
 import { useRequireAuth } from "../hooks/useFarmers";
@@ -7,6 +8,7 @@ import { formatEventDate, isEventUpcoming } from "../lib/events";
 
 export function EventsPage() {
   const user = useRequireAuth();
+  const navigate = useNavigate();
   const { events, loading, error } = useEvents();
   const { pendingEvents } = usePendingEventsList();
   const { refreshPending } = useOfflineSyncContext();
@@ -41,7 +43,8 @@ export function EventsPage() {
         )}
 
         {hasPending && (
-          <div className="table-scroll">
+          <>
+          <div className="table-scroll event-list--desktop-only">
             <table className="table table--pending">
               <thead>
                 <tr>
@@ -94,10 +97,37 @@ export function EventsPage() {
               </tbody>
             </table>
           </div>
+          <div className="event-list--mobile-only">
+            {pendingEvents.map((event) => {
+              const location = event.community || event.location || "—";
+              return (
+                <EventListMobileCard
+                  key={event.localId}
+                  title={event.title}
+                  date={formatEventDate(event.event_date)}
+                  location={location}
+                  attendance={`${event.attendees.length} attendee${event.attendees.length === 1 ? "" : "s"}`}
+                  status={event.status === "failed" ? "failed" : "pending"}
+                  statusLabel={event.status === "failed" ? "Sync failed" : undefined}
+                  openTo={`/events/pending/${event.localId}`}
+                  editTo={
+                    canRegisterFarmers(user) ? `/events/pending/${event.localId}/edit` : undefined
+                  }
+                  onOpenClick={() => void refreshPending()}
+                  onOpen={() => {
+                    void refreshPending();
+                    navigate(`/events/pending/${event.localId}`);
+                  }}
+                />
+              );
+            })}
+          </div>
+          </>
         )}
 
         {hasSynced && (
-          <div className="table-scroll">
+          <>
+          <div className="table-scroll event-list--desktop-only">
             <table className="table">
               <thead>
                 <tr>
@@ -134,6 +164,29 @@ export function EventsPage() {
               </tbody>
             </table>
           </div>
+          <div className="event-list--mobile-only">
+            {events.map((event) => {
+              const location = event.community || event.location || "—";
+              const count = event.attendance_count ?? 0;
+              return (
+                <EventListMobileCard
+                  key={event.id}
+                  title={event.title}
+                  date={formatEventDate(event.event_date)}
+                  location={location}
+                  attendance={`${count} attendee${count === 1 ? "" : "s"}`}
+                  openTo={`/events/${event.id}`}
+                  editTo={
+                    canRegisterFarmers(user) && isEventUpcoming(event.event_date)
+                      ? `/events/${event.id}/edit`
+                      : undefined
+                  }
+                  onOpen={() => navigate(`/events/${event.id}`)}
+                />
+              );
+            })}
+          </div>
+          </>
         )}
       </div>
     </main>

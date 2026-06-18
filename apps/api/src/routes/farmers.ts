@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { CreateFarmerRequest, UpdateFarmerRequest } from "@farmeriq/shared";
+import { CreateFarmerRequest, UpdateFarmerRequest, createFarmerReferenceId } from "@farmeriq/shared";
 import { SKIP_AUTH } from "../config.js";
 import { requireActor, type Actor } from "../lib/actor.js";
 import { canRegisterFarmers, farmerScopeClause } from "../lib/access.js";
@@ -63,15 +63,18 @@ farmerRoutes.post("/", async (c) => {
   );
   const officeId = userResult.rows[0]?.office_id ?? actor.office_id ?? null;
 
+  const referenceId = createFarmerReferenceId();
+
   const result = await query(
     `INSERT INTO farmers (
-      full_name, community, ghana_card, gender, date_of_birth, age, phone, email,
+      reference_id, full_name, community, ghana_card, gender, date_of_birth, age, phone, email,
       region, district, digital_address, farm_address,
       household_size, farming_dependency, years_farming, primary_crops,
       bank_name, bank_branch, bank_account, created_by, office_id
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
     RETURNING *`,
     [
+      referenceId,
       farmerFields.full_name,
       farmerFields.community,
       farmerFields.ghana_card ?? null,

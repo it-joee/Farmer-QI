@@ -1,4 +1,5 @@
 import type { ConflictFlag, FarmerExportRow, ReportFilters, ReportSummary } from "@farmeriq/shared";
+import { getFarmerDisplayId } from "@farmeriq/shared";
 import { apiFetch } from "./api-client";
 
 export interface ReportFilterOptions {
@@ -60,7 +61,7 @@ const EXPORT_COLUMNS: { key: keyof FarmerExportRow | "commodities"; label: strin
   { key: "farming_dependency", label: "Farming dependency" },
   { key: "has_boundary", label: "Has boundary" },
   { key: "created_at", label: "Registered" },
-  { key: "id", label: "System ID" },
+  { key: "id", label: "ID" },
 ];
 
 function escapeCsv(value: string): string {
@@ -71,6 +72,9 @@ function escapeCsv(value: string): string {
 }
 
 function rowValue(farmer: FarmerExportRow, key: (typeof EXPORT_COLUMNS)[number]["key"]): string {
+  if (key === "id") {
+    return getFarmerDisplayId(farmer);
+  }
   if (key === "commodities") {
     return (farmer.primary_crops ?? []).join("; ");
   }

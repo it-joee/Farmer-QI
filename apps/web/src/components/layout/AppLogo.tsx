@@ -7,7 +7,6 @@ export function AppLogo({ as: Tag = "div", className = "" }: AppLogoProps) {
   return (
     <Tag className={`app-logo${className ? ` ${className}` : ""}`}>
       <span className="app-logo__name">FarmerIQ</span>
-      <span className="app-logo__tagline">By JNI Agri</span>
     </Tag>
   );
 }

@@ -7,6 +7,12 @@ import { uploadFarmerPhotos } from "../lib/photos";
 import { fetchFarmer, updateFarmer } from "../lib/farmers";
 import { fetchFarmerPlots, updateFarmPlot, uploadFarmPlot } from "../lib/plots";
 import { useRequireAuth } from "../hooks/useFarmers";
+import {
+  applyFieldValidation,
+  clearFieldError,
+  type FieldErrors,
+  type FieldValidation,
+} from "../lib/form-validation";
 import { StepFarmBoundary, StepIdentity, StepLocation, StepPersonal } from "./farmer-form/steps";
 import {
   EDIT_FORM_STEPS,
@@ -21,6 +27,8 @@ export function EditFarmerPage() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FarmerFormData | null>(null);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [ghanaCardPhotos, setGhanaCardPhotos] = useState<CapturedPhoto[]>([]);
@@ -52,6 +60,7 @@ export function EditFarmerPage() {
 
   function updateField(field: keyof FarmerFormData, value: string) {
     setForm((prev) => (prev ? { ...prev, [field]: value } : prev));
+    setFieldErrors((prev) => clearFieldError(prev, field));
   }
 
   function toggleCommodity(commodity: string) {
@@ -79,41 +88,41 @@ export function EditFarmerPage() {
     );
   }
 
-  function validateStep(): string | null {
-    if (!form) return "Form not loaded.";
-    if (step === 1 && !form.full_name.trim()) return "Full name is required.";
-    if (step === 2 && !form.community.trim()) return "Community / village is required.";
+  function validateStep(): FieldValidation | null {
+    if (!form) return null;
+    if (step === 1 && !form.full_name.trim()) {
+      return { fieldId: "full_name", message: "Full name is required." };
+    }
+    if (step === 2 && !form.community.trim()) {
+      return { fieldId: "community", message: "Community / village is required." };
+    }
     if (step === 4 && boundaryEnabled && boundaryPins.length > 0 && boundaryPins.length < 3) {
-      return "Drop at least 3 GPS points to define the farm boundary.";
+      return {
+        fieldId: "farm-boundary",
+        message: "Drop at least 3 GPS points to define the farm boundary.",
+      };
     }
     return null;
   }
 
   function goNext() {
-    const message = validateStep();
-    if (message) {
-      setError(message);
-      return;
-    }
-    setError("");
+    if (!applyFieldValidation(validateStep(), setFieldErrors)) return;
+    setFormError("");
     setStep((s) => Math.min(s + 1, EDIT_FORM_STEPS.length));
   }
 
   function goBack() {
-    setError("");
+    setFormError("");
+    setFieldErrors({});
     setStep((s) => Math.max(s - 1, 1));
   }
 
   async function handleSubmit() {
     if (!form || !id || !user) return;
-    const message = validateStep();
-    if (message) {
-      setError(message);
-      return;
-    }
+    if (!applyFieldValidation(validateStep(), setFieldErrors)) return;
 
     setSaving(true);
-    setError("");
+    setFormError("");
 
     try {
       await updateFarmer(id, form, user.id);
@@ -129,7 +138,7 @@ export function EditFarmerPage() {
       }
       navigate(`/farmers/${id}`);
     } catch {
-      setError("Could not save changes.");
+      setFormError("Could not save changes.");
     } finally {
       setSaving(false);
     }
@@ -173,20 +182,24 @@ export function EditFarmerPage() {
       <div className="card card--form">
         <div className="section-header">{currentStep.title}</div>
 
-        {error && error !== "Could not load farmer." && <p className="error">{error}</p>}
+        {formError && <p className="error">{formError}</p>}
 
         {step === 1 && (
           <StepPersonal
             form={form}
+            errors={fieldErrors}
             onChange={updateField}
             onToggleCommodity={toggleCommodity}
             onToggleOther={toggleOther}
           />
         )}
-        {step === 2 && <StepLocation form={form} onChange={updateField} />}
+        {step === 2 && (
+          <StepLocation form={form} errors={fieldErrors} onChange={updateField} />
+        )}
         {step === 3 && (
           <StepIdentity
             form={form}
+            errors={fieldErrors}
             onChange={updateField}
             ghanaCardPhotos={ghanaCardPhotos}
             onGhanaCardPhotosChange={setGhanaCardPhotos}
@@ -200,6 +213,7 @@ export function EditFarmerPage() {
             onEnabledChange={setBoundaryEnabled}
             pins={boundaryPins}
             onPinsChange={setBoundaryPins}
+            error={fieldErrors["farm-boundary"]}
           />
         )}
 

@@ -1,4 +1,7 @@
+import { FormGroup } from "./FormGroup";
 import { DateField } from "./fields/DateField";
+import type { FieldValidation } from "../lib/form-validation";
+import type { FieldErrors } from "../lib/form-validation";
 
 export interface EventFormValues {
   title: string;
@@ -11,36 +14,43 @@ export interface EventFormValues {
 
 interface EventFormFieldsProps {
   values: EventFormValues;
+  errors?: FieldErrors;
   onChange: <K extends keyof EventFormValues>(field: K, value: EventFormValues[K]) => void;
 }
 
-export function EventFormFields({ values, onChange }: EventFormFieldsProps) {
+export function validateEventForm(values: EventFormValues): FieldValidation | null {
+  if (!values.title.trim()) {
+    return { fieldId: "event-title", message: "Event title is required." };
+  }
+  if (!values.eventDate) {
+    return { fieldId: "event-date", message: "Event date is required." };
+  }
+  return null;
+}
+
+export function EventFormFields({ values, errors, onChange }: EventFormFieldsProps) {
   return (
     <div className="form-grid">
-      <div className="form-group">
-        <label htmlFor="event-title">Event title/topic</label>
+      <FormGroup fieldId="event-title" label="Event title/topic" error={errors?.["event-title"]}>
         <input
           id="event-title"
           type="text"
           value={values.title}
           onChange={(e) => onChange("title", e.target.value)}
           placeholder="e.g. Sorghum training — Wa community"
-          required
         />
-      </div>
+      </FormGroup>
 
-      <div className="form-group">
-        <label htmlFor="event-date">Date</label>
+      <FormGroup fieldId="event-date" label="Date" error={errors?.["event-date"]}>
         <DateField
           id="event-date"
           value={values.eventDate}
           onChange={(value) => onChange("eventDate", value)}
-          required
+          invalid={Boolean(errors?.["event-date"])}
         />
-      </div>
+      </FormGroup>
 
-      <div className="form-group">
-        <label htmlFor="event-community-location">Event community/location</label>
+      <FormGroup fieldId="event-community-location" label="Event community/location">
         <input
           id="event-community-location"
           type="text"
@@ -48,10 +58,9 @@ export function EventFormFields({ values, onChange }: EventFormFieldsProps) {
           onChange={(e) => onChange("communityLocation", e.target.value)}
           placeholder="e.g. Wa, community hall"
         />
-      </div>
+      </FormGroup>
 
-      <div className="form-group">
-        <label htmlFor="event-district">District</label>
+      <FormGroup fieldId="event-district" label="District">
         <input
           id="event-district"
           type="text"
@@ -59,10 +68,9 @@ export function EventFormFields({ values, onChange }: EventFormFieldsProps) {
           onChange={(e) => onChange("district", e.target.value)}
           placeholder="e.g. Wa Municipal"
         />
-      </div>
+      </FormGroup>
 
-      <div className="form-group">
-        <label htmlFor="event-mofa-officer">MoFA Officer</label>
+      <FormGroup fieldId="event-mofa-officer" label="MoFA Officer">
         <input
           id="event-mofa-officer"
           type="text"
@@ -70,10 +78,13 @@ export function EventFormFields({ values, onChange }: EventFormFieldsProps) {
           onChange={(e) => onChange("mofaOfficer", e.target.value)}
           placeholder="Officer name"
         />
-      </div>
+      </FormGroup>
 
-      <div className="form-group" style={{ gridColumn: "1 / -1" }}>
-        <label htmlFor="event-description">Notes</label>
+      <FormGroup
+        fieldId="event-description"
+        label="Notes"
+        className="form-group--full"
+      >
         <textarea
           id="event-description"
           value={values.description}
@@ -81,7 +92,7 @@ export function EventFormFields({ values, onChange }: EventFormFieldsProps) {
           rows={3}
           placeholder="Agenda, facilitator, or other details"
         />
-      </div>
+      </FormGroup>
     </div>
   );
 }

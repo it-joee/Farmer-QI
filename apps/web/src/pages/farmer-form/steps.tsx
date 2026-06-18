@@ -1,20 +1,22 @@
 import {
-  COMMODITIES,
   FARMING_DEPENDENCY_OPTIONS,
   GENDER_OPTIONS,
   GHANA_REGIONS,
-  OTHER_COMMODITY_OPTION,
 } from "@farmeriq/shared";
 import type { GpsPin } from "@farmeriq/shared";
 import type { FarmerFormData } from "./types";
 import type { CapturedPhoto } from "../../lib/photos";
+import { FormGroup } from "../../components/FormGroup";
 import { FarmBoundaryCapture } from "../../components/FarmBoundaryCapture";
 import { DateField } from "../../components/fields/DateField";
 import { SelectField } from "../../components/fields/SelectField";
 import { PhotoCaptureField } from "../../components/PhotoCaptureField";
+import { CommodityChipSelect } from "../../components/fields/CommodityChipSelect";
+import type { FieldErrors } from "../../lib/form-validation";
 
 interface StepProps {
   form: FarmerFormData;
+  errors?: FieldErrors;
   onChange: (field: keyof FarmerFormData, value: string) => void;
   onToggleCommodity?: (commodity: string) => void;
   onToggleOther?: (enabled: boolean) => void;
@@ -27,23 +29,25 @@ interface StepIdentityProps extends StepProps {
   onFarmerPhotoChange: (photo: CapturedPhoto | null) => void;
 }
 
-export function StepPersonal({ form, onChange, onToggleCommodity, onToggleOther }: StepProps) {
+export function StepPersonal({ form, errors, onChange, onToggleCommodity, onToggleOther }: StepProps) {
   return (
     <div className="form-grid">
-      <div className="form-group">
-        <label htmlFor="full_name">Full name</label>
+      <FormGroup fieldId="full_name" label="Full name" error={errors?.full_name}>
         <input
           id="full_name"
           value={form.full_name}
           onChange={(e) => onChange("full_name", e.target.value)}
-          required
         />
-      </div>
+      </FormGroup>
 
-      <div className="form-group">
-        <label htmlFor="gender">
-          Gender <span className="optional">(optional)</span>
-        </label>
+      <FormGroup
+        fieldId="gender"
+        label={
+          <>
+            Gender <span className="optional">(optional)</span>
+          </>
+        }
+      >
         <SelectField
           id="gender"
           value={form.gender}
@@ -51,23 +55,33 @@ export function StepPersonal({ form, onChange, onToggleCommodity, onToggleOther 
           placeholder="Select"
           options={[{ value: "", label: "Select" }, ...GENDER_OPTIONS]}
         />
-      </div>
+      </FormGroup>
 
-      <div className="form-group">
-        <label htmlFor="date_of_birth">
-          Date of birth <span className="optional">(optional)</span>
-        </label>
+      <FormGroup
+        fieldId="date_of_birth"
+        label={
+          <>
+            Date of birth <span className="optional">(optional)</span>
+          </>
+        }
+      >
         <DateField
           id="date_of_birth"
           value={form.date_of_birth}
           onChange={(value) => onChange("date_of_birth", value)}
+          minYear={1920}
+          maxYear={new Date().getFullYear()}
         />
-      </div>
+      </FormGroup>
 
-      <div className="form-group">
-        <label htmlFor="household_size">
-          Household size <span className="optional">(optional)</span>
-        </label>
+      <FormGroup
+        fieldId="household_size"
+        label={
+          <>
+            Household size <span className="optional">(optional)</span>
+          </>
+        }
+      >
         <input
           id="household_size"
           type="number"
@@ -75,12 +89,16 @@ export function StepPersonal({ form, onChange, onToggleCommodity, onToggleOther 
           value={form.household_size}
           onChange={(e) => onChange("household_size", e.target.value)}
         />
-      </div>
+      </FormGroup>
 
-      <div className="form-group">
-        <label htmlFor="farming_dependency">
-          Farming dependency <span className="optional">(optional)</span>
-        </label>
+      <FormGroup
+        fieldId="farming_dependency"
+        label={
+          <>
+            Farming dependency <span className="optional">(optional)</span>
+          </>
+        }
+      >
         <SelectField
           id="farming_dependency"
           value={form.farming_dependency}
@@ -91,12 +109,16 @@ export function StepPersonal({ form, onChange, onToggleCommodity, onToggleOther 
             ...FARMING_DEPENDENCY_OPTIONS.map((opt) => ({ value: opt, label: opt })),
           ]}
         />
-      </div>
+      </FormGroup>
 
-      <div className="form-group">
-        <label htmlFor="years_farming">
-          Years farming <span className="optional">(optional)</span>
-        </label>
+      <FormGroup
+        fieldId="years_farming"
+        label={
+          <>
+            Years farming <span className="optional">(optional)</span>
+          </>
+        }
+      >
         <input
           id="years_farming"
           type="number"
@@ -104,53 +126,38 @@ export function StepPersonal({ form, onChange, onToggleCommodity, onToggleOther 
           value={form.years_farming}
           onChange={(e) => onChange("years_farming", e.target.value)}
         />
-      </div>
+      </FormGroup>
 
-      <div className="form-group form-group--full">
-        <span className="field-label">Commodities grown</span>
-        <div className="crop-checkboxes">
-          {COMMODITIES.map((commodity) => (
-            <label key={commodity} className="crop-checkbox">
-              <input
-                type="checkbox"
-                checked={form.primary_crops.includes(commodity)}
-                onChange={() => onToggleCommodity?.(commodity)}
-              />
-              {commodity}
-            </label>
-          ))}
-          <label className="crop-checkbox">
-            <input
-              type="checkbox"
-              checked={form.other_commodity_enabled}
-              onChange={(e) => onToggleOther?.(e.target.checked)}
-            />
-            {OTHER_COMMODITY_OPTION}
-          </label>
-        </div>
-        {form.other_commodity_enabled && (
-          <div className="form-group form-group--nested">
-            <label htmlFor="other_commodity">Other commodity</label>
-            <input
-              id="other_commodity"
-              placeholder="Enter commodity name"
-              value={form.other_commodity}
-              onChange={(e) => onChange("other_commodity", e.target.value)}
-            />
-          </div>
-        )}
-      </div>
+      <FormGroup
+        fieldId="primary_crops"
+        label="Commodities grown"
+        labelFor={null}
+        className="form-group--full"
+      >
+        <CommodityChipSelect
+          selected={form.primary_crops}
+          onToggle={(commodity) => onToggleCommodity?.(commodity)}
+          otherEnabled={form.other_commodity_enabled}
+          onToggleOther={(enabled) => onToggleOther?.(enabled)}
+          otherValue={form.other_commodity}
+          onOtherChange={(value) => onChange("other_commodity", value)}
+        />
+      </FormGroup>
     </div>
   );
 }
 
-export function StepLocation({ form, onChange }: StepProps) {
+export function StepLocation({ form, errors, onChange }: StepProps) {
   return (
     <div className="form-grid">
-      <div className="form-group">
-        <label htmlFor="region">
-          Region <span className="optional">(optional)</span>
-        </label>
+      <FormGroup
+        fieldId="region"
+        label={
+          <>
+            Region <span className="optional">(optional)</span>
+          </>
+        }
+      >
         <SelectField
           id="region"
           value={form.region}
@@ -161,52 +168,63 @@ export function StepLocation({ form, onChange }: StepProps) {
             ...GHANA_REGIONS.map((region) => ({ value: region, label: region })),
           ]}
         />
-      </div>
+      </FormGroup>
 
-      <div className="form-group">
-        <label htmlFor="district">
-          District <span className="optional">(optional)</span>
-        </label>
+      <FormGroup
+        fieldId="district"
+        label={
+          <>
+            District <span className="optional">(optional)</span>
+          </>
+        }
+      >
         <input
           id="district"
           value={form.district}
           onChange={(e) => onChange("district", e.target.value)}
         />
-      </div>
+      </FormGroup>
 
-      <div className="form-group">
-        <label htmlFor="community">Community / village</label>
+      <FormGroup fieldId="community" label="Community / village" error={errors?.community}>
         <input
           id="community"
           value={form.community}
           onChange={(e) => onChange("community", e.target.value)}
-          required
         />
-      </div>
+      </FormGroup>
 
-      <div className="form-group">
-        <label htmlFor="digital_address">
-          Ghana Post GPS <span className="optional">(optional)</span>
-        </label>
+      <FormGroup
+        fieldId="digital_address"
+        label={
+          <>
+            Ghana Post GPS <span className="optional">(optional)</span>
+          </>
+        }
+      >
         <input
           id="digital_address"
           placeholder="e.g. GA-183-8163"
           value={form.digital_address}
           onChange={(e) => onChange("digital_address", e.target.value)}
         />
-      </div>
+      </FormGroup>
 
-      <div className="form-group form-group--full">
-        <label htmlFor="farm_address">
-          Farm address <span className="optional">(optional)</span>
-        </label>
+      <FormGroup
+        fieldId="farm_address"
+        label={
+          <>
+            Farm address <span className="optional">(optional)</span>
+          </>
+        }
+        className="form-group--full"
+      >
         <textarea
           id="farm_address"
           rows={3}
           value={form.farm_address}
           onChange={(e) => onChange("farm_address", e.target.value)}
         />
-      </div>
+      </FormGroup>
     </div>
   );
 }
@@ -221,25 +239,26 @@ export function StepIdentity({
 }: StepIdentityProps) {
   return (
     <div className="form-grid">
-      <div className="form-group">
-        <label htmlFor="ghana_card">Ghana Card Number</label>
+      <FormGroup
+        fieldId="ghana_card"
+        label="Ghana Card Number"
+        hint="Leave blank if the farmer does not have a Ghana Card."
+      >
         <input
           id="ghana_card"
           value={form.ghana_card}
           onChange={(e) => onChange("ghana_card", e.target.value)}
         />
-        <p className="field-hint">Leave blank if the farmer does not have a Ghana Card.</p>
-      </div>
+      </FormGroup>
 
-      <div className="form-group">
-        <label htmlFor="phone">Mobile</label>
+      <FormGroup fieldId="phone" label="Mobile">
         <input
           id="phone"
           type="tel"
           value={form.phone}
           onChange={(e) => onChange("phone", e.target.value)}
         />
-      </div>
+      </FormGroup>
 
       <PhotoCaptureField
         label="Ghana Card photos"
@@ -267,6 +286,7 @@ interface StepFarmBoundaryProps {
   onEnabledChange: (enabled: boolean) => void;
   pins: GpsPin[];
   onPinsChange: (pins: GpsPin[]) => void;
+  error?: string;
 }
 
 export function StepFarmBoundary({
@@ -274,15 +294,20 @@ export function StepFarmBoundary({
   onEnabledChange,
   pins,
   onPinsChange,
+  error,
 }: StepFarmBoundaryProps) {
   return (
     <div className="form-grid">
-      <FarmBoundaryCapture
-        enabled={enabled}
-        onEnabledChange={onEnabledChange}
-        pins={pins}
-        onPinsChange={onPinsChange}
-      />
+      <FormGroup fieldId="farm-boundary" labelFor={null} error={error} className="form-group--full">
+        <div id="farm-boundary" tabIndex={-1}>
+          <FarmBoundaryCapture
+            enabled={enabled}
+            onEnabledChange={onEnabledChange}
+            pins={pins}
+            onPinsChange={onPinsChange}
+          />
+        </div>
+      </FormGroup>
     </div>
   );
 }

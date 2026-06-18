@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Farmer } from "@farmeriq/shared";
+import { formatFarmerReferenceId } from "@farmeriq/shared";
 import { apiFetch } from "../lib/api-client";
 import { useAuthUser } from "./useAuth";
 import { USER_CHANGED_EVENT } from "../auth";
@@ -9,6 +10,7 @@ export const FARMERS_SYNCED_EVENT = "farmeriq:farmers-synced";
 export function normalizeFarmer(raw: Farmer): Farmer {
   return {
     ...raw,
+    reference_id: raw.reference_id || formatFarmerReferenceId(raw.id),
     primary_crops: raw.primary_crops ?? [],
   };
 }

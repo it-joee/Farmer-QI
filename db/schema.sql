@@ -56,6 +56,7 @@ CREATE INDEX idx_refresh_tokens_user ON refresh_tokens(user_id);
 
 CREATE TABLE farmers (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  reference_id        TEXT NOT NULL UNIQUE,
   ghana_card          TEXT,
   full_name           TEXT NOT NULL,
   gender              TEXT,
@@ -83,6 +84,7 @@ CREATE TABLE farmers (
 );
 
 CREATE INDEX idx_farmers_ghana_card ON farmers(ghana_card) WHERE ghana_card IS NOT NULL;
+CREATE INDEX idx_farmers_reference_id ON farmers(reference_id);
 CREATE INDEX idx_farmers_community ON farmers(community);
 CREATE INDEX idx_farmers_created_by ON farmers(created_by);
 CREATE INDEX idx_farmers_office ON farmers(office_id);

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import type { ConflictFlag, CropCycle, FarmPlotDetail, Farmer, FarmerPhoto } from "@farmeriq/shared";
+import { getFarmerDisplayId } from "@farmeriq/shared";
 import { BackButton } from "../components/BackButton";
 import { ConflictAlerts } from "../components/ConflictAlerts";
 import { CropCycleSection } from "../components/CropCycleSection";
@@ -93,8 +94,8 @@ export function FarmerDetailPage() {
               {farmer.region ? ` · ${farmer.region}` : ""}
             </p>
             <p className="farmer-detail__id">
-              <span className="muted">System ID</span>{" "}
-              <code className="system-id">{farmer.id}</code>
+              <span className="muted">ID</span>{" "}
+              <span className="reference-id">{getFarmerDisplayId(farmer)}</span>
             </p>
           </div>
         </div>

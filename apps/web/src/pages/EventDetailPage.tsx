@@ -1,12 +1,19 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useMatch, useParams } from "react-router-dom";
 import type { EventAttendee, EventDetail, EventAttendeeGender } from "@farmeriq/shared";
 import { GENDER_OPTIONS } from "@farmeriq/shared";
 import { BackButton } from "../components/BackButton";
+import { FormGroup } from "../components/FormGroup";
 import { SelectField } from "../components/fields/SelectField";
 import { getCurrentUser } from "../auth";
 import { useOfflineSyncContext } from "../context/OfflineSyncContext";
 import { useRequireAuth } from "../hooks/useFarmers";
+import {
+  applyFieldValidation,
+  clearFieldError,
+  type FieldErrors,
+  type FieldValidation,
+} from "../lib/form-validation";
 import { fetchEvent, formatEventDate, formatEventMeta, removeEventAttendee } from "../lib/events";
 import { getPendingEvent } from "../lib/offline/store";
 import {
@@ -38,6 +45,17 @@ function formatAttendeeMeta(person: DisplayAttendee): string {
   return parts.length > 0 ? parts.join(" · ") : "—";
 }
 
+function countAttendeesByGender(attendees: DisplayAttendee[]) {
+  return attendees.reduce(
+    (counts, person) => {
+      if (person.gender === "male") counts.male += 1;
+      else if (person.gender === "female") counts.female += 1;
+      return counts;
+    },
+    { male: 0, female: 0 }
+  );
+}
+
 function pendingToDisplay(attendee: PendingEventAttendee): DisplayAttendee {
   return {
     id: attendee.localId,
@@ -61,6 +79,32 @@ function serverToDisplay(attendee: EventAttendee): DisplayAttendee {
   };
 }
 
+function validateAttendeeForm(values: {
+  name: string;
+  phone: string;
+  community: string;
+  gender: string;
+  age: string;
+}): FieldValidation | null {
+  if (!values.name.trim()) {
+    return { fieldId: "attendee-name", message: "Full name is required." };
+  }
+  if (!values.gender) {
+    return { fieldId: "attendee-gender", message: "Gender is required." };
+  }
+  const ageNum = Number.parseInt(values.age, 10);
+  if (!values.age.trim() || Number.isNaN(ageNum) || ageNum < 1) {
+    return { fieldId: "attendee-age", message: "Age is required." };
+  }
+  if (!values.phone.trim()) {
+    return { fieldId: "attendee-phone", message: "Mobile is required." };
+  }
+  if (!values.community.trim()) {
+    return { fieldId: "attendee-community", message: "Community is required." };
+  }
+  return null;
+}
+
 export function EventDetailPage() {
   const { id } = useParams<{ id?: string; localId?: string }>();
   const pendingMatch = useMatch("/events/pending/:localId");
@@ -73,6 +117,8 @@ export function EventDetailPage() {
   const [pendingEvent, setPendingEvent] = useState<PendingEventRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -80,6 +126,14 @@ export function EventDetailPage() {
   const [community, setCommunity] = useState("");
   const [gender, setGender] = useState("");
   const [age, setAge] = useState("");
+  const addAttendeeRef = useRef<HTMLElement>(null);
+
+  function scrollToAddAttendee() {
+    addAttendeeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.setTimeout(() => {
+      document.getElementById("attendee-name")?.focus();
+    }, 300);
+  }
 
   const loadEvent = useCallback(async () => {
     if (isPendingEvent && pendingLocalId) {
@@ -117,36 +171,26 @@ export function EventDetailPage() {
   const attendees: DisplayAttendee[] = isPendingEvent
     ? (pendingEvent?.attendees ?? []).map(pendingToDisplay)
     : (event?.attendees ?? []).map(serverToDisplay);
+  const genderCounts = countAttendeesByGender(attendees);
 
   async function handleAddAttendee(e: React.FormEvent) {
     e.preventDefault();
     const actor = getCurrentUser();
     if (!actor) return;
 
-    if (!name.trim()) {
-      setError("Name is required.");
-      return;
-    }
-    if (!phone.trim()) {
-      setError("Mobile is required.");
-      return;
-    }
-    if (!community.trim()) {
-      setError("Community is required.");
-      return;
-    }
-    if (!gender) {
-      setError("Gender is required.");
-      return;
-    }
-    const ageNum = Number.parseInt(age, 10);
-    if (!age.trim() || Number.isNaN(ageNum) || ageNum < 1) {
-      setError("Age is required.");
+    if (
+      !applyFieldValidation(
+        validateAttendeeForm({ name, phone, community, gender, age }),
+        setFieldErrors
+      )
+    ) {
       return;
     }
 
+    const ageNum = Number.parseInt(age, 10);
+
     setSaving(true);
-    setError("");
+    setFormError("");
 
     const input = {
       full_name: name.trim(),
@@ -196,9 +240,10 @@ export function EventDetailPage() {
       setCommunity("");
       setGender("");
       setAge("");
+      setFieldErrors({});
       await refreshPending();
     } catch {
-      setError("Could not add attendee. Try again.");
+      setFormError("Could not add attendee. Try again.");
     } finally {
       setSaving(false);
     }
@@ -297,91 +342,36 @@ export function EventDetailPage() {
           </p>
           {eventDescription && <p className="event-detail__description">{eventDescription}</p>}
         </div>
-        <div className="event-detail__header-actions">
-          <div className="event-detail__stats card">
-            <span className="event-detail__stat-value">{attendees.length}</span>
-            <span className="event-detail__stat-label muted">Attendees</span>
-          </div>
+      </div>
+
+      <div className="event-detail__stats-row">
+        <div className="event-detail__stats card">
+          <span className="event-detail__stat-value">{attendees.length}</span>
+          <span className="event-detail__stat-label muted">Total attendees</span>
+        </div>
+        <div className="event-detail__stats card">
+          <span className="event-detail__stat-value">{genderCounts.male}</span>
+          <span className="event-detail__stat-label muted">Male</span>
+        </div>
+        <div className="event-detail__stats card">
+          <span className="event-detail__stat-value">{genderCounts.female}</span>
+          <span className="event-detail__stat-label muted">Female</span>
         </div>
       </div>
 
       <section className="card event-detail__section">
-        <h3 className="card-title">Add attendee</h3>
-        <p className="card-desc">Register someone who attended this event.</p>
-
-        {error && error !== "Could not load event." && <p className="error">{error}</p>}
-
-        <form className="form-grid" onSubmit={handleAddAttendee}>
-          <div className="form-group">
-            <label htmlFor="attendee-name">Full name</label>
-            <input
-              id="attendee-name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Ama Mensah"
-              required
-            />
+        <div className="event-detail__list-header">
+          <div>
+            <h3 className="card-title">Attendance list</h3>
+            <p className="card-desc">Everyone registered for this event.</p>
           </div>
-          <div className="form-group">
-            <label htmlFor="attendee-gender">Gender</label>
-            <SelectField
-              id="attendee-gender"
-              value={gender}
-              onChange={setGender}
-              placeholder="Select"
-              options={[{ value: "", label: "Select" }, ...GENDER_OPTIONS]}
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="attendee-age">Age</label>
-            <input
-              id="attendee-age"
-              type="number"
-              min={1}
-              max={120}
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
-              placeholder="e.g. 35"
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="attendee-phone">Mobile</label>
-            <input
-              id="attendee-phone"
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="e.g. 0241234567"
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="attendee-community">Community</label>
-            <input
-              id="attendee-community"
-              type="text"
-              value={community}
-              onChange={(e) => setCommunity(e.target.value)}
-              placeholder="e.g. Wa"
-              required
-            />
-          </div>
-          <div className="form-group" style={{ gridColumn: "1 / -1" }}>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? "Adding…" : "Add attendee"}
-            </button>
-          </div>
-        </form>
-      </section>
-
-      <section className="card event-detail__section">
-        <h3 className="card-title">Attendance list</h3>
-        <p className="card-desc">Everyone registered for this event.</p>
+          <button type="button" className="btn btn-primary btn--sm" onClick={scrollToAddAttendee}>
+            Add attendee
+          </button>
+        </div>
 
         {attendees.length === 0 ? (
-          <p className="muted">No attendees yet. Add someone using the form above.</p>
+          <p className="muted">No attendees yet. Add someone using the form below.</p>
         ) : (
           <div className="attendance-list">
             {attendees.map((person) => (
@@ -407,6 +397,90 @@ export function EventDetailPage() {
             ))}
           </div>
         )}
+      </section>
+
+      <section ref={addAttendeeRef} className="card event-detail__section">
+        <h3 className="card-title">Add attendee</h3>
+        <p className="card-desc">Register someone who attended this event.</p>
+
+        {formError && <p className="error">{formError}</p>}
+
+        <form className="form-grid event-attendee-form" onSubmit={handleAddAttendee}>
+          <FormGroup fieldId="attendee-name" label="Full name" error={fieldErrors["attendee-name"]}>
+            <input
+              id="attendee-name"
+              type="text"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                setFieldErrors((prev) => clearFieldError(prev, "attendee-name"));
+              }}
+              placeholder="e.g. Ama Mensah"
+            />
+          </FormGroup>
+          <div className="form-grid-pair">
+            <FormGroup fieldId="attendee-gender" label="Gender" error={fieldErrors["attendee-gender"]}>
+              <SelectField
+                id="attendee-gender"
+                value={gender}
+                onChange={(value) => {
+                  setGender(value);
+                  setFieldErrors((prev) => clearFieldError(prev, "attendee-gender"));
+                }}
+                placeholder="Select"
+                options={[{ value: "", label: "Select" }, ...GENDER_OPTIONS]}
+                invalid={Boolean(fieldErrors["attendee-gender"])}
+              />
+            </FormGroup>
+            <FormGroup fieldId="attendee-age" label="Age" error={fieldErrors["attendee-age"]}>
+              <input
+                id="attendee-age"
+                type="number"
+                min={1}
+                max={120}
+                value={age}
+                onChange={(e) => {
+                  setAge(e.target.value);
+                  setFieldErrors((prev) => clearFieldError(prev, "attendee-age"));
+                }}
+                placeholder="e.g. 35"
+              />
+            </FormGroup>
+          </div>
+          <FormGroup fieldId="attendee-phone" label="Mobile" error={fieldErrors["attendee-phone"]}>
+            <input
+              id="attendee-phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => {
+                setPhone(e.target.value);
+                setFieldErrors((prev) => clearFieldError(prev, "attendee-phone"));
+              }}
+              placeholder="e.g. 0241234567"
+            />
+          </FormGroup>
+          <FormGroup
+            fieldId="attendee-community"
+            label="Community"
+            error={fieldErrors["attendee-community"]}
+          >
+            <input
+              id="attendee-community"
+              type="text"
+              value={community}
+              onChange={(e) => {
+                setCommunity(e.target.value);
+                setFieldErrors((prev) => clearFieldError(prev, "attendee-community"));
+              }}
+              placeholder="e.g. Wa"
+            />
+          </FormGroup>
+          <div className="form-group" style={{ gridColumn: "1 / -1" }}>
+            <button type="submit" className="btn btn-primary" disabled={saving}>
+              {saving ? "Adding…" : "Add attendee"}
+            </button>
+          </div>
+        </form>
       </section>
     </main>
   );

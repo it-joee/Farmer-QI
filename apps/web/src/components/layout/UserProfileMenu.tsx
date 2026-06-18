@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { User } from "@farmeriq/shared";
 import { DEMO_USERS, SKIP_AUTH, setDevUser } from "../../auth";
+import { useDropdownPlacement } from "../../hooks/useDropdownPlacement";
 import { ROLE_LABELS } from "./AppNav";
 
 function getInitials(name: string): string {
@@ -20,6 +21,9 @@ interface UserProfileMenuProps {
 export function UserProfileMenu({ user, onLogout }: UserProfileMenuProps) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const placement = useDropdownPlacement({ open, triggerRef, menuRef: panelRef, gap: 4 });
 
   useEffect(() => {
     if (!open) return;
@@ -46,6 +50,7 @@ export function UserProfileMenu({ user, onLogout }: UserProfileMenuProps) {
     <div className="user-profile" ref={menuRef}>
       <button
         type="button"
+        ref={triggerRef}
         className="user-profile__trigger"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
@@ -64,7 +69,11 @@ export function UserProfileMenu({ user, onLogout }: UserProfileMenuProps) {
         </span>
       </button>
       {open && (
-        <div className="user-profile__menu" role="menu">
+        <div
+          ref={panelRef}
+          className={`user-profile__menu${placement === "above" ? " dropdown-panel--above" : ""}`}
+          role="menu"
+        >
           <div className="user-profile__menu-header">
             <span className="user-profile__menu-name">{user.full_name}</span>
             <span className="user-profile__menu-email muted">{user.email}</span>

@@ -5,14 +5,29 @@ import {
   EventFormFields,
   eventFormToSubmitInput,
   eventFormToUpdatePayload,
+  validateEventForm,
   type EventFormValues,
   valuesFromEvent,
 } from "../components/EventFormFields";
 import { getCurrentUser } from "../auth";
 import { useOfflineSyncContext } from "../context/OfflineSyncContext";
 import { useRequireAuth } from "../hooks/useFarmers";
+import {
+  applyFieldValidation,
+  clearFieldError,
+  type FieldErrors,
+} from "../lib/form-validation";
 import { fetchEvent, isEventUpcoming, updateEvent } from "../lib/events";
 import { getPendingEvent, updatePendingEventDetails } from "../lib/offline/event-sync";
+
+const EVENT_FIELD_IDS: Record<keyof EventFormValues, string> = {
+  title: "event-title",
+  eventDate: "event-date",
+  communityLocation: "event-community-location",
+  district: "event-district",
+  mofaOfficer: "event-mofa-officer",
+  description: "event-description",
+};
 
 export function EditEventPage() {
   const { id, localId } = useParams<{ id?: string; localId?: string }>();
@@ -25,6 +40,8 @@ export function EditEventPage() {
   const [values, setValues] = useState<EventFormValues | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
 
   const loadEvent = useCallback(async () => {
@@ -66,6 +83,7 @@ export function EditEventPage() {
 
   function handleChange<K extends keyof EventFormValues>(field: K, value: EventFormValues[K]) {
     setValues((prev) => (prev ? { ...prev, [field]: value } : prev));
+    setFieldErrors((prev) => clearFieldError(prev, EVENT_FIELD_IDS[field]));
   }
 
   if (!user) return null;
@@ -101,17 +119,10 @@ export function EditEventPage() {
     const actor = getCurrentUser();
     if (!actor || !values) return;
 
-    if (!values.title.trim()) {
-      setError("Event title is required.");
-      return;
-    }
-    if (!values.eventDate) {
-      setError("Event date is required.");
-      return;
-    }
+    if (!applyFieldValidation(validateEventForm(values), setFieldErrors)) return;
 
     setSaving(true);
-    setError("");
+    setFormError("");
 
     try {
       if (isPendingEvent && pendingLocalId) {
@@ -128,7 +139,7 @@ export function EditEventPage() {
         navigate("/events", { replace: true });
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update event. Try again.");
+      setFormError(err instanceof Error ? err.message : "Could not update event. Try again.");
     } finally {
       setSaving(false);
     }
@@ -149,9 +160,9 @@ export function EditEventPage() {
       <p className="muted">Update details for an upcoming event.</p>
 
       <form className="card card--form" onSubmit={handleSubmit}>
-        {error && error !== "Could not load event." && <p className="error">{error}</p>}
+        {formError && <p className="error">{formError}</p>}
 
-        <EventFormFields values={values} onChange={handleChange} />
+        <EventFormFields values={values} errors={fieldErrors} onChange={handleChange} />
 
         <div className="form-actions">
           <span />

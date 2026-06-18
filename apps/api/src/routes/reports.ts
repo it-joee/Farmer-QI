@@ -99,6 +99,7 @@ reportRoutes.get("/farmers", async (c) => {
   const result = await query(
     `SELECT
       f.id,
+      f.reference_id,
       f.full_name,
       f.ghana_card,
       f.phone,
@@ -120,6 +121,7 @@ reportRoutes.get("/farmers", async (c) => {
 
   const farmers = result.rows.map((row) => ({
     id: row.id as string,
+    reference_id: row.reference_id as string,
     full_name: row.full_name as string,
     ghana_card: row.ghana_card as string | null,
     phone: row.phone as string | null,
