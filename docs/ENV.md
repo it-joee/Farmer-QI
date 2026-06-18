@@ -22,7 +22,24 @@ Both the API and web dev server load, in order: `.env` → `.env.local` → **`e
 | `PORT` | `3001` | API port |
 | `VITE_API_URL` | `http://localhost:3001` | API URL for web (local dev uses Vite proxy if unset) |
 | `WEB_ORIGIN` | `http://localhost:5173` | CORS origin for API |
-| `UPLOAD_DIR` | `apps/api/uploads` | Farmer photo storage (local dev) |
+| `UPLOAD_DIR` | `apps/api/uploads` | Farmer photo storage when Supabase Storage is **not** configured (local disk fallback) |
+
+## Farmer photos on Vercel / Supabase (required for production)
+
+The hosted API cannot write to disk. Set these on the **API** Vercel project (and in `env.local` for local dev against Supabase Storage):
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SUPABASE_URL` | Yes (hosted) | Project URL, e.g. `https://YOUR_PROJECT_REF.supabase.co` from Supabase → Project Settings → API |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes (hosted) | **Service role** secret from the same page — API only, never `VITE_*` or the browser |
+
+Then run the storage bucket SQL once (Supabase SQL Editor):
+
+`db/migrations/009_farmer_photos_storage_bucket.sql`
+
+Redeploy the API after adding env vars. New photo uploads are stored in the `farmer-photos` bucket; API responses include full `https://...supabase.co/storage/...` URLs.
+
+Without `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`, the API falls back to local disk (`UPLOAD_DIR`), which works for `npm run dev` only — not on Vercel.
 
 ## Supabase testing notes
 
@@ -38,6 +55,8 @@ Add these in **Vercel → Project → Settings → Environment Variables** (Prod
 | Variable | Required | Notes |
 |----------|----------|-------|
 | `DATABASE_URL` | Yes | Supabase **pooler** URI (port 6543) + `?sslmode=require` |
+| `SUPABASE_URL` | Yes | `https://YOUR_PROJECT_REF.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Service role key (server only) |
 | `SKIP_AUTH` | Yes | `true` for testing without login |
 | `JWT_SECRET` | Yes | Any long random string |
 | `WEB_ORIGIN` | Yes | Your web app URL, e.g. `https://your-web.vercel.app` |

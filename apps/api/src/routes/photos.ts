@@ -1,13 +1,42 @@
-import { createReadStream, existsSync } from "fs";
-import { mkdir, unlink, writeFile } from "fs/promises";
-import path from "path";
 import { Hono } from "hono";
 import { stream } from "hono/streaming";
+import path from "path";
 import type { FarmerPhoto } from "@farmeriq/shared";
-import { farmerPhotoDir, photoPublicUrl } from "../config/uploads.js";
+import {
+  createLocalPhotoReadStream,
+  deletePhotoFile,
+  getPhotoStorageBackend,
+  localPhotoExists,
+  photoPublicUrl,
+  savePhotoFile,
+} from "../lib/photo-storage.js";
 import { query } from "../db.js";
 
 export const farmerPhotoRoutes = new Hono();
+
+function contentTypeForFileName(fileName: string): string {
+  const ext = path.extname(fileName).toLowerCase();
+  if (ext === ".png") return "image/png";
+  if (ext === ".webp") return "image/webp";
+  return "image/jpeg";
+}
+
+function isUploadFile(value: unknown): value is File {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "arrayBuffer" in value &&
+    typeof (value as File).arrayBuffer === "function" &&
+    (value as File).size > 0
+  );
+}
+
+function normalizeUploadFiles(value: unknown): File[] {
+  if (Array.isArray(value)) {
+    return value.filter(isUploadFile);
+  }
+  return isUploadFile(value) ? [value] : [];
+}
 
 farmerPhotoRoutes.get("/:farmerId/photos", async (c) => {
   const farmerId = c.req.param("farmerId");
@@ -40,21 +69,27 @@ farmerPhotoRoutes.post("/:farmerId/photos", async (c) => {
   }
 
   const body = await c.req.parseBody({ all: true });
-  const dir = farmerPhotoDir(farmerId);
-  await mkdir(dir, { recursive: true });
+  const ghanaList = normalizeUploadFiles(body.ghana_card);
+  const portraitFiles = normalizeUploadFiles(body.portrait);
+  const portraitFile = portraitFiles[0] ?? null;
+  const expectedUploads = ghanaList.length + (portraitFile ? 1 : 0);
+
+  if (expectedUploads === 0) {
+    return c.json({ error: "No photo files received" }, 400);
+  }
 
   const saved: FarmerPhoto[] = [];
 
-  async function saveFile(
+  async function saveUploadedFile(
     file: File,
     photoType: "ghana_card" | "portrait"
-  ): Promise<FarmerPhoto | null> {
-    if (!(file instanceof File) || file.size === 0) return null;
-
+  ): Promise<FarmerPhoto> {
     const ext = path.extname(file.name) || ".jpg";
     const fileName = `${photoType}-${crypto.randomUUID()}${ext}`;
     const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(path.join(dir, fileName), buffer);
+    const contentType = file.type || contentTypeForFileName(fileName);
+
+    await savePhotoFile(farmerId, fileName, buffer, contentType);
 
     const result = await query<{
       id: string;
@@ -80,20 +115,11 @@ farmerPhotoRoutes.post("/:farmerId/photos", async (c) => {
     };
   }
 
-  const ghanaCardFiles = body.ghana_card;
-  const ghanaList = Array.isArray(ghanaCardFiles)
-    ? ghanaCardFiles
-    : ghanaCardFiles
-      ? [ghanaCardFiles]
-      : [];
-
   for (const file of ghanaList) {
-    const photo = await saveFile(file as File, "ghana_card");
-    if (photo) saved.push(photo);
+    saved.push(await saveUploadedFile(file, "ghana_card"));
   }
 
-  const portraitFile = body.portrait;
-  if (portraitFile && !Array.isArray(portraitFile)) {
+  if (portraitFile) {
     const existingPortrait = await query(
       "SELECT id, file_name FROM farmer_photos WHERE farmer_id = $1 AND photo_type = 'portrait'",
       [farmerId]
@@ -103,8 +129,11 @@ farmerPhotoRoutes.post("/:farmerId/photos", async (c) => {
       await query("DELETE FROM farmer_photos WHERE id = $1", [row.id]);
     }
 
-    const photo = await saveFile(portraitFile as File, "portrait");
-    if (photo) saved.push(photo);
+    saved.push(await saveUploadedFile(portraitFile, "portrait"));
+  }
+
+  if (saved.length === 0) {
+    return c.json({ error: "Photo upload failed" }, 500);
   }
 
   return c.json({ photos: saved }, 201);
@@ -131,33 +160,30 @@ farmerPhotoRoutes.delete("/photos/:photoId", async (c) => {
 export const uploadFileRoute = new Hono();
 
 uploadFileRoute.get("/:farmerId/:fileName", async (c) => {
+  if (getPhotoStorageBackend() === "supabase") {
+    return c.json(
+      {
+        error: "Photos are served from Supabase Storage. Use the url field on farmer photo records.",
+      },
+      410
+    );
+  }
+
   const { farmerId, fileName } = c.req.param();
 
   if (fileName.includes("..") || fileName.includes("/")) {
     return c.json({ error: "Invalid file" }, 400);
   }
 
-  const filePath = path.join(farmerPhotoDir(farmerId), fileName);
-  if (!existsSync(filePath)) {
+  if (!localPhotoExists(farmerId, fileName)) {
     return c.notFound();
   }
 
-  const ext = path.extname(fileName).toLowerCase();
-  const type =
-    ext === ".png" ? "image/png" : ext === ".webp" ? "image/webp" : "image/jpeg";
-
-  c.header("Content-Type", type);
+  c.header("Content-Type", contentTypeForFileName(fileName));
   return stream(c, async (s) => {
-    const reader = createReadStream(filePath);
+    const reader = createLocalPhotoReadStream(farmerId, fileName);
     for await (const chunk of reader) {
       await s.write(chunk);
     }
   });
 });
-
-async function deletePhotoFile(farmerId: string, fileName: string) {
-  const filePath = path.join(farmerPhotoDir(farmerId), fileName);
-  if (existsSync(filePath)) {
-    await unlink(filePath);
-  }
-}

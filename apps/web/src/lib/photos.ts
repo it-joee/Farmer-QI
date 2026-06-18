@@ -39,6 +39,13 @@ export async function uploadFarmerPhotos(
   });
 
   if (!res.ok) {
-    throw new Error("Photo upload failed");
+    const body = (await res.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(body?.error ?? "Photo upload failed");
+  }
+
+  const data = (await res.json()) as { photos?: unknown[] };
+  const expectedCount = ghanaCardPhotos.length + (farmerPhoto ? 1 : 0);
+  if ((data.photos?.length ?? 0) < expectedCount) {
+    throw new Error("Photo upload failed — no files were saved");
   }
 }

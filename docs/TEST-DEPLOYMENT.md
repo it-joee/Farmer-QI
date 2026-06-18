@@ -16,9 +16,9 @@ Use this guide to stand up a shared test environment. When testing is done, migr
 | Web hosting | VPS / reverse proxy | **Vercel** (static build of `apps/web`) |
 | API hosting | Same VPS as DB or adjacent Node process | **Vercel serverless** (Hono) *or* same Vercel project via rewrites |
 | Auth | Self-hosted JWT + Argon2 | Same code — still self-hosted in our API (not Supabase Auth) |
-| Farmer photos | Local disk on VPS | **Not supported on Vercel serverless** without extra storage (see [Limitations](#limitations)) |
+| Farmer photos | Local disk on VPS | **Supabase Storage** bucket `farmer-photos` (see [ENV.md](ENV.md)) |
 
-**What we do not use from Supabase:** Auth, Storage, Realtime, Edge Functions, or the Supabase client SDK. Supabase is a managed Postgres host only.
+**What we do not use from Supabase:** Auth, Realtime, Edge Functions, or the Supabase client SDK in the web app. Supabase provides **Postgres + Storage** for the testing period.
 
 **What we do not use from Vercel:** Vercel Postgres, Vercel KV, or third-party auth integrations.
 
@@ -118,6 +118,8 @@ Set these for **Production** and **Preview**:
 | Variable | Example / notes |
 |----------|-----------------|
 | `DATABASE_URL` | Supabase pooler URI (see above) |
+| `SUPABASE_URL` | `https://YOUR_PROJECT_REF.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role secret (API only) |
 | `SKIP_AUTH` | `false` when testing with real users, or `true` for UI-only smoke tests |
 | `JWT_SECRET` | Long random string |
 | `WEB_ORIGIN` | `https://your-app.vercel.app` (your Vercel web URL) |
@@ -207,13 +209,15 @@ After deploy (or local + Supabase):
 
 ### Farmer photo uploads
 
-Photos are stored on the API server filesystem (`apps/api/uploads/`). **Vercel serverless has no persistent disk**, so photo upload/sync will not work on a serverless-only API deployment.
+Photos are stored in **Supabase Storage** when `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set on the API (required on Vercel). Without those variables, the API writes to local disk — works for `npm run dev`, not on serverless.
 
-Options for the test period:
+Setup:
 
-1. **Skip photos** — test registry, boundaries, reports, and events without portraits.
-2. **Run API locally or on a VPS** with disk storage while web is on Vercel (hybrid).
-3. **Add object storage later** (e.g. Supabase Storage or S3) — out of scope for “database only” unless you explicitly expand.
+1. Run `db/migrations/009_farmer_photos_storage_bucket.sql` in the Supabase SQL Editor.
+2. Add `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` to the API Vercel project env vars.
+3. Redeploy the API.
+
+Ghana Card images are sensitive; the test bucket is public-read for simplicity. Switch to a private bucket + signed URLs before production go-live.
 
 ### Data location
 
