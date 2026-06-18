@@ -1469,21 +1469,38 @@ a {
 }
 
 .photo-field {
+  min-width: 0;
+}
+
+.photo-fields-row {
   grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  align-items: start;
 }
 
 .photo-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: var(--space-3);
   margin-top: var(--space-2);
 }
 
+.photo-grid--gallery {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+}
+
 .photo-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  background: var(--palette-green-50);
+  background: var(--color-surface);
 }
 
 .photo-card__image-btn {
@@ -1491,7 +1508,7 @@ a {
   width: 100%;
   padding: 0;
   border: none;
-  background: none;
+  background: var(--palette-green-50);
   cursor: pointer;
 }
 
@@ -1500,13 +1517,90 @@ a {
   width: 100%;
   aspect-ratio: 4 / 3;
   object-fit: cover;
+  background: var(--palette-green-50);
 }
 
 .photo-card__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-  padding: var(--space-2);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.photo-card__action {
+  width: 100%;
+  justify-content: center;
+}
+
+.photo-card__action--danger {
+  color: var(--color-danger);
+  border-color: rgba(180, 35, 24, 0.25);
+}
+
+.photo-field--single .photo-grid {
+  margin-top: var(--space-2);
+}
+
+.photo-field--single .photo-card {
+  flex-direction: column;
+}
+
+.photo-field--single .photo-card__image {
+  aspect-ratio: 3 / 4;
+  max-height: 320px;
+}
+
+.photo-field--gallery .photo-card {
+  flex-direction: row;
+  align-items: stretch;
+}
+
+.photo-field--gallery .photo-card__image-btn {
+  flex: 0 0 clamp(140px, 42%, 220px);
+  border-right: 1px solid var(--color-border);
+}
+
+.photo-field--gallery .photo-card__image {
+  aspect-ratio: auto;
+  height: 100%;
+  min-height: 160px;
+}
+
+.photo-field--gallery .photo-card__actions {
+  flex: 1;
+  align-self: center;
+  border-top: none;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: var(--space-3);
+}
+
+@media (min-width: 640px) {
+  .photo-field--single .photo-card {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .photo-field--single .photo-card__image-btn {
+    flex: 1 1 55%;
+    max-width: 360px;
+    border-right: 1px solid var(--color-border);
+  }
+
+  .photo-field--single .photo-card__image {
+    aspect-ratio: 4 / 3;
+    max-height: none;
+    min-height: 220px;
+  }
+
+  .photo-field--single .photo-card__actions {
+    flex: 1 1 45%;
+    align-self: center;
+    border-top: none;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: var(--space-4);
+  }
 }
 
 .btn--sm {
@@ -1532,6 +1626,11 @@ a {
   font-weight: 600;
 }
 
+.photo-camera__mode {
+  margin: var(--space-1) 0 0;
+  font-size: 0.875rem;
+}
+
 .photo-camera__video {
   width: 100%;
   max-width: 480px;
@@ -1542,7 +1641,13 @@ a {
 
 .photo-camera__actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
+  width: 100%;
+}
+
+.photo-camera__actions .btn-primary {
+  margin-left: auto;
 }
 
 .photo-modal__content--camera {
@@ -1987,6 +2092,24 @@ a {
   width: 120px;
   height: 90px;
   object-fit: cover;
+}
+
+.farmer-farm-photos__grid {
+  margin-top: var(--space-2);
+}
+
+.farmer-farm-photos__item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.farmer-farm-photos__remove {
+  width: 100%;
+}
+
+.farmer-farm-photos__count {
+  margin: var(--space-3) 0 0;
 }
 
 .section-toolbar {
@@ -2485,6 +2608,31 @@ a {
 
   .form-group--full {
     grid-column: auto;
+  }
+
+  .photo-fields-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+
+  .photo-field--gallery .photo-card {
+    flex-direction: column;
+  }
+
+  .photo-field--gallery .photo-card__image-btn {
+    flex: none;
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .photo-field--gallery .photo-card__image {
+    min-height: 200px;
+    aspect-ratio: 4 / 3;
+  }
+
+  .photo-field--gallery .photo-card__actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: var(--space-3);
   }
 
   .form-grid--2 {

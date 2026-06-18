@@ -9,7 +9,6 @@ interface PhotoCaptureFieldProps {
   onChange: (photos: CapturedPhoto[]) => void;
   multiple?: boolean;
   maxPhotos?: number;
-  capture?: "user" | "environment";
 }
 
 export function PhotoCaptureField({
@@ -19,7 +18,6 @@ export function PhotoCaptureField({
   onChange,
   multiple = false,
   maxPhotos = 4,
-  capture = "environment",
 }: PhotoCaptureFieldProps) {
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -29,6 +27,7 @@ export function PhotoCaptureField({
   const [replaceId, setReplaceId] = useState<string | null>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState("");
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
 
   useEffect(() => {
     if (!cameraOpen) return;
@@ -45,9 +44,7 @@ export function PhotoCaptureField({
         }
 
         stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: capture === "user" ? "user" : "environment",
-          },
+          video: { facingMode },
           audio: false,
         });
 
@@ -65,7 +62,7 @@ export function PhotoCaptureField({
       }
     }
 
-    startCamera();
+    void startCamera();
 
     return () => {
       cancelled = true;
@@ -74,7 +71,7 @@ export function PhotoCaptureField({
         videoRef.current.srcObject = null;
       }
     };
-  }, [cameraOpen, capture]);
+  }, [cameraOpen, facingMode]);
 
   function addPhoto(file: File) {
     const next = createCapturedPhoto(file);
@@ -113,12 +110,18 @@ export function PhotoCaptureField({
   function openCamera(id: string | null = null) {
     setReplaceId(id);
     setCameraError("");
+    setFacingMode("environment");
     setCameraOpen(true);
   }
 
   function closeCamera() {
     setCameraOpen(false);
     setReplaceId(null);
+    setFacingMode("environment");
+  }
+
+  function switchCamera() {
+    setFacingMode((prev) => (prev === "environment" ? "user" : "environment"));
   }
 
   function capturePhoto() {
@@ -151,9 +154,13 @@ export function PhotoCaptureField({
   }
 
   const canAddMore = multiple ? photos.length < maxPhotos : photos.length === 0;
+  const fieldClass = [
+    "photo-field",
+    multiple ? "photo-field--gallery" : "photo-field--single",
+  ].join(" ");
 
   return (
-    <div className="photo-field form-group--full">
+    <div className={fieldClass}>
       <span className="field-label">{label}</span>
       {hint && <p className="field-hint">{hint}</p>}
 
@@ -171,41 +178,42 @@ export function PhotoCaptureField({
       <canvas ref={canvasRef} className="sr-only" />
 
       {photos.length > 0 && (
-        <div className="photo-grid">
+        <div className={`photo-grid${multiple ? " photo-grid--gallery" : ""}`}>
           {photos.map((photo) => (
             <div key={photo.id} className="photo-card">
               <button
                 type="button"
                 className="photo-card__image-btn"
                 onClick={() => setViewingPhoto(photo)}
+                aria-label="View photo full size"
               >
                 <img src={photo.previewUrl} alt="" className="photo-card__image" />
               </button>
               <div className="photo-card__actions">
                 <button
                   type="button"
-                  className="btn btn-secondary btn--sm"
+                  className="btn btn-secondary photo-card__action"
                   onClick={() => setViewingPhoto(photo)}
                 >
                   View
                 </button>
                 <button
                   type="button"
-                  className="btn btn-secondary btn--sm"
+                  className="btn btn-secondary photo-card__action"
                   onClick={() => openCamera(photo.id)}
                 >
-                  Camera
+                  Retake
                 </button>
                 <button
                   type="button"
-                  className="btn btn-secondary btn--sm"
+                  className="btn btn-secondary photo-card__action"
                   onClick={() => openUploadPicker(photo.id)}
                 >
-                  Upload
+                  Replace
                 </button>
                 <button
                   type="button"
-                  className="btn btn-secondary btn--sm"
+                  className="btn btn-secondary photo-card__action photo-card__action--danger"
                   onClick={() => removePhoto(photo.id)}
                 >
                   Delete
@@ -219,10 +227,10 @@ export function PhotoCaptureField({
       {canAddMore && (
         <div className="photo-field__choices">
           <button type="button" className="btn btn-secondary" onClick={() => openCamera(null)}>
-            Use camera
+            {photos.length > 0 && multiple ? "Add photo" : "Use camera"}
           </button>
           <button type="button" className="btn btn-secondary" onClick={() => openUploadPicker(null)}>
-            Upload photo
+            {photos.length > 0 && multiple ? "Upload another" : "Upload photo"}
           </button>
         </div>
       )}
@@ -231,6 +239,9 @@ export function PhotoCaptureField({
         <div className="photo-modal" role="dialog" aria-modal="true">
           <div className="photo-modal__content photo-modal__content--camera">
             <h3 className="photo-camera__title">Live camera</h3>
+            <p className="photo-camera__mode muted">
+              {facingMode === "environment" ? "Back camera" : "Front camera"}
+            </p>
             {cameraError ? (
               <p className="error">{cameraError}</p>
             ) : (
@@ -241,9 +252,14 @@ export function PhotoCaptureField({
                 Cancel
               </button>
               {!cameraError && (
-                <button type="button" className="btn btn-primary" onClick={capturePhoto}>
-                  Capture
-                </button>
+                <>
+                  <button type="button" className="btn btn-secondary" onClick={switchCamera}>
+                    Switch camera
+                  </button>
+                  <button type="button" className="btn btn-primary" onClick={capturePhoto}>
+                    Capture
+                  </button>
+                </>
               )}
             </div>
           </div>

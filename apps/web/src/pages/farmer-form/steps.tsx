@@ -260,23 +260,23 @@ export function StepIdentity({
         />
       </FormGroup>
 
-      <PhotoCaptureField
-        label="Ghana Card photos"
-        hint="Take clear photos of the Ghana Card (front, back, or both)."
-        photos={ghanaCardPhotos}
-        onChange={onGhanaCardPhotosChange}
-        multiple
-        maxPhotos={4}
-        capture="environment"
-      />
+      <div className="photo-fields-row">
+        <PhotoCaptureField
+          label="Ghana Card photos"
+          hint="Take clear photos of the Ghana Card (front, back, or both)."
+          photos={ghanaCardPhotos}
+          onChange={onGhanaCardPhotosChange}
+          multiple
+          maxPhotos={4}
+        />
 
-      <PhotoCaptureField
-        label="Farmer photo"
-        hint="Take a photo of the farmer for identification."
-        photos={farmerPhoto ? [farmerPhoto] : []}
-        onChange={(photos) => onFarmerPhotoChange(photos[0] ?? null)}
-        capture="user"
-      />
+        <PhotoCaptureField
+          label="Farmer photo"
+          hint="Take a photo of the farmer for identification."
+          photos={farmerPhoto ? [farmerPhoto] : []}
+          onChange={(photos) => onFarmerPhotoChange(photos[0] ?? null)}
+        />
+      </div>
     </div>
   );
 }

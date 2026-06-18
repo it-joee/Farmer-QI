@@ -1,4 +1,4 @@
-export type FarmerPhotoType = "ghana_card" | "portrait";
+export type FarmerPhotoType = "ghana_card" | "portrait" | "farm";
 
 export interface FarmerPhoto {
   id: string;

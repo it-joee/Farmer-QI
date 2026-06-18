@@ -6,6 +6,7 @@ import { BackButton } from "../components/BackButton";
 import { ConflictAlerts } from "../components/ConflictAlerts";
 import { CropCycleSection } from "../components/CropCycleSection";
 import { FarmerBoundarySection } from "../components/FarmerBoundarySection";
+import { FarmerFarmPhotosSection } from "../components/FarmerFarmPhotosSection";
 import { FarmerPhotosSection } from "../components/FarmerPhotosSection";
 import { FarmerProfileAvatar } from "../components/FarmerProfileAvatar";
 import { FarmerProfileGrid, profileFieldsFromFarmer } from "../components/FarmerProfileGrid";
@@ -76,6 +77,9 @@ export function FarmerDetailPage() {
     );
   }
 
+  const identityPhotos = photos.filter((photo) => photo.photo_type !== "farm");
+  const farmPhotos = photos.filter((photo) => photo.photo_type === "farm");
+
   return (
     <main className="main main--wide farmer-detail">
       <BackButton />
@@ -111,7 +115,8 @@ export function FarmerDetailPage() {
         <FarmerProfileGrid fields={profileFieldsFromFarmer(farmer)} />
       </section>
 
-      <FarmerPhotosSection photos={photos} />
+      <FarmerPhotosSection photos={identityPhotos} />
+      <FarmerFarmPhotosSection farmerId={farmer.id} photos={farmPhotos} onUpdated={loadData} />
       <FarmerBoundarySection farmerId={farmer.id} plots={plots} onUpdated={loadData} />
       <CropCycleSection
         farmerId={farmer.id}

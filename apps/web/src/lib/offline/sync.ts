@@ -37,7 +37,10 @@ function isFetchNetworkError(error: unknown): boolean {
   return error instanceof TypeError;
 }
 
-function toStoredPhoto(photo: { id: string; file: File }): StoredPhoto {
+function toStoredPhoto(photo: CapturedPhoto): StoredPhoto {
+  if (!photo.file) {
+    throw new Error("Offline sync requires a photo file");
+  }
   return {
     id: photo.id,
     name: photo.file.name,
@@ -141,8 +144,6 @@ async function syncRecordToServer(record: PendingFarmerRecord): Promise<string> 
 }
 
 export async function submitFarmerOnline(input: SubmitFarmerInput): Promise<void> {
-  const ghanaCardPhotos = input.ghanaCardPhotos.map((p) => createCapturedPhoto(p.file));
-  const farmerPhoto = input.farmerPhoto ? createCapturedPhoto(input.farmerPhoto.file) : null;
   const capturedAt = new Date().toISOString();
   const deviceId = getDeviceId();
 
@@ -150,8 +151,8 @@ export async function submitFarmerOnline(input: SubmitFarmerInput): Promise<void
   await uploadAttachments(
     data.farmer.id,
     input.agentId,
-    ghanaCardPhotos,
-    farmerPhoto,
+    input.ghanaCardPhotos,
+    input.farmerPhoto,
     input.boundaryEnabled,
     input.boundaryPins
   );

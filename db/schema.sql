@@ -96,7 +96,7 @@ CREATE INDEX idx_farmers_office ON farmers(office_id);
 CREATE TABLE farmer_photos (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   farmer_id   UUID NOT NULL REFERENCES farmers(id) ON DELETE CASCADE,
-  photo_type  TEXT NOT NULL CHECK (photo_type IN ('ghana_card', 'portrait')),
+  photo_type  TEXT NOT NULL CHECK (photo_type IN ('ghana_card', 'portrait', 'farm')),
   file_name   TEXT NOT NULL,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );

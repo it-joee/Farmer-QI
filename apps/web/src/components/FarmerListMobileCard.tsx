@@ -1,4 +1,3 @@
-import { FarmerProfileAvatar } from "./FarmerProfileAvatar";
 import { FarmerActionsMenu, type FarmerActionItem } from "./FarmerActionsMenu";
 
 export type FarmerListStatus = "synced" | "pending" | "syncing" | "failed";
@@ -9,7 +8,6 @@ interface FarmerListMobileCardProps {
   phone?: string | null;
   status: FarmerListStatus;
   statusLabel?: string;
-  portraitUrl?: string | null;
   menuItems: FarmerActionItem[];
   onOpen: () => void;
 }
@@ -27,7 +25,6 @@ export function FarmerListMobileCard({
   phone,
   status,
   statusLabel,
-  portraitUrl,
   menuItems,
   onOpen,
 }: FarmerListMobileCardProps) {
@@ -41,7 +38,6 @@ export function FarmerListMobileCard({
   return (
     <article className="farmer-list-card">
       <button type="button" className="farmer-list-card__main" onClick={onOpen}>
-        <FarmerProfileAvatar name={name} portraitUrl={portraitUrl} className="farmer-profile-avatar--list" />
         <div className="farmer-list-card__content">
           <h3 className="farmer-list-card__name">{name}</h3>
           <p className="farmer-list-card__community">{community}</p>

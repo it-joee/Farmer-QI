@@ -3,8 +3,13 @@ import { useNavigate, useParams } from "react-router-dom";
 import type { GpsPin } from "@farmeriq/shared";
 import { BackButton } from "../components/BackButton";
 import type { CapturedPhoto } from "../lib/photos";
-import { uploadFarmerPhotos } from "../lib/photos";
-import { fetchFarmer, updateFarmer } from "../lib/farmers";
+import {
+  collectRemovedServerPhotoIds,
+  existingFarmerPhotoToCaptured,
+  mergeRemovedServerPhotoIds,
+  syncFarmerPhotoChanges,
+} from "../lib/photos";
+import { fetchFarmer, updateFarmer, fetchFarmerPhotos } from "../lib/farmers";
 import { fetchFarmerPlots, updateFarmPlot, uploadFarmPlot } from "../lib/plots";
 import { useRequireAuth } from "../hooks/useFarmers";
 import {
@@ -33,15 +38,24 @@ export function EditFarmerPage() {
   const [saving, setSaving] = useState(false);
   const [ghanaCardPhotos, setGhanaCardPhotos] = useState<CapturedPhoto[]>([]);
   const [farmerPhoto, setFarmerPhoto] = useState<CapturedPhoto | null>(null);
+  const [removedPhotoIds, setRemovedPhotoIds] = useState<string[]>([]);
   const [plotId, setPlotId] = useState<string | null>(null);
   const [boundaryEnabled, setBoundaryEnabled] = useState(false);
   const [boundaryPins, setBoundaryPins] = useState<GpsPin[]>([]);
 
   useEffect(() => {
     if (!id) return;
-    Promise.all([fetchFarmer(id), fetchFarmerPlots(id)])
-      .then(([farmer, plots]) => {
+    Promise.all([fetchFarmer(id), fetchFarmerPlots(id), fetchFarmerPhotos(id)])
+      .then(([farmer, plots, photos]) => {
         setForm(farmerToFormData(farmer));
+        setGhanaCardPhotos(
+          photos
+            .filter((photo) => photo.photo_type === "ghana_card")
+            .map(existingFarmerPhotoToCaptured)
+        );
+        const portrait = photos.find((photo) => photo.photo_type === "portrait");
+        setFarmerPhoto(portrait ? existingFarmerPhotoToCaptured(portrait) : null);
+        setRemovedPhotoIds([]);
         const plot = plots[0];
         if (plot) {
           setPlotId(plot.id);
@@ -117,6 +131,24 @@ export function EditFarmerPage() {
     setStep((s) => Math.max(s - 1, 1));
   }
 
+  function handleGhanaCardPhotosChange(next: CapturedPhoto[]) {
+    setGhanaCardPhotos((prev) => {
+      setRemovedPhotoIds((ids) =>
+        mergeRemovedServerPhotoIds(ids, ...collectRemovedServerPhotoIds(prev, next))
+      );
+      return next;
+    });
+  }
+
+  function handleFarmerPhotoChange(next: CapturedPhoto | null) {
+    setFarmerPhoto((prev) => {
+      if (prev && prev.id !== next?.id && prev.serverPhotoId) {
+        setRemovedPhotoIds((ids) => mergeRemovedServerPhotoIds(ids, prev.serverPhotoId!));
+      }
+      return next;
+    });
+  }
+
   async function handleSubmit() {
     if (!form || !id || !user) return;
     if (!applyFieldValidation(validateStep(), setFieldErrors)) return;
@@ -126,8 +158,12 @@ export function EditFarmerPage() {
 
     try {
       await updateFarmer(id, form, user.id);
-      if (ghanaCardPhotos.length > 0 || farmerPhoto) {
-        await uploadFarmerPhotos(id, ghanaCardPhotos, farmerPhoto);
+      const hasPhotoChanges =
+        removedPhotoIds.length > 0 ||
+        ghanaCardPhotos.some((photo) => photo.file) ||
+        Boolean(farmerPhoto?.file);
+      if (hasPhotoChanges) {
+        await syncFarmerPhotoChanges(id, ghanaCardPhotos, farmerPhoto, removedPhotoIds);
       }
       if (boundaryEnabled && boundaryPins.length >= 3) {
         if (plotId) {
@@ -202,9 +238,9 @@ export function EditFarmerPage() {
             errors={fieldErrors}
             onChange={updateField}
             ghanaCardPhotos={ghanaCardPhotos}
-            onGhanaCardPhotosChange={setGhanaCardPhotos}
+            onGhanaCardPhotosChange={handleGhanaCardPhotosChange}
             farmerPhoto={farmerPhoto}
-            onFarmerPhotoChange={setFarmerPhoto}
+            onFarmerPhotoChange={handleFarmerPhotoChange}
           />
         )}
         {step === 4 && (

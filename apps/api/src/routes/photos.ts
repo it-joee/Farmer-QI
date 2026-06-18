@@ -70,9 +70,10 @@ farmerPhotoRoutes.post("/:farmerId/photos", async (c) => {
 
   const body = await c.req.parseBody({ all: true });
   const ghanaList = normalizeUploadFiles(body.ghana_card);
+  const farmList = normalizeUploadFiles(body.farm);
   const portraitFiles = normalizeUploadFiles(body.portrait);
   const portraitFile = portraitFiles[0] ?? null;
-  const expectedUploads = ghanaList.length + (portraitFile ? 1 : 0);
+  const expectedUploads = ghanaList.length + farmList.length + (portraitFile ? 1 : 0);
 
   if (expectedUploads === 0) {
     return c.json({ error: "No photo files received" }, 400);
@@ -82,7 +83,7 @@ farmerPhotoRoutes.post("/:farmerId/photos", async (c) => {
 
   async function saveUploadedFile(
     file: File,
-    photoType: "ghana_card" | "portrait"
+    photoType: FarmerPhoto["photo_type"]
   ): Promise<FarmerPhoto> {
     const ext = path.extname(file.name) || ".jpg";
     const fileName = `${photoType}-${crypto.randomUUID()}${ext}`;
@@ -117,6 +118,10 @@ farmerPhotoRoutes.post("/:farmerId/photos", async (c) => {
 
   for (const file of ghanaList) {
     saved.push(await saveUploadedFile(file, "ghana_card"));
+  }
+
+  for (const file of farmList) {
+    saved.push(await saveUploadedFile(file, "farm"));
   }
 
   if (portraitFile) {

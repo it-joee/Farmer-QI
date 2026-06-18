@@ -27,6 +27,9 @@ function storedToCaptured(photo: StoredPhoto): CapturedPhoto {
 }
 
 function toStoredPhoto(photo: CapturedPhoto): StoredPhoto {
+  if (!photo.file) {
+    throw new Error("Cannot store a server-only photo in offline pending record");
+  }
   return {
     id: photo.id,
     name: photo.file.name,

@@ -1,5 +1,6 @@
 import type { GpsPin } from "@farmeriq/shared";
 import type { FarmerFormData } from "../../pages/farmer-form/types";
+import type { CapturedPhoto } from "../photos";
 
 export type PendingStatus = "pending" | "syncing" | "failed";
 
@@ -26,8 +27,8 @@ export interface PendingFarmerRecord {
 export interface SubmitFarmerInput {
   agentId: string;
   form: FarmerFormData;
-  ghanaCardPhotos: { id: string; file: File }[];
-  farmerPhoto: { id: string; file: File } | null;
+  ghanaCardPhotos: CapturedPhoto[];
+  farmerPhoto: CapturedPhoto | null;
   boundaryEnabled: boolean;
   boundaryPins: GpsPin[];
 }
