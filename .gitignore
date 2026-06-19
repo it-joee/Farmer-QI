@@ -22,6 +22,9 @@ secrets.json
 .DS_Store
 Thumbs.db
 
+# Cursor IDE (local editor config)
+.cursor/
+
 # Uploaded farmer photos (local dev only)
 apps/api/uploads/*
 !apps/api/uploads/.gitkeep
