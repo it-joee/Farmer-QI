@@ -190,6 +190,13 @@ export async function saveFarmerIdMapping(localId: string, serverId: string): Pr
   );
 }
 
+export async function getFarmerServerId(localId: string): Promise<string | null> {
+  const mapping = await withStore<FarmerIdMapping | undefined>(STORES.farmerMap, "readonly", (store) =>
+    store.get(localId)
+  );
+  return mapping?.serverId ?? null;
+}
+
 export async function resolveFarmerId(farmerRef: string): Promise<string> {
   const mapping = await withStore<FarmerIdMapping | undefined>(STORES.farmerMap, "readonly", (store) =>
     store.get(farmerRef)

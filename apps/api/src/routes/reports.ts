@@ -98,20 +98,7 @@ reportRoutes.get("/farmers", async (c) => {
 
   const result = await query(
     `SELECT
-      f.id,
-      f.reference_id,
-      f.full_name,
-      f.ghana_card,
-      f.phone,
-      f.gender,
-      f.community,
-      f.district,
-      f.region,
-      f.primary_crops,
-      f.household_size,
-      f.years_farming,
-      f.farming_dependency,
-      f.created_at,
+      f.*,
       EXISTS (SELECT 1 FROM farm_plots fp WHERE fp.farmer_id = f.id AND fp.boundary IS NOT NULL) AS has_boundary
     FROM farmers f
     WHERE ${where}
@@ -121,7 +108,7 @@ reportRoutes.get("/farmers", async (c) => {
 
   const farmers = result.rows.map((row) => ({
     id: row.id as string,
-    reference_id: row.reference_id as string,
+    reference_id: (row.reference_id as string | undefined) ?? null,
     full_name: row.full_name as string,
     ghana_card: row.ghana_card as string | null,
     phone: row.phone as string | null,

@@ -109,9 +109,11 @@ export function useOfflineSync(createdBy: string | undefined) {
   }, [runSync]);
 
   useEffect(() => {
-    if (navigator.onLine && createdBy) {
-      void runSync();
-    }
+    if (!navigator.onLine || !createdBy) return;
+
+    void countAllPending(createdBy).then((count) => {
+      if (count > 0) void runSync();
+    });
   }, [createdBy, runSync]);
 
   return {

@@ -71,6 +71,8 @@ export const CreateFarmerRequest = z.object({
   bank_account: z.string().optional(),
   captured_at: z.string().min(1).optional(),
   device_id: z.string().min(1).max(128).optional(),
+  /** Stable offline queue id — server returns existing farmer on retry instead of inserting again. */
+  client_local_id: z.string().min(1).max(128).optional(),
 });
 export type CreateFarmerRequest = z.infer<typeof CreateFarmerRequest>;
 

@@ -111,7 +111,7 @@ export async function findProfileDuplicates(
   const result = await query<{ id: string; full_name: string; phone: string }>(
     `SELECT id, full_name, phone FROM farmers
      WHERE lower(trim(regexp_replace(full_name, '\\s+', ' ', 'g'))) = $1
-       AND lower(trim(community)) = $2
+       AND lower(trim(regexp_replace(community, '\\s+', ' ', 'g'))) = $2
        AND phone IS NOT NULL AND trim(phone) != ''
        AND ($3::uuid IS NULL OR id != $3)`,
     [normalizedName, normalizedCommunity, excludeFarmerId ?? null]

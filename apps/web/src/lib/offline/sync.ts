@@ -8,6 +8,7 @@ import { uploadFarmPlot } from "../plots";
 import { createCapturedPhoto, type CapturedPhoto } from "../photos";
 import {
   addPendingFarmer,
+  getFarmerServerId,
   getPendingFarmer,
   listPendingFarmers,
   removePendingFarmer,
@@ -54,11 +55,14 @@ function toCapturedPhoto(stored: StoredPhoto): CapturedPhoto {
   return createCapturedPhoto(file);
 }
 
-function buildPendingRecord(input: SubmitFarmerInput): PendingFarmerRecord {
+function buildPendingRecord(
+  input: SubmitFarmerInput,
+  overrides?: Partial<Pick<PendingFarmerRecord, "localId" | "createdAt">>
+): PendingFarmerRecord {
   return {
-    localId: createFarmerLocalId(),
+    localId: overrides?.localId ?? createFarmerLocalId(),
     createdBy: input.agentId,
-    createdAt: new Date().toISOString(),
+    createdAt: overrides?.createdAt ?? new Date().toISOString(),
     status: "pending",
     form: input.form,
     ghanaCardPhotos: input.ghanaCardPhotos.map(toStoredPhoto),
@@ -68,10 +72,16 @@ function buildPendingRecord(input: SubmitFarmerInput): PendingFarmerRecord {
   };
 }
 
+type FarmerSubmissionMeta = {
+  capturedAt: string;
+  deviceId: string;
+  clientLocalId: string;
+};
+
 async function createFarmerOnServer(
   agentId: string,
   form: SubmitFarmerInput["form"],
-  submission?: { capturedAt: string; deviceId: string }
+  submission: FarmerSubmissionMeta
 ) {
   let res: Response;
   try {
@@ -80,8 +90,9 @@ async function createFarmerOnServer(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(
         formToPayload(form, agentId, {
-          capturedAt: submission?.capturedAt,
-          deviceId: submission?.deviceId,
+          capturedAt: submission.capturedAt,
+          deviceId: submission.deviceId,
+          clientLocalId: submission.clientLocalId,
         })
       ),
     });
@@ -127,27 +138,39 @@ async function syncRecordToServer(record: PendingFarmerRecord): Promise<string> 
   const ghanaCardPhotos = record.ghanaCardPhotos.map(toCapturedPhoto);
   const farmerPhoto = record.farmerPhoto ? toCapturedPhoto(record.farmerPhoto) : null;
   const deviceId = getDeviceId();
-
-  const data = await createFarmerOnServer(record.createdBy, record.form, {
+  const submission: FarmerSubmissionMeta = {
     capturedAt: record.createdAt,
     deviceId,
-  });
+    clientLocalId: record.localId,
+  };
+
+  let farmerId = await getFarmerServerId(record.localId);
+
+  if (!farmerId) {
+    const data = await createFarmerOnServer(record.createdBy, record.form, submission);
+    farmerId = data.farmer.id;
+    await saveFarmerIdMapping(record.localId, farmerId);
+  }
+
   await uploadAttachments(
-    data.farmer.id,
+    farmerId,
     record.createdBy,
     ghanaCardPhotos,
     farmerPhoto,
     record.boundaryEnabled,
     record.boundaryPins
   );
-  return data.farmer.id;
+  return farmerId;
 }
 
 export async function submitFarmerOnline(input: SubmitFarmerInput): Promise<void> {
+  const localId = createFarmerLocalId();
   const capturedAt = new Date().toISOString();
   const deviceId = getDeviceId();
+  const submission: FarmerSubmissionMeta = { capturedAt, deviceId, clientLocalId: localId };
 
-  const data = await createFarmerOnServer(input.agentId, input.form, { capturedAt, deviceId });
+  const data = await createFarmerOnServer(input.agentId, input.form, submission);
+  await saveFarmerIdMapping(localId, data.farmer.id);
   await uploadAttachments(
     data.farmer.id,
     input.agentId,
@@ -170,15 +193,39 @@ export async function submitFarmer(input: SubmitFarmerInput): Promise<SubmitResu
     return "queued";
   }
 
+  const localId = createFarmerLocalId();
+  const capturedAt = new Date().toISOString();
+  const deviceId = getDeviceId();
+  const submission: FarmerSubmissionMeta = { capturedAt, deviceId, clientLocalId: localId };
+
   try {
-    await submitFarmerOnline(input);
+    const data = await createFarmerOnServer(input.agentId, input.form, submission);
+    await saveFarmerIdMapping(localId, data.farmer.id);
+    await uploadAttachments(
+      data.farmer.id,
+      input.agentId,
+      input.ghanaCardPhotos,
+      input.farmerPhoto,
+      input.boundaryEnabled,
+      input.boundaryPins
+    );
     return "synced";
   } catch (error) {
     if (error instanceof SubmitError && error.retryable) {
-      await queueFarmerSubmission(input);
+      const record = buildPendingRecord(input, { localId, createdAt: capturedAt });
+      await addPendingFarmer(record);
       return "queued";
     }
     throw error;
+  }
+}
+
+async function recoverStaleSyncingRecords(createdBy: string): Promise<void> {
+  const pending = await listPendingFarmers(createdBy);
+  for (const record of pending) {
+    if (record.status === "syncing") {
+      await updatePendingFarmer({ ...record, status: "pending" });
+    }
   }
 }
 
@@ -187,12 +234,14 @@ export async function syncPendingFarmers(createdBy: string): Promise<SyncSummary
     return { synced: 0, failed: 0 };
   }
 
+  await recoverStaleSyncingRecords(createdBy);
+
   const pending = await listPendingFarmers(createdBy);
   let synced = 0;
   let failed = 0;
 
   for (const record of pending) {
-    if (record.status === "syncing") continue;
+    if (record.status !== "pending" && record.status !== "failed") continue;
 
     const syncing: PendingFarmerRecord = { ...record, status: "syncing", lastError: undefined };
     await updatePendingFarmer(syncing);

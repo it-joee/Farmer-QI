@@ -103,7 +103,7 @@ export function ageFromDateOfBirth(dob: string): number | undefined {
 export function formToPayload(
   form: FarmerFormData,
   createdBy: string,
-  submission?: { capturedAt?: string; deviceId?: string }
+  submission?: { capturedAt?: string; deviceId?: string; clientLocalId?: string }
 ) {
   const body: Record<string, unknown> = {
     full_name: form.full_name.trim(),
@@ -133,6 +133,7 @@ export function formToPayload(
   if (form.phone) body.phone = form.phone.trim();
   if (submission?.capturedAt) body.captured_at = submission.capturedAt;
   if (submission?.deviceId) body.device_id = submission.deviceId;
+  if (submission?.clientLocalId) body.client_local_id = submission.clientLocalId;
 
   return body;
 }

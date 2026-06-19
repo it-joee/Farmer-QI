@@ -50,11 +50,42 @@ farmerRoutes.post("/", async (c) => {
   }
 
   const data = parsed.data;
-  const { captured_at, device_id, ...farmerFields } = data;
+  const { captured_at, device_id, client_local_id, ...farmerFields } = data;
   const createdBy = SKIP_AUTH ? actor.id : (body as { created_by?: string }).created_by;
 
   if (!createdBy) {
     return c.json({ error: "Authentication required" }, 401);
+  }
+
+  const clientLocalId = client_local_id?.trim() || null;
+
+  if (clientLocalId) {
+    const existingByClientId = await query(
+      `SELECT * FROM farmers WHERE created_by = $1 AND metadata->>'client_local_id' = $2`,
+      [createdBy, clientLocalId]
+    );
+    if (existingByClientId.rows[0]) {
+      const farmer = existingByClientId.rows[0];
+      const conflicts = await listFarmerConflicts(farmer.id);
+      return c.json({ farmer, conflicts }, 200);
+    }
+  }
+
+  if (device_id?.trim() && captured_at) {
+    const existingBySubmission = await query(
+      `SELECT f.* FROM submission_records sr
+       JOIN farmers f ON f.id = sr.entity_id
+       WHERE sr.entity_type = 'farmer'
+         AND sr.agent_id = $1
+         AND sr.device_id = $2
+         AND sr.captured_at = $3`,
+      [createdBy, device_id.trim(), captured_at]
+    );
+    if (existingBySubmission.rows[0]) {
+      const farmer = existingBySubmission.rows[0];
+      const conflicts = await listFarmerConflicts(farmer.id);
+      return c.json({ farmer, conflicts }, 200);
+    }
   }
 
   const userResult = await query<{ office_id: string | null }>(
@@ -64,14 +95,15 @@ farmerRoutes.post("/", async (c) => {
   const officeId = userResult.rows[0]?.office_id ?? actor.office_id ?? null;
 
   const referenceId = createFarmerReferenceId();
+  const metadata = clientLocalId ? JSON.stringify({ client_local_id: clientLocalId }) : "{}";
 
   const result = await query(
     `INSERT INTO farmers (
       reference_id, full_name, community, ghana_card, gender, date_of_birth, age, phone, email,
       region, district, digital_address, farm_address,
       household_size, farming_dependency, years_farming, primary_crops,
-      bank_name, bank_branch, bank_account, created_by, office_id
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+      bank_name, bank_branch, bank_account, created_by, office_id, metadata
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23::jsonb)
     RETURNING *`,
     [
       referenceId,
@@ -96,6 +128,7 @@ farmerRoutes.post("/", async (c) => {
       farmerFields.bank_account ?? null,
       createdBy,
       officeId,
+      metadata,
     ]
   );
 
