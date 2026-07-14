@@ -243,6 +243,37 @@ export async function removePendingEventAttendee(localId: string, attendeeLocalI
   });
 }
 
+export async function updatePendingEventAttendee(
+  localId: string,
+  attendeeLocalId: string,
+  input: SubmitEventAttendeeInput
+): Promise<PendingEventAttendee> {
+  const record = await getPendingEvent(localId);
+  if (!record) throw new Error("Pending event not found");
+
+  const updatedAttendees = record.attendees.map((a) => {
+    if (a.localId === attendeeLocalId) {
+      return {
+        ...a,
+        full_name: input.full_name.trim(),
+        phone: input.phone.trim(),
+        community: input.community.trim(),
+        gender: input.gender,
+        age: input.age,
+      };
+    }
+    return a;
+  });
+
+  await updatePendingEvent({
+    ...record,
+    attendees: updatedAttendees,
+    status: "pending",
+    lastError: undefined,
+  });
+  return updatedAttendees.find((a) => a.localId === attendeeLocalId)!;
+}
+
 export async function addServerEventAttendeeWithOffline(
   eventId: string,
   input: SubmitEventAttendeeInput,

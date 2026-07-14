@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import { LoginRequest } from "@farmeriq/shared";
 import { query } from "../db.js";
+import * as argon2 from "argon2";
+import jwt from "jsonwebtoken";
 
 // Auth routes — JWT implementation in next build step
 export const authRoutes = new Hono();
@@ -13,30 +15,54 @@ authRoutes.post("/login", async (c) => {
     return c.json({ error: "Invalid email or password format" }, 400);
   }
 
-  const result = await query<{
+  const cleanEmail = parsed.data.email.trim().toLowerCase();
+
+  if (!cleanEmail.endsWith("@farmeriq.local") && !cleanEmail.endsWith("@gmail.com")) {
+    return c.json({ error: "Only corporate emails or @gmail.com are allowed" }, 403);
+  }
+
+  let result = await query<{
     id: string;
     email: string;
     full_name: string;
     role: string;
     office_id: string | null;
     password_hash: string;
-  }>("SELECT id, email, full_name, role, office_id, password_hash FROM users WHERE email = $1 AND is_active = true", [
-    parsed.data.email,
+  }>("SELECT id, email, full_name, role, office_id, password_hash FROM users WHERE LOWER(email) = $1 AND is_active = true", [
+    cleanEmail,
   ]);
 
   if (result.rowCount === 0) {
-    return c.json({ error: "Invalid credentials" }, 401);
+    return c.json({ error: "Invalid email or password" }, 401);
   }
 
-  // TODO: verify password with argon2, issue JWT + refresh token
+  const user = result.rows[0];
+
+  const validPassword = await argon2.verify(user.password_hash, parsed.data.password);
+  if (!validPassword) {
+    return c.json({ error: "Invalid email or password" }, 401);
+  }
+
+  const secret = process.env.JWT_SECRET || "fallback-secret";
+  const token = jwt.sign(
+    {
+      id: user.id,
+      role: user.role,
+      office_id: user.office_id,
+    },
+    secret,
+    { expiresIn: "14d" }
+  );
+
   return c.json({
-    message: "Login endpoint ready — wire Argon2 + JWT next",
+    message: "Login successful",
+    token,
     user: {
-      id: result.rows[0].id,
-      email: result.rows[0].email,
-      full_name: result.rows[0].full_name,
-      role: result.rows[0].role,
-      office_id: result.rows[0].office_id,
+      id: user.id,
+      email: user.email,
+      full_name: user.full_name,
+      role: user.role,
+      office_id: user.office_id,
     },
   });
 });

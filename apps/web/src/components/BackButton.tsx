@@ -1,14 +1,19 @@
 import { useNavigate } from "react-router-dom";
 
 interface BackButtonProps {
+  to?: string;
   fallback?: string;
   className?: string;
 }
 
-export function BackButton({ fallback = "/farmers", className = "back-link" }: BackButtonProps) {
+export function BackButton({ to, fallback = "/farmers", className = "back-link" }: BackButtonProps) {
   const navigate = useNavigate();
 
   function handleClick() {
+    if (to) {
+      navigate(to);
+      return;
+    }
     const historyIdx = window.history.state?.idx;
     if (typeof historyIdx === "number" && historyIdx > 0) {
       navigate(-1);

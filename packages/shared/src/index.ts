@@ -50,8 +50,8 @@ export const GHANA_COMMODITIES = COMMODITIES;
 export const OTHER_COMMODITY_OPTION = "Other";
 
 export const CreateFarmerRequest = z.object({
-  full_name: z.string().min(1),
-  community: z.string().min(1),
+  full_name: z.string().optional().default(""),
+  community: z.string().optional().default(""),
   ghana_card: z.string().optional(),
   gender: z.string().optional(),
   date_of_birth: z.string().optional(),

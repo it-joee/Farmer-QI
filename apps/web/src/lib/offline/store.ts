@@ -6,7 +6,7 @@ import type {
 } from "./types";
 
 const DB_NAME = "farmeriq-offline";
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 /** All object stores and their key paths — every upgrade must ensure these exist. */
 const STORE_DEFS = {

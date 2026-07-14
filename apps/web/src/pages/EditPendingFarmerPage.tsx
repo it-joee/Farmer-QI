@@ -5,6 +5,7 @@ import { BackButton } from "../components/BackButton";
 import type { CapturedPhoto } from "../lib/photos";
 import { createCapturedPhoto } from "../lib/photos";
 import { useOfflineSyncContext } from "../context/OfflineSyncContext";
+import { useToast } from "../context/ToastContext";
 import { useRequireAuth } from "../hooks/useFarmers";
 import {
   applyFieldValidation,
@@ -43,6 +44,7 @@ export function EditPendingFarmerPage() {
   const navigate = useNavigate();
   useRequireAuth();
   const { refreshPending } = useOfflineSyncContext();
+  const { showSuccess } = useToast();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FarmerFormData | null>(null);
   const [baseRecord, setBaseRecord] = useState<PendingFarmerRecord | null>(null);
@@ -135,6 +137,35 @@ export function EditPendingFarmerPage() {
     setStep((s) => Math.max(s - 1, 1));
   }
 
+  async function saveStage() {
+    if (!form || !localId || !baseRecord) return;
+
+    setSaving(true);
+    setFormError("");
+
+    const updated: PendingFarmerRecord = {
+      ...baseRecord,
+      form,
+      ghanaCardPhotos: ghanaCardPhotos.map(toStoredPhoto),
+      farmerPhoto: farmerPhoto ? toStoredPhoto(farmerPhoto) : null,
+      boundaryEnabled,
+      boundaryPins,
+      status: "pending",
+      lastError: undefined,
+    };
+
+    try {
+      await updatePendingFarmer(updated);
+      await refreshPending();
+      showSuccess("Stage Saved", "Pending farmer stage details saved.");
+      navigate(`/farmers/pending/${localId}`);
+    } catch {
+      setFormError("Could not save stage changes.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleSubmit() {
     if (!form || !localId || !baseRecord) return;
     if (!applyFieldValidation(validateStep(), setFieldErrors)) return;
@@ -156,6 +187,7 @@ export function EditPendingFarmerPage() {
     try {
       await updatePendingFarmer(updated);
       await refreshPending();
+      showSuccess("Farmer Updated", "Pending farmer details updated.");
       navigate(`/farmers/pending/${localId}`);
     } catch {
       setFormError("Could not save changes.");
@@ -236,28 +268,40 @@ export function EditPendingFarmerPage() {
           />
         )}
 
-        <div className="form-actions">
-          {step > 1 ? (
-            <button type="button" className="btn btn-secondary" onClick={goBack}>
-              Previous
-            </button>
-          ) : (
-            <span />
-          )}
-          {step < EDIT_FORM_STEPS.length ? (
-            <button type="button" className="btn btn-primary" onClick={goNext}>
-              Next
-            </button>
-          ) : (
+        <div className="form-actions form-actions--draft">
+          <div className="form-actions__left">
             <button
               type="button"
-              className="btn btn-primary"
-              onClick={handleSubmit}
+              className="btn btn-outline"
+              onClick={saveStage}
               disabled={saving}
             >
-              {saving ? "Saving…" : "Save changes"}
+              Save Stage
             </button>
-          )}
+          </div>
+
+          <div className="form-actions__right">
+            {step > 1 && (
+              <button type="button" className="btn btn-secondary" onClick={goBack} disabled={saving}>
+                Previous
+              </button>
+            )}
+
+            {step < EDIT_FORM_STEPS.length ? (
+              <button type="button" className="btn btn-primary" onClick={goNext} disabled={saving}>
+                Next
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleSubmit}
+                disabled={saving}
+              >
+                {saving ? "Saving…" : "Save changes"}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </main>

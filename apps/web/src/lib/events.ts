@@ -87,6 +87,22 @@ export async function addEventAttendee(
   return data.attendee;
 }
 
+export async function updateEventAttendee(
+  eventId: string,
+  attendeeId: string,
+  payload: CreateEventAttendeeRequest,
+  updatedBy: string
+): Promise<EventAttendee> {
+  const res = await apiFetch(`/api/events/${eventId}/attendees/${attendeeId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...payload, updated_by: updatedBy }),
+  });
+  if (!res.ok) throw new Error("Failed to update attendee");
+  const data = await res.json();
+  return data.attendee;
+}
+
 export async function removeEventAttendee(
   eventId: string,
   attendeeId: string,

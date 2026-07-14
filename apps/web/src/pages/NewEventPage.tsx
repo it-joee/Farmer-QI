@@ -9,6 +9,7 @@ import {
 } from "../components/EventFormFields";
 import { getCurrentUser } from "../auth";
 import { useOfflineSyncContext } from "../context/OfflineSyncContext";
+import { useToast } from "../context/ToastContext";
 import { useRequireAuth } from "../hooks/useFarmers";
 import {
   applyFieldValidation,
@@ -39,6 +40,7 @@ export function NewEventPage() {
   const user = useRequireAuth();
   const navigate = useNavigate();
   const { refreshPending } = useOfflineSyncContext();
+  const { showSuccess } = useToast();
   const [values, setValues] = useState<EventFormValues>(INITIAL_VALUES);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState("");
@@ -65,6 +67,10 @@ export function NewEventPage() {
       const outcome = await submitEvent(eventFormToSubmitInput(values, actor.id));
 
       await refreshPending();
+      showSuccess(
+        outcome.result === "queued" ? "Event Queued Offline" : "Event Created",
+        `Event "${values.title}" saved successfully.`
+      );
 
       if (outcome.result === "queued" && outcome.localId) {
         navigate(`/events/pending/${outcome.localId}`);

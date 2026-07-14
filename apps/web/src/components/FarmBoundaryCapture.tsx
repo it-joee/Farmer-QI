@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useConfirmDialog } from "../context/ConfirmDialogContext";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { GpsPin } from "@farmeriq/shared";
@@ -52,6 +53,7 @@ export function FarmBoundaryCapture({
 
   const [livePosition, setLivePosition] = useState<LivePosition | null>(null);
   const [gpsError, setGpsError] = useState("");
+  const { confirm } = useConfirmDialog();
   const [watching, setWatching] = useState(false);
 
   useEffect(() => {
@@ -178,16 +180,19 @@ export function FarmBoundaryCapture({
     }
   }, [pins, enabled]);
 
-  function dropPin() {
+  async function dropPin() {
     if (!livePosition) {
       setGpsError("Waiting for GPS fix. Stand in open sky and try again.");
       return;
     }
 
     if (livePosition.accuracy > 30) {
-      const proceed = window.confirm(
-        `GPS accuracy is ±${livePosition.accuracy.toFixed(1)} m, which is low. Drop this point anyway?`
-      );
+      const proceed = await confirm({
+        title: "Low GPS Accuracy",
+        message: `GPS accuracy is ±${livePosition.accuracy.toFixed(1)} m, which is low. Do you want to drop this point anyway?`,
+        confirmText: "Drop Point",
+        variant: "warning",
+      });
       if (!proceed) return;
     }
 

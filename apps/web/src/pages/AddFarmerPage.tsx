@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { useNavigate } from "react-router-dom";
 
@@ -9,6 +9,7 @@ import type { CapturedPhoto } from "../lib/photos";
 import type { GpsPin } from "@farmeriq/shared";
 
 import { useOfflineSyncContext } from "../context/OfflineSyncContext";
+import { useToast } from "../context/ToastContext";
 
 import { submitFarmer } from "../lib/offline/sync";
 
@@ -39,6 +40,7 @@ export function AddFarmerPage() {
   const user = useRequireAuth();
 
   const { refreshPending } = useOfflineSyncContext();
+  const { showSuccess } = useToast();
 
   const [step, setStep] = useState(1);
 
@@ -158,6 +160,34 @@ export function AddFarmerPage() {
 
 
 
+  async function saveStage() {
+    setSaving(true);
+    setFormError("");
+
+    try {
+      const result = await submitFarmer({
+        agentId: agent.id,
+        form,
+        ghanaCardPhotos,
+        farmerPhoto,
+        boundaryEnabled,
+        boundaryPins,
+      });
+
+      await refreshPending();
+      showSuccess(
+        result === "queued" ? "Stage Queued Offline" : "Stage Saved",
+        form.full_name ? `${form.full_name} stage details saved.` : "Farmer stage progress saved."
+      );
+      navigate("/farmers");
+    } catch (err) {
+      console.error("Save stage error:", err);
+      setFormError(err instanceof Error ? err.message : "Could not save current stage.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   function goBack() {
 
     setFormError("");
@@ -203,29 +233,16 @@ export function AddFarmerPage() {
 
 
       await refreshPending();
-
-
-
-      if (result === "queued") {
-
-        navigate("/farmers");
-
-        return;
-
-      }
-
-
-
+      showSuccess(
+        result === "queued" ? "Farmer Submission Queued" : "Farmer Saved",
+        `${form.full_name} profile created successfully.`
+      );
       navigate("/farmers");
-
-    } catch {
-
-      setFormError("Could not save farmer. Check required fields.");
-
+    } catch (err) {
+      console.error("Submit farmer error:", err);
+      setFormError(err instanceof Error ? err.message : "Could not save farmer. Check required fields.");
     } finally {
-
       setSaving(false);
-
     }
 
   }
@@ -344,52 +361,40 @@ export function AddFarmerPage() {
 
 
 
-          <div className="form-actions">
-
-            {step > 1 ? (
-
-              <button type="button" className="btn btn-secondary" onClick={goBack}>
-
-                Previous
-
-              </button>
-
-            ) : (
-
-              <span />
-
-            )}
-
-
-
-            {step < FORM_STEPS.length ? (
-
-              <button type="button" className="btn btn-primary" onClick={goNext}>
-
-                Next
-
-              </button>
-
-            ) : (
-
+          <div className="form-actions form-actions--draft">
+            <div className="form-actions__left">
               <button
-
                 type="button"
-
-                className="btn btn-primary"
-
-                onClick={handleSubmit}
-
+                className="btn btn-outline"
+                onClick={saveStage}
                 disabled={saving}
-
               >
-
-                {saving ? "Saving…" : "Save farmer"}
-
+                Save Stage
               </button>
+            </div>
+            
+            <div className="form-actions__right">
+              {step > 1 && (
+                <button type="button" className="btn btn-secondary" onClick={goBack} disabled={saving}>
+                  Previous
+                </button>
+              )}
 
-            )}
-
+              {step < FORM_STEPS.length ? (
+                <button type="button" className="btn btn-primary" onClick={goNext} disabled={saving}>
+                  Next
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleSubmit}
+                  disabled={saving}
+                >
+                  {saving ? "Saving…" : "Save farmer"}
+                </button>
+              )}
+            </div>
           </div>
 
         </div>

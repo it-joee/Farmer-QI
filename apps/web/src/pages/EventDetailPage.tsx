@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useLocation, useMatch, useParams } from "react-router-dom";
+import { Link, useLocation, useMatch, useParams } from "react-router-dom";
 import type { EventAttendee, EventDetail, EventAttendeeGender } from "@farmeriq/shared";
 import { GENDER_OPTIONS } from "@farmeriq/shared";
 import { BackButton } from "../components/BackButton";
 import { FormGroup } from "../components/FormGroup";
 import { SelectField } from "../components/fields/SelectField";
-import { getCurrentUser } from "../auth";
+import { canRegisterFarmers, getCurrentUser } from "../auth";
 import { useOfflineSyncContext } from "../context/OfflineSyncContext";
+import { useToast } from "../context/ToastContext";
+import { useConfirmDialog } from "../context/ConfirmDialogContext";
 import { useRequireAuth } from "../hooks/useFarmers";
 import {
   applyFieldValidation,
@@ -14,12 +16,13 @@ import {
   type FieldErrors,
   type FieldValidation,
 } from "../lib/form-validation";
-import { fetchEvent, formatEventDate, formatEventMeta, removeEventAttendee } from "../lib/events";
+import { fetchEvent, formatEventDate, formatEventMeta, removeEventAttendee, updateEventAttendee } from "../lib/events";
 import { getPendingEvent } from "../lib/offline/store";
 import {
   addPendingEventAttendee,
   addServerEventAttendeeWithOffline,
   removePendingEventAttendee,
+  updatePendingEventAttendee,
 } from "../lib/offline/event-sync";
 import type { PendingEventAttendee, PendingEventRecord } from "../lib/offline/types";
 
@@ -112,6 +115,8 @@ export function EventDetailPage() {
   const isPendingEvent = Boolean(pendingLocalId);
   const location = useLocation();
   const user = useRequireAuth();
+  const { showSuccess } = useToast();
+  const { confirm } = useConfirmDialog();
   const { refreshPending } = useOfflineSyncContext();
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [pendingEvent, setPendingEvent] = useState<PendingEventRecord | null>(null);
@@ -126,6 +131,7 @@ export function EventDetailPage() {
   const [community, setCommunity] = useState("");
   const [gender, setGender] = useState("");
   const [age, setAge] = useState("");
+  const [editingAttendeeId, setEditingAttendeeId] = useState<string | null>(null);
   const addAttendeeRef = useRef<HTMLElement>(null);
 
   function scrollToAddAttendee() {
@@ -173,6 +179,29 @@ export function EventDetailPage() {
     : (event?.attendees ?? []).map(serverToDisplay);
   const genderCounts = countAttendeesByGender(attendees);
 
+  function handleStartEdit(person: DisplayAttendee) {
+    setEditingAttendeeId(person.id);
+    setName(person.full_name);
+    setPhone(person.phone ?? "");
+    setCommunity(person.community ?? "");
+    setGender(person.gender ?? "");
+    setAge(person.age ? String(person.age) : "");
+    setFieldErrors({});
+    setFormError("");
+    scrollToAddAttendee();
+  }
+
+  function handleCancelEdit() {
+    setEditingAttendeeId(null);
+    setName("");
+    setPhone("");
+    setCommunity("");
+    setGender("");
+    setAge("");
+    setFieldErrors({});
+    setFormError("");
+  }
+
   async function handleAddAttendee(e: React.FormEvent) {
     e.preventDefault();
     const actor = getCurrentUser();
@@ -201,57 +230,81 @@ export function EventDetailPage() {
     };
 
     try {
-      if (isPendingEvent && pendingLocalId) {
-        const added = await addPendingEventAttendee(pendingLocalId, input);
-        const updated = await getPendingEvent(pendingLocalId);
-        if (updated) setPendingEvent(updated);
-        else {
-          setPendingEvent((prev) =>
-            prev ? { ...prev, attendees: [...prev.attendees, added] } : prev
-          );
-        }
-      } else if (id) {
-        const result = await addServerEventAttendeeWithOffline(id, input, actor.id);
-        if (result.attendee) {
+      if (editingAttendeeId) {
+        if (isPendingEvent && pendingLocalId) {
+          await updatePendingEventAttendee(pendingLocalId, editingAttendeeId, input);
+          const updated = await getPendingEvent(pendingLocalId);
+          if (updated) setPendingEvent(updated);
+        } else if (id) {
+          const updatedAttendee = await updateEventAttendee(id, editingAttendeeId, input, actor.id);
           setEvent((prev) => {
             if (!prev) return prev;
-            const row: EventAttendee = {
-              id: result.attendee!.serverId ?? result.attendee!.localId,
-              event_id: id,
-              full_name: result.attendee!.full_name,
-              phone: result.attendee!.phone,
-              community: result.attendee!.community,
-              gender: result.attendee!.gender,
-              age: result.attendee!.age,
-              marked_by: actor.id,
-              marked_at: new Date().toISOString(),
-            };
             return {
               ...prev,
-              attendees: [...prev.attendees, row],
-              attendance_count: (prev.attendance_count ?? prev.attendees.length) + 1,
+              attendees: prev.attendees.map((a) => (a.id === editingAttendeeId ? updatedAttendee : a)),
             };
           });
         }
+        showSuccess("Attendee Updated", `${input.full_name} details updated.`);
+        handleCancelEdit();
+      } else {
+        if (isPendingEvent && pendingLocalId) {
+          const added = await addPendingEventAttendee(pendingLocalId, input);
+          const updated = await getPendingEvent(pendingLocalId);
+          if (updated) setPendingEvent(updated);
+          else {
+            setPendingEvent((prev) =>
+              prev ? { ...prev, attendees: [...prev.attendees, added] } : prev
+            );
+          }
+        } else if (id) {
+          const result = await addServerEventAttendeeWithOffline(id, input, actor.id);
+          if (result.attendee) {
+            setEvent((prev) => {
+              if (!prev) return prev;
+              const row: EventAttendee = {
+                id: result.attendee!.serverId ?? result.attendee!.localId,
+                event_id: id,
+                full_name: result.attendee!.full_name,
+                phone: result.attendee!.phone,
+                community: result.attendee!.community,
+                gender: result.attendee!.gender,
+                age: result.attendee!.age,
+                marked_by: actor.id,
+                marked_at: new Date().toISOString(),
+              };
+              return {
+                ...prev,
+                attendees: [...prev.attendees, row],
+                attendance_count: (prev.attendance_count ?? prev.attendees.length) + 1,
+              };
+            });
+          }
+        }
+        showSuccess("Attendee Added", `${input.full_name} registered successfully.`);
+        handleCancelEdit();
       }
-
-      setName("");
-      setPhone("");
-      setCommunity("");
-      setGender("");
-      setAge("");
-      setFieldErrors({});
       await refreshPending();
     } catch {
-      setFormError("Could not add attendee. Try again.");
+      setFormError(editingAttendeeId ? "Could not update attendee. Try again." : "Could not add attendee. Try again.");
     } finally {
       setSaving(false);
     }
   }
 
-  async function handleRemove(attendeeId: string) {
+  async function handleRemove(attendeeId: string, personName: string) {
     const actor = getCurrentUser();
     if (!actor) return;
+
+    const isConfirmed = await confirm({
+      title: "Remove Attendee",
+      message: `Are you sure you want to remove ${personName} from this event?`,
+      confirmText: "Remove",
+      cancelText: "Cancel",
+      variant: "danger",
+    });
+
+    if (!isConfirmed) return;
 
     setBusyId(attendeeId);
     setError("");
@@ -280,6 +333,7 @@ export function EventDetailPage() {
         });
       }
       await refreshPending();
+      showSuccess("Attendee Removed", "Attendee has been removed from this event.");
     } catch {
       setError("Could not remove attendee.");
     } finally {
@@ -333,7 +387,7 @@ export function EventDetailPage() {
         </div>
       )}
 
-      <div className="page-header event-detail__header">
+      <div className="page-header event-detail__header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
         <div>
           <h2>{title}</h2>
           <p className="muted">
@@ -342,6 +396,15 @@ export function EventDetailPage() {
           </p>
           {eventDescription && <p className="event-detail__description">{eventDescription}</p>}
         </div>
+        {canRegisterFarmers(user) && (
+          <Link
+            to={isPendingEvent ? `/events/pending/${pendingLocalId}/edit` : `/events/${id}/edit`}
+            className="btn btn-outline"
+            style={{ flexShrink: 0 }}
+          >
+            Edit event
+          </Link>
+        )}
       </div>
 
       <div className="event-detail__stats-row">
@@ -385,14 +448,24 @@ export function EventDetailPage() {
                     {formatAttendeeMeta(person)}
                   </span>
                 </span>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn--sm"
-                  disabled={busyId === person.id}
-                  onClick={() => void handleRemove(person.id)}
-                >
-                  {busyId === person.id ? "Removing…" : "Remove"}
-                </button>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn--sm"
+                    disabled={saving || busyId === person.id}
+                    onClick={() => handleStartEdit(person)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn--sm"
+                    disabled={busyId === person.id}
+                    onClick={() => void handleRemove(person.id, person.full_name)}
+                  >
+                    {busyId === person.id ? "Removing…" : "Remove"}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -400,8 +473,10 @@ export function EventDetailPage() {
       </section>
 
       <section ref={addAttendeeRef} className="card event-detail__section">
-        <h3 className="card-title">Add attendee</h3>
-        <p className="card-desc">Register someone who attended this event.</p>
+        <h3 className="card-title">{editingAttendeeId ? "Edit attendee" : "Add attendee"}</h3>
+        <p className="card-desc">
+          {editingAttendeeId ? "Update details for this event attendee." : "Register someone who attended this event."}
+        </p>
 
         {formError && <p className="error">{formError}</p>}
 
@@ -475,10 +550,20 @@ export function EventDetailPage() {
               placeholder="e.g. Wa"
             />
           </FormGroup>
-          <div className="form-group" style={{ gridColumn: "1 / -1" }}>
+          <div className="form-group" style={{ gridColumn: "1 / -1", display: "flex", gap: "0.75rem" }}>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? "Adding…" : "Add attendee"}
+              {saving ? "Saving…" : editingAttendeeId ? "Save attendee changes" : "Add attendee"}
             </button>
+            {editingAttendeeId && (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handleCancelEdit}
+                disabled={saving}
+              >
+                Cancel
+              </button>
+            )}
           </div>
         </form>
       </section>

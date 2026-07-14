@@ -54,9 +54,10 @@ export function setDevUser(userId: string): void {
 }
 
 export function clearSession() {
-  if (!SKIP_AUTH) {
-    localStorage.removeItem("farmeriq_user");
-  }
+  localStorage.removeItem("farmeriq_user");
+  localStorage.removeItem("farmeriq_token");
+  localStorage.removeItem(DEV_USER_KEY);
+  window.dispatchEvent(new Event(USER_CHANGED_EVENT));
 }
 
 export function canResolveConflicts(user: User): boolean {

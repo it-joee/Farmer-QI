@@ -82,7 +82,7 @@ export function FarmerDetailPage() {
 
   return (
     <main className="main main--wide farmer-detail">
-      <BackButton />
+      <BackButton to="/farmers" />
 
       <div className="page-header farmer-detail__header">
         <div className="farmer-detail__identity">

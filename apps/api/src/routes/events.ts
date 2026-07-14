@@ -245,6 +245,46 @@ eventRoutes.post("/:id/attendees", async (c) => {
   );
 });
 
+eventRoutes.put("/:id/attendees/:attendeeId", async (c) => {
+  const actorResult = requireActor(c);
+  if (actorResult instanceof Response) return actorResult;
+
+  const eventId = c.req.param("id");
+  if (!(await assertEventInScope(eventId, actorResult))) {
+    return c.json({ error: "Event not found" }, 404);
+  }
+
+  const attendeeId = c.req.param("attendeeId");
+  const body = await c.req.json();
+  const parsed = CreateEventAttendeeRequest.safeParse(body);
+
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.flatten() }, 400);
+  }
+
+  const result = await query(
+    `UPDATE event_attendees
+     SET full_name = $1, phone = $2, community = $3, gender = $4, age = $5
+     WHERE id = $6 AND event_id = $7
+     RETURNING *`,
+    [
+      parsed.data.full_name.trim(),
+      parsed.data.phone.trim(),
+      parsed.data.community.trim(),
+      parsed.data.gender,
+      parsed.data.age,
+      attendeeId,
+      eventId,
+    ]
+  );
+
+  if (result.rows.length === 0) {
+    return c.json({ error: "Attendee not found" }, 404);
+  }
+
+  return c.json({ attendee: result.rows[0] });
+});
+
 eventRoutes.delete("/:id/attendees/:attendeeId", async (c) => {
   const actorResult = requireActor(c);
   if (actorResult instanceof Response) return actorResult;

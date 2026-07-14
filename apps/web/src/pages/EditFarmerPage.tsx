@@ -24,11 +24,13 @@ import {
   farmerToFormData,
   type FarmerFormData,
 } from "./farmer-form/types";
+import { useToast } from "../context/ToastContext";
 
 export function EditFarmerPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const user = useRequireAuth();
+  const { showSuccess } = useToast();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FarmerFormData | null>(null);
   const [error, setError] = useState("");
@@ -149,6 +151,37 @@ export function EditFarmerPage() {
     });
   }
 
+  async function saveStage() {
+    if (!form || !id || !user) return;
+    setSaving(true);
+    setFormError("");
+
+    try {
+      await updateFarmer(id, form, user.id);
+      const hasPhotoChanges =
+        removedPhotoIds.length > 0 ||
+        ghanaCardPhotos.some((photo) => photo.file) ||
+        Boolean(farmerPhoto?.file);
+      if (hasPhotoChanges) {
+        await syncFarmerPhotoChanges(id, ghanaCardPhotos, farmerPhoto, removedPhotoIds);
+      }
+      if (boundaryEnabled && boundaryPins.length >= 3) {
+        if (plotId) {
+          await updateFarmPlot(id, plotId, boundaryPins, user.id);
+        } else {
+          await uploadFarmPlot(id, boundaryPins, user.id);
+        }
+      }
+      showSuccess("Stage Saved", "Farmer stage progress saved.");
+      navigate(`/farmers/${id}`);
+    } catch (err) {
+      console.error("Save stage error:", err);
+      setFormError(err instanceof Error ? err.message : "Could not save stage changes.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleSubmit() {
     if (!form || !id || !user) return;
     if (!applyFieldValidation(validateStep(), setFieldErrors)) return;
@@ -172,6 +205,7 @@ export function EditFarmerPage() {
           await uploadFarmPlot(id, boundaryPins, user.id);
         }
       }
+      showSuccess("Farmer Updated", "Changes saved successfully.");
       navigate(`/farmers/${id}`);
     } catch {
       setFormError("Could not save changes.");
@@ -253,29 +287,40 @@ export function EditFarmerPage() {
           />
         )}
 
-        <div className="form-actions">
-          {step > 1 ? (
-            <button type="button" className="btn btn-secondary" onClick={goBack}>
-              Previous
-            </button>
-          ) : (
-            <span />
-          )}
-
-          {step < EDIT_FORM_STEPS.length ? (
-            <button type="button" className="btn btn-primary" onClick={goNext}>
-              Next
-            </button>
-          ) : (
+        <div className="form-actions form-actions--draft">
+          <div className="form-actions__left">
             <button
               type="button"
-              className="btn btn-primary"
-              onClick={handleSubmit}
+              className="btn btn-outline"
+              onClick={saveStage}
               disabled={saving}
             >
-              {saving ? "Saving…" : "Save changes"}
+              Save Stage
             </button>
-          )}
+          </div>
+
+          <div className="form-actions__right">
+            {step > 1 && (
+              <button type="button" className="btn btn-secondary" onClick={goBack} disabled={saving}>
+                Previous
+              </button>
+            )}
+
+            {step < EDIT_FORM_STEPS.length ? (
+              <button type="button" className="btn btn-primary" onClick={goNext} disabled={saving}>
+                Next
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleSubmit}
+                disabled={saving}
+              >
+                {saving ? "Saving…" : "Save changes"}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </main>

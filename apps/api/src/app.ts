@@ -32,7 +32,7 @@ app.use(
       if (!origin) return allowed[0];
       return allowed.includes(origin) ? origin : null;
     },
-    allowHeaders: ["Content-Type", "X-Actor-Id", "X-Actor-Role", "X-Actor-Office-Id"],
+    allowHeaders: ["Content-Type", "Authorization", "X-Actor-Id", "X-Actor-Role", "X-Actor-Office-Id"],
     credentials: true,
   })
 );

@@ -38,7 +38,7 @@ function isFetchNetworkError(error: unknown): boolean {
   return error instanceof TypeError;
 }
 
-function toStoredPhoto(photo: CapturedPhoto): StoredPhoto {
+export function toStoredPhoto(photo: CapturedPhoto): StoredPhoto {
   if (!photo.file) {
     throw new Error("Offline sync requires a photo file");
   }
@@ -50,7 +50,7 @@ function toStoredPhoto(photo: CapturedPhoto): StoredPhoto {
   };
 }
 
-function toCapturedPhoto(stored: StoredPhoto): CapturedPhoto {
+export function toCapturedPhoto(stored: StoredPhoto): CapturedPhoto {
   const file = new File([stored.data], stored.name, { type: stored.type });
   return createCapturedPhoto(file);
 }

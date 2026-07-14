@@ -7,6 +7,8 @@ import { FarmerListMobileCard } from "../components/FarmerListMobileCard";
 import { useOfflineSyncContext } from "../context/OfflineSyncContext";
 import { SelectField } from "../components/fields/SelectField";
 import { useFarmers, useRequireAuth } from "../hooks/useFarmers";
+import { useConfirmDialog } from "../context/ConfirmDialogContext";
+import { useToast } from "../context/ToastContext";
 import { getCommodityFilterOptions } from "../lib/dashboard-stats";
 import { deleteFarmer } from "../lib/farmers";
 import { removePendingFarmer } from "../lib/offline/store";
@@ -18,6 +20,8 @@ export function FarmersPage() {
   const navigate = useNavigate();
   const { farmers, refetch } = useFarmers();
   const { pendingFarmers, refreshPending } = useOfflineSyncContext();
+  const { confirm, alert } = useConfirmDialog();
+  const { showSuccess } = useToast();
   const [search, setSearch] = useState("");
   const [commodityFilter, setCommodityFilter] = useState("all");
 
@@ -67,23 +71,35 @@ export function FarmersPage() {
   async function handleDeleteSynced(farmerId: string, name: string) {
     const actor = getCurrentUser();
     if (!actor) return;
-    const confirmed = window.confirm(`Delete ${name}? This cannot be undone.`);
+    const confirmed = await confirm({
+      title: "Delete Farmer",
+      message: `Are you sure you want to delete ${name}? This action cannot be undone.`,
+      confirmText: "Delete Farmer",
+      variant: "danger",
+    });
     if (!confirmed) return;
 
     try {
       await deleteFarmer(farmerId, actor.id);
+      showSuccess("Farmer Deleted", `${name} has been deleted.`);
       refetch();
     } catch {
-      window.alert("Could not delete farmer. Try again.");
+      await alert("Could not delete farmer. Please try again.", "Error");
     }
   }
 
   async function handleDeletePending(localId: string, name: string) {
-    const confirmed = window.confirm(`Remove ${name} from this device?`);
+    const confirmed = await confirm({
+      title: "Remove Pending Farmer",
+      message: `Are you sure you want to remove ${name} from this device? Unsaved data will be deleted.`,
+      confirmText: "Remove",
+      variant: "danger",
+    });
     if (!confirmed) return;
 
     await removePendingFarmer(localId);
     await refreshPending();
+    showSuccess("Pending Farmer Removed", `${name} removed from this device.`);
   }
 
   async function handleRetrySync(localId: string) {
@@ -92,7 +108,7 @@ export function FarmersPage() {
       await refreshPending();
       refetch();
     } catch {
-      window.alert("Could not sync farmer. Check your connection and try again.");
+      await alert("Could not sync farmer. Check your internet connection and try again.", "Sync Failed");
       await refreshPending();
     }
   }
@@ -167,7 +183,7 @@ export function FarmersPage() {
               <tbody>
                 {filteredPending.map((record) => {
                   const commodities = buildPrimaryCommodities(record.form);
-                  const name = record.form.full_name;
+                  const name = record.form.full_name || "Draft (Unnamed)";
                   return (
                     <tr key={record.localId}>
                       <td>{name}</td>
@@ -220,7 +236,7 @@ export function FarmersPage() {
             </div>
             <div className="farmer-list--mobile-only">
               {filteredPending.map((record) => {
-                const name = record.form.full_name;
+                const name = record.form.full_name || "Draft (Unnamed)";
                 const status =
                   record.status === "failed"
                     ? "failed"
@@ -278,10 +294,12 @@ export function FarmersPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((f) => (
+                {filtered.map((f) => {
+                  const name = f.full_name || "Draft (Unnamed)";
+                  return (
                   <tr key={f.id}>
-                    <td>{f.full_name}</td>
-                    <td>{f.community}</td>
+                    <td>{name}</td>
+                    <td>{f.community || "—"}</td>
                     <td>{f.district ?? "—"}</td>
                     <td>{f.region ?? "—"}</td>
                     <td>{(f.primary_crops ?? []).join(", ") || "—"}</td>
@@ -291,7 +309,7 @@ export function FarmersPage() {
                     </td>
                     <td className="table__actions-col">
                       <FarmerActionsMenu
-                        label={`Actions for ${f.full_name}`}
+                        label={`Actions for ${name}`}
                         items={[
                           {
                             label: "Full profile",
@@ -304,22 +322,25 @@ export function FarmersPage() {
                           {
                             label: "Delete",
                             variant: "danger",
-                            onClick: () => void handleDeleteSynced(f.id, f.full_name),
+                            onClick: () => void handleDeleteSynced(f.id, name),
                           },
                         ]}
                       />
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
             </div>
             <div className="farmer-list--mobile-only">
-              {filtered.map((f) => (
+              {filtered.map((f) => {
+                const name = f.full_name || "Draft (Unnamed)";
+                return (
                 <FarmerListMobileCard
                   key={f.id}
-                  name={f.full_name}
-                  community={f.community}
+                  name={name}
+                  community={f.community || "—"}
                   phone={f.phone}
                   status="synced"
                   onOpen={() => navigate(`/farmers/${f.id}`)}
@@ -335,11 +356,12 @@ export function FarmersPage() {
                     {
                       label: "Delete",
                       variant: "danger",
-                      onClick: () => void handleDeleteSynced(f.id, f.full_name),
+                      onClick: () => void handleDeleteSynced(f.id, name),
                     },
                   ]}
                 />
-              ))}
+                );
+              })}
             </div>
           </>
         )}

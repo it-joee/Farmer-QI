@@ -2,6 +2,8 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { clearSession } from "../../auth";
 import { useRequireAuth } from "../../hooks/useFarmers";
 import { OfflineSyncProvider, useOfflineSyncContext } from "../../context/OfflineSyncContext";
+import { ConfirmDialogProvider } from "../../context/ConfirmDialogContext";
+import { ToastProvider } from "../../context/ToastContext";
 import { SyncStatusBanner } from "../SyncStatusBanner";
 import { AppLogo } from "./AppLogo";
 import { AppNav } from "./AppNav";
@@ -19,9 +21,13 @@ function AppLayoutContent() {
   if (!user) return null;
 
   return (
-    <OfflineSyncProvider createdBy={user.id}>
-      <AppLayoutShell user={user} onLogout={logout} />
-    </OfflineSyncProvider>
+    <ToastProvider>
+      <ConfirmDialogProvider>
+        <OfflineSyncProvider createdBy={user.id}>
+          <AppLayoutShell user={user} onLogout={logout} />
+        </OfflineSyncProvider>
+      </ConfirmDialogProvider>
+    </ToastProvider>
   );
 }
 

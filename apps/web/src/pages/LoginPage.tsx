@@ -27,12 +27,15 @@ export function LoginPage() {
     });
 
     if (!res.ok) {
-      setError("Invalid credentials");
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "Invalid credentials");
       return;
     }
 
     const data = await res.json();
     localStorage.setItem("farmeriq_user", JSON.stringify(data.user));
+    localStorage.setItem("farmeriq_token", data.token);
+    window.dispatchEvent(new Event("farmeriq:user-changed"));
     navigate("/");
   }
 
@@ -42,7 +45,7 @@ export function LoginPage() {
     <div className="login-page">
       <div className="card">
         <AppLogo as="h2" />
-        <p className="muted">Field agent sign in</p>
+        <p className="muted">Sign in to your account</p>
         {error && <p className="error">{error}</p>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -52,6 +55,7 @@ export function LoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder="e.g. officer@gmail.com"
               required
             />
           </div>
@@ -62,8 +66,9 @@ export function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
               required
-              minLength={8}
+              minLength={4}
             />
           </div>
           <button type="submit" className="btn btn-primary" style={{ width: "100%" }}>

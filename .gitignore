@@ -9,6 +9,7 @@ build/
 .env*
 env.example
 env.local
+db/seed.sql
 
 # Credentials and key material
 *.pem

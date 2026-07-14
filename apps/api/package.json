@@ -16,9 +16,11 @@
     "argon2": "^0.43.0",
     "dotenv": "^16.5.0",
     "hono": "^4.7.10",
+    "jsonwebtoken": "^9.0.3",
     "pg": "^8.16.0"
   },
   "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.15.21",
     "@types/pg": "^8.15.2",
     "tsx": "^4.19.4",

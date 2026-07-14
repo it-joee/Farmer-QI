@@ -83,7 +83,7 @@ export function PendingFarmerDetailPage() {
   if (!record) {
     return (
       <main className="main main--wide">
-        <BackButton />
+        <BackButton to="/farmers" />
         <p className="error">Farmer record not found on this device.</p>
       </main>
     );
@@ -94,7 +94,7 @@ export function PendingFarmerDetailPage() {
 
   return (
     <main className="main main--wide farmer-detail">
-      <BackButton />
+      <BackButton to="/farmers" />
 
       <div className={`sync-banner sync-banner--${record.status === "failed" ? "error" : "pending"}`}>
         <span>

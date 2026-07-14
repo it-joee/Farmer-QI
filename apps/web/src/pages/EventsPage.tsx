@@ -149,7 +149,7 @@ export function EventsPage() {
                     </td>
                     <td className="table__actions-col">
                       <div className="table__actions">
-                        {canRegisterFarmers(user) && isEventUpcoming(event.event_date) && (
+                        {canRegisterFarmers(user) && (
                           <Link to={`/events/${event.id}/edit`} className="btn btn-secondary btn--sm">
                             Edit
                           </Link>
@@ -177,7 +177,7 @@ export function EventsPage() {
                   attendance={`${count} attendee${count === 1 ? "" : "s"}`}
                   openTo={`/events/${event.id}`}
                   editTo={
-                    canRegisterFarmers(user) && isEventUpcoming(event.event_date)
+                    canRegisterFarmers(user)
                       ? `/events/${event.id}/edit`
                       : undefined
                   }

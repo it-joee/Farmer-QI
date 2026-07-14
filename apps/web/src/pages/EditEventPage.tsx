@@ -11,6 +11,7 @@ import {
 } from "../components/EventFormFields";
 import { getCurrentUser } from "../auth";
 import { useOfflineSyncContext } from "../context/OfflineSyncContext";
+import { useToast } from "../context/ToastContext";
 import { useRequireAuth } from "../hooks/useFarmers";
 import {
   applyFieldValidation,
@@ -37,6 +38,7 @@ export function EditEventPage() {
   const user = useRequireAuth();
   const navigate = useNavigate();
   const { refreshPending } = useOfflineSyncContext();
+  const { showSuccess } = useToast();
   const [values, setValues] = useState<EventFormValues | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -63,11 +65,6 @@ export function EditEventPage() {
       if (!id) return;
 
       const event = await fetchEvent(id);
-      if (!isEventUpcoming(event.event_date)) {
-        setError("This event has already passed and cannot be edited.");
-        setValues(null);
-        return;
-      }
       setValues(valuesFromEvent(event));
     } catch {
       setError("Could not load event.");
@@ -105,14 +102,6 @@ export function EditEventPage() {
     );
   }
 
-  if (error === "This event has already passed and cannot be edited.") {
-    return (
-      <main className="main main--wide">
-        <BackButton fallback={id ? `/events/${id}` : "/events"} />
-        <p className="error">{error}</p>
-      </main>
-    );
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -125,6 +114,7 @@ export function EditEventPage() {
     setFormError("");
 
     try {
+      showSuccess("Event Updated", `Event "${values.title}" updated successfully.`);
       if (isPendingEvent && pendingLocalId) {
         const { agentId: _agentId, ...input } = eventFormToSubmitInput(values, actor.id);
         await updatePendingEventDetails(pendingLocalId, input);

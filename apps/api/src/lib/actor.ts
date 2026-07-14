@@ -1,4 +1,5 @@
 import type { Context } from "hono";
+import jwt from "jsonwebtoken";
 import type { UserRole } from "@farmeriq/shared";
 import { DEV_OFFICE_ID, DEV_USER_ID, SKIP_AUTH } from "../config.js";
 
@@ -27,7 +28,23 @@ export function parseActor(c: Context): Actor | null {
     return { id, role, office_id };
   }
 
-  return null;
+  const authHeader = c.req.header("Authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return null;
+  }
+
+  const token = authHeader.split(" ")[1];
+  try {
+    const secret = process.env.JWT_SECRET || "fallback-secret";
+    const payload = jwt.verify(token, secret) as any;
+    return {
+      id: payload.id,
+      role: parseRole(payload.role),
+      office_id: payload.office_id || null,
+    };
+  } catch (err) {
+    return null;
+  }
 }
 
 export function requireActor(c: Context): Actor | Response {
