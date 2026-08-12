@@ -9,7 +9,7 @@ import { formatEventDate, isEventUpcoming } from "../lib/events";
 export function EventsPage() {
   const user = useRequireAuth();
   const navigate = useNavigate();
-  const { events, loading, error } = useEvents();
+  const { events, loading, error, refetch } = useEvents();
   const { pendingEvents } = usePendingEventsList();
   const { refreshPending } = useOfflineSyncContext();
 
@@ -36,7 +36,14 @@ export function EventsPage() {
 
       <div className="card">
         {loading && <p className="muted">Loading events…</p>}
-        {error && !hasPending && <p className="error">{error}</p>}
+        {error && !hasPending && (
+          <p className="error">
+            {error}{" "}
+            <button className="btn btn-secondary btn--sm" onClick={() => void refetch()}>
+              Retry
+            </button>
+          </p>
+        )}
         {error && hasPending && <p className="muted">{error} Showing saved events on this device.</p>}
         {!loading && !hasPending && !hasSynced && !error && (
           <p className="muted">No events yet. Create one to start taking attendance.</p>

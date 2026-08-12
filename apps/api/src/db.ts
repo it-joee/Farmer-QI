@@ -20,6 +20,18 @@ export const pool = new Pool({
   ssl: connectionString?.includes("supabase.com")
     ? { rejectUnauthorized: false }
     : undefined,
+  // Evict idle connections after 30s so stale clients from a Supabase
+  // pause/resume cycle don't block queries indefinitely.
+  idleTimeoutMillis: 30_000,
+  // Fail fast if the DB is still waking up, so callers get a clear error.
+  connectionTimeoutMillis: 10_000,
+  max: 5,
+});
+
+// Prevent unhandled 'error' events from crashing the process when
+// a pooled connection is dropped (e.g. after Supabase pause/resume).
+pool.on("error", (err) => {
+  console.error("[db] idle client error — connection will be evicted:", err.message);
 });
 
 export async function query<T extends pg.QueryResultRow>(
