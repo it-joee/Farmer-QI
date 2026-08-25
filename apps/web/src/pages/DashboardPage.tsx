@@ -7,7 +7,7 @@ import { DistrictChart } from "../components/dashboard/DistrictChart";
 import { KpiCards } from "../components/dashboard/KpiCards";
 import { RegionChart } from "../components/dashboard/RegionChart";
 import { SelectField } from "../components/fields/SelectField";
-import { useFarmers, useRequireAuth } from "../hooks/useFarmers";
+import { useAllFarmers, useRequireAuth } from "../hooks/useFarmers";
 import {
   buildDashboardOverview,
   districtStatsForCommodity,
@@ -16,7 +16,7 @@ import {
 
 export function DashboardPage() {
   const user = useRequireAuth();
-  const { farmers } = useFarmers();
+  const { farmers } = useAllFarmers();
   const [selectedCommodity, setSelectedCommodity] = useState<string | null>(null);
   const [commodityFilter, setCommodityFilter] = useState<string>("all");
 

@@ -26,6 +26,7 @@ export interface UserListItem {
   role: UserRole;
   office_id: string | null;
   office_name: string | null;
+  office_region?: string | null;
   is_active: boolean;
   created_at: string;
 }

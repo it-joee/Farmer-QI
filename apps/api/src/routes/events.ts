@@ -99,11 +99,24 @@ eventRoutes.get("/:id", async (c) => {
     return c.json({ error: "Event not found" }, 404);
   }
 
+  const page = parseInt(c.req.query("page") ?? "1", 10) || 1;
+  const limit = parseInt(c.req.query("limit") ?? "20", 10) || 20;
+  const offset = (page - 1) * limit;
+
   const eventResult = await query(`${eventListSelect} WHERE e.id = $1`, [id]);
 
-  const attendeesResult = await query(
-    `SELECT * FROM event_attendees WHERE event_id = $1 ORDER BY marked_at ASC`,
+  const countResult = await query(
+    `SELECT
+      COUNT(*)::int AS total,
+      COALESCE(SUM(CASE WHEN gender = 'male' THEN 1 ELSE 0 END), 0)::int AS male_count,
+      COALESCE(SUM(CASE WHEN gender = 'female' THEN 1 ELSE 0 END), 0)::int AS female_count
+     FROM event_attendees WHERE event_id = $1`,
     [id]
+  );
+
+  const attendeesResult = await query(
+    `SELECT * FROM event_attendees WHERE event_id = $1 ORDER BY marked_at DESC LIMIT $2 OFFSET $3`,
+    [id, limit, offset]
   );
 
   return c.json({
@@ -111,6 +124,14 @@ eventRoutes.get("/:id", async (c) => {
       ...eventResult.rows[0],
       attendees: attendeesResult.rows,
     },
+    pagination: {
+      total: countResult.rows[0].total,
+      page,
+      limit,
+      totalPages: Math.ceil(countResult.rows[0].total / limit) || 1,
+      male_count: countResult.rows[0].male_count,
+      female_count: countResult.rows[0].female_count,
+    }
   });
 });
 

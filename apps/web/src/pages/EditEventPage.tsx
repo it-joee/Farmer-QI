@@ -64,8 +64,8 @@ export function EditEventPage() {
 
       if (!id) return;
 
-      const event = await fetchEvent(id);
-      setValues(valuesFromEvent(event));
+      const data = await fetchEvent(id);
+      setValues(valuesFromEvent(data.event));
     } catch {
       setError("Could not load event.");
       setValues(null);

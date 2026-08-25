@@ -397,6 +397,17 @@ a {
   padding: var(--space-4);
 }
 
+.card + .card {
+  margin-top: var(--space-4);
+}
+
+.dashboard-grid > .card + .card,
+.reports-kpi-grid > .card + .card,
+.kpi-grid > .card + .card,
+.kpis > .card + .card {
+  margin-top: 0;
+}
+
 .toolbar {
   display: flex;
   align-items: center;

@@ -24,6 +24,68 @@ farmerRoutes.get("/", async (c) => {
   const actorResult = requireActor(c);
   if (actorResult instanceof Response) return actorResult;
 
+  const page = parseInt(c.req.query("page") ?? "1", 10) || 1;
+  const limit = parseInt(c.req.query("limit") ?? "20", 10) || 20;
+  const search = c.req.query("search")?.trim() ?? "";
+  const commodity = c.req.query("commodity")?.trim() ?? "";
+
+  const offset = (page - 1) * limit;
+
+  const scope = farmerScopeClause(actorResult, "f", 1);
+  
+  let filterSql = "";
+  const params = [...scope.params];
+  let paramIndex = params.length + 1;
+
+  if (search) {
+    filterSql += ` AND (
+      f.full_name ILIKE $${paramIndex} OR
+      f.community ILIKE $${paramIndex} OR
+      f.district ILIKE $${paramIndex} OR
+      f.phone ILIKE $${paramIndex} OR
+      f.ghana_card ILIKE $${paramIndex}
+    )`;
+    params.push(`%${search}%`);
+    paramIndex++;
+  }
+
+  if (commodity && commodity !== "all") {
+    if (commodity === "Not specified") {
+      filterSql += ` AND (f.primary_crops IS NULL OR array_length(f.primary_crops, 1) IS NULL OR f.primary_crops = '{}')`;
+    } else {
+      filterSql += ` AND $${paramIndex} = ANY(f.primary_crops)`;
+      params.push(commodity);
+      paramIndex++;
+    }
+  }
+
+  const countResult = await query(
+    `SELECT COUNT(*) FROM farmers f WHERE ${scope.sql} ${filterSql}`,
+    params
+  );
+  
+  const total = parseInt(countResult.rows[0].count, 10);
+  const totalPages = Math.ceil(total / limit);
+
+  const dataParams = [...params, limit, offset];
+  const result = await query(
+    `SELECT * FROM farmers f WHERE ${scope.sql} ${filterSql} ORDER BY f.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+    dataParams
+  );
+
+  return c.json({
+    data: result.rows,
+    total,
+    page,
+    limit,
+    totalPages
+  });
+});
+
+farmerRoutes.get("/all", async (c) => {
+  const actorResult = requireActor(c);
+  if (actorResult instanceof Response) return actorResult;
+
   const scope = farmerScopeClause(actorResult, "f", 1);
   const result = await query(
     `SELECT * FROM farmers f WHERE ${scope.sql} ORDER BY f.created_at DESC`,

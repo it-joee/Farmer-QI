@@ -22,15 +22,49 @@ userRoutes.get("/", async (c) => {
     return c.json({ error: "Only admins can manage users" }, 403);
   }
 
+  const page = parseInt(c.req.query("page") ?? "1", 10) || 1;
+  const limit = parseInt(c.req.query("limit") ?? "20", 10) || 20;
+  const search = c.req.query("search")?.trim() ?? "";
+  
+  const offset = (page - 1) * limit;
+  
+  let filterSql = "";
+  const params: any[] = [];
+  
+  if (search) {
+    filterSql = `WHERE u.full_name ILIKE $1 OR u.email ILIKE $1 OR o.name ILIKE $1`;
+    params.push(`%${search}%`);
+  }
+
+  const countResult = await query(
+    `SELECT COUNT(*) FROM users u LEFT JOIN offices o ON o.id = u.office_id ${filterSql}`,
+    params
+  );
+  
+  const total = parseInt(countResult.rows[0].count, 10);
+  const totalPages = Math.ceil(total / limit);
+
+  const dataParams = [...params, limit, offset];
+  const paramIndex = params.length + 1;
+
   const result = await query(
     `SELECT u.id, u.email, u.full_name, u.role, u.office_id, u.is_active, u.created_at,
-            o.name AS office_name
+            o.name AS office_name, o.region AS office_region
      FROM users u
      LEFT JOIN offices o ON o.id = u.office_id
-     ORDER BY u.created_at DESC`
+     ${filterSql}
+     ORDER BY u.created_at DESC
+     LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+    dataParams
   );
 
-  return c.json({ users: result.rows });
+  return c.json({
+    data: result.rows,
+    total,
+    page,
+    limit,
+    totalPages
+  });
 });
 
 userRoutes.post("/", async (c) => {
@@ -169,6 +203,8 @@ userRoutes.get("/offices", async (c) => {
     return c.json({ error: "Only admins can manage users" }, 403);
   }
 
-  const result = await query(`SELECT id, name, region FROM offices ORDER BY name`);
+  const result = await query(
+    `SELECT id, name, region FROM offices ORDER BY CASE WHEN name = 'Head Office' THEN 1 ELSE 2 END, region`
+  );
   return c.json({ offices: result.rows });
 });

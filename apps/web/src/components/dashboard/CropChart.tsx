@@ -7,7 +7,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-import { CHART_COLORS } from "../../lib/dashboard-stats";
+import { getChartColor } from "../../lib/dashboard-stats";
 import { palette } from "../../theme/colors";
 
 interface CropChartProps {
@@ -45,7 +45,7 @@ export function CropChart({ data, selectedCommodity, onSelectCommodity }: CropCh
             {chartData.map((entry, i) => (
               <Cell
                 key={entry.name}
-                fill={CHART_COLORS[i % CHART_COLORS.length]}
+                fill={getChartColor(entry.name, i)}
                 stroke={selectedCommodity === entry.name ? palette.text.primary : palette.neutral.surface}
                 strokeWidth={selectedCommodity === entry.name ? 2 : 1}
               />

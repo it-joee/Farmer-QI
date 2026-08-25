@@ -9,7 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { CHART_COLORS } from "../../lib/dashboard-stats";
+import { getChartColor } from "../../lib/dashboard-stats";
 
 interface DistrictChartProps {
   data: StatBucket[];
@@ -36,6 +36,7 @@ export function DistrictChart({ data }: DistrictChartProps) {
           <XAxis type="number" allowDecimals={false} tick={{ fill: "#757575", fontSize: 12 }} />
           <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12, fill: "#757575" }} />
           <Tooltip
+            cursor={false}
             formatter={(value, _name, item) => {
               const count = Number(value ?? 0);
               const pct = (item?.payload as { percentage?: number })?.percentage ?? 0;
@@ -44,7 +45,7 @@ export function DistrictChart({ data }: DistrictChartProps) {
           />
           <Bar dataKey="farmers" radius={[0, 8, 8, 0]}>
             {chartData.map((entry, i) => (
-              <Cell key={entry.name} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+              <Cell key={entry.name} fill={getChartColor(entry.name, i)} />
             ))}
           </Bar>
         </BarChart>

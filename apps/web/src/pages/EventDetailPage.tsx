@@ -5,6 +5,7 @@ import { GENDER_OPTIONS } from "@farmeriq/shared";
 import { BackButton } from "../components/BackButton";
 import { FormGroup } from "../components/FormGroup";
 import { SelectField } from "../components/fields/SelectField";
+import { Pagination } from "../components/Pagination";
 import { canRegisterFarmers, getCurrentUser } from "../auth";
 import { useOfflineSyncContext } from "../context/OfflineSyncContext";
 import { useToast } from "../context/ToastContext";
@@ -122,6 +123,15 @@ export function EventDetailPage() {
   const [pendingEvent, setPendingEvent] = useState<PendingEventRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const [paginationData, setPaginationData] = useState<{
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    male_count: number;
+    female_count: number;
+  } | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -160,24 +170,43 @@ export function EventDetailPage() {
     setLoading(true);
     setError("");
     try {
-      const data = await fetchEvent(id);
-      setEvent(data);
+      const data = await fetchEvent(id, page, 20);
+      setEvent(data.event);
+      setPaginationData(data.pagination);
     } catch {
       setError("Could not load event.");
       setEvent(null);
+      setPaginationData(null);
     } finally {
       setLoading(false);
     }
-  }, [id, isPendingEvent, pendingLocalId]);
+  }, [id, isPendingEvent, pendingLocalId, page]);
 
   useEffect(() => {
     void loadEvent();
   }, [loadEvent, location.pathname]);
 
-  const attendees: DisplayAttendee[] = isPendingEvent
+  const allAttendees: DisplayAttendee[] = isPendingEvent
     ? (pendingEvent?.attendees ?? []).map(pendingToDisplay)
     : (event?.attendees ?? []).map(serverToDisplay);
-  const genderCounts = countAttendeesByGender(attendees);
+
+  const attendees = isPendingEvent
+    ? allAttendees.slice((page - 1) * 20, page * 20)
+    : allAttendees;
+
+  let genderCounts = { male: 0, female: 0 };
+  let totalAttendees = 0;
+
+  if (isPendingEvent) {
+    genderCounts = countAttendeesByGender(allAttendees);
+    totalAttendees = allAttendees.length;
+  } else if (paginationData) {
+    genderCounts = { male: paginationData.male_count, female: paginationData.female_count };
+    totalAttendees = paginationData.total;
+  } else if (event) {
+    genderCounts = countAttendeesByGender(allAttendees);
+    totalAttendees = event.attendance_count ?? allAttendees.length;
+  }
 
   function handleStartEdit(person: DisplayAttendee) {
     setEditingAttendeeId(person.id);
@@ -279,6 +308,16 @@ export function EventDetailPage() {
                 attendance_count: (prev.attendance_count ?? prev.attendees.length) + 1,
               };
             });
+            setPaginationData((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    total: prev.total + 1,
+                    male_count: prev.male_count + (input.gender === "male" ? 1 : 0),
+                    female_count: prev.female_count + (input.gender === "female" ? 1 : 0),
+                  }
+                : prev
+            );
           }
         }
         showSuccess("Attendee Added", `${input.full_name} registered successfully.`);
@@ -329,6 +368,16 @@ export function EventDetailPage() {
             ...prev,
             attendees: prev.attendees.filter((a) => a.id !== attendeeId),
             attendance_count: count,
+          };
+        });
+        setPaginationData((prev) => {
+          if (!prev) return prev;
+          const removedPerson = attendees.find((a) => a.id === attendeeId);
+          return {
+            ...prev,
+            total: count,
+            male_count: Math.max(0, prev.male_count - (removedPerson?.gender === "male" ? 1 : 0)),
+            female_count: Math.max(0, prev.female_count - (removedPerson?.gender === "female" ? 1 : 0)),
           };
         });
       }
@@ -409,7 +458,7 @@ export function EventDetailPage() {
 
       <div className="event-detail__stats-row">
         <div className="event-detail__stats card">
-          <span className="event-detail__stat-value">{attendees.length}</span>
+          <span className="event-detail__stat-value">{totalAttendees}</span>
           <span className="event-detail__stat-label muted">Total attendees</span>
         </div>
         <div className="event-detail__stats card">
@@ -469,6 +518,15 @@ export function EventDetailPage() {
               </div>
             ))}
           </div>
+        )}
+
+        {(paginationData || isPendingEvent) && (
+          <Pagination
+            page={page}
+            total={totalAttendees}
+            totalPages={paginationData?.totalPages ?? Math.ceil(totalAttendees / 20)}
+            onPageChange={setPage}
+          />
         )}
       </section>
 

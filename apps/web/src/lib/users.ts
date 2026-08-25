@@ -1,4 +1,4 @@
-import type { CreateUserRequest, UpdateUserRequest, UserListItem } from "@farmeriq/shared";
+import type { CreateUserRequest, UpdateUserRequest, UserListItem, PaginatedResponse } from "@farmeriq/shared";
 import { apiFetch } from "./api-client";
 
 export interface OfficeOption {
@@ -7,11 +7,29 @@ export interface OfficeOption {
   region: string;
 }
 
-export async function fetchUsers(): Promise<UserListItem[]> {
-  const res = await apiFetch("/api/users");
+export async function fetchUsers(page = 1, limit = 20, search = ""): Promise<PaginatedResponse<UserListItem>> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+    ...(search && { search }),
+  });
+  
+  const res = await apiFetch(`/api/users?${params.toString()}`);
   if (!res.ok) throw new Error("Failed to load users");
   const data = await res.json();
-  return data.users ?? [];
+  
+  if ("data" in data) {
+    return data;
+  }
+  
+  // Fallback if backend hasn't updated yet
+  return {
+    data: data.users ?? [],
+    total: (data.users ?? []).length,
+    page: 1,
+    limit: 20,
+    totalPages: 1
+  };
 }
 
 export async function fetchOffices(): Promise<OfficeOption[]> {

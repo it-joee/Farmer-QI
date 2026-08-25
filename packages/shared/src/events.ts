@@ -62,3 +62,15 @@ export interface EventAttendee {
 export interface EventDetail extends EventRecord {
   attendees: EventAttendee[];
 }
+
+export interface EventDetailResponse {
+  event: EventDetail;
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    male_count: number;
+    female_count: number;
+  };
+}

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { COMMODITIES } from "@farmeriq/shared";
 import { canRegisterFarmers, farmersScopeLabel, getCurrentUser } from "../auth";
@@ -10,6 +10,7 @@ import { useFarmers, useRequireAuth } from "../hooks/useFarmers";
 import { useConfirmDialog } from "../context/ConfirmDialogContext";
 import { useToast } from "../context/ToastContext";
 import { getCommodityFilterOptions } from "../lib/dashboard-stats";
+import { Pagination } from "../components/Pagination";
 import { deleteFarmer } from "../lib/farmers";
 import { removePendingFarmer } from "../lib/offline/store";
 import { syncPendingFarmer } from "../lib/offline/sync";
@@ -18,39 +19,28 @@ import { buildPrimaryCommodities } from "./farmer-form/commodities";
 export function FarmersPage() {
   const user = useRequireAuth();
   const navigate = useNavigate();
-  const { farmers, refetch } = useFarmers();
+  const [search, setSearch] = useState("");
+  const [commodityFilter, setCommodityFilter] = useState("all");
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, commodityFilter]);
+
+  const { farmers, pagination, loading, refetch } = useFarmers(page, 20, search, commodityFilter === "all" ? "" : commodityFilter);
   const { pendingFarmers, refreshPending } = useOfflineSyncContext();
   const { confirm, alert } = useConfirmDialog();
   const { showSuccess } = useToast();
-  const [search, setSearch] = useState("");
-  const [commodityFilter, setCommodityFilter] = useState("all");
 
   const commodityOptions = useMemo(
     () => getCommodityFilterOptions(farmers, COMMODITIES),
     [farmers]
   );
 
-  const filtered = useMemo(() => {
-    let list = farmers;
-
-    if (commodityFilter === "Not specified") {
-      list = list.filter((f) => !(f.primary_crops ?? []).length);
-    } else if (commodityFilter !== "all") {
-      list = list.filter((f) => (f.primary_crops ?? []).includes(commodityFilter));
-    }
-
-    const q = search.trim().toLowerCase();
-    if (!q) return list;
-
-    return list.filter(
-      (f) =>
-        f.full_name.toLowerCase().includes(q) ||
-        f.community.toLowerCase().includes(q) ||
-        (f.district?.toLowerCase().includes(q) ?? false) ||
-        (f.phone?.includes(q) ?? false) ||
-        (f.ghana_card?.includes(q) ?? false)
-    );
-  }, [farmers, search, commodityFilter]);
+  // reset page to 1 when search or filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [search, commodityFilter]);
 
   const filteredPending = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -66,7 +56,7 @@ export function FarmersPage() {
     );
   }, [pendingFarmers, search]);
 
-  const totalCount = filtered.length + filteredPending.length;
+  const totalCount = pagination.total + filteredPending.length;
 
   async function handleDeleteSynced(farmerId: string, name: string) {
     const actor = getCurrentUser();
@@ -277,7 +267,7 @@ export function FarmersPage() {
           </>
         )}
 
-        {filtered.length > 0 && (
+        {farmers.length > 0 ? (
           <>
             <div className="table-scroll farmer-list--desktop-only">
               <table className="table">
@@ -294,7 +284,7 @@ export function FarmersPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((f) => {
+                {farmers.map((f) => {
                   const name = f.full_name || "Draft (Unnamed)";
                   return (
                   <tr key={f.id}>
@@ -334,7 +324,7 @@ export function FarmersPage() {
             </table>
             </div>
             <div className="farmer-list--mobile-only">
-              {filtered.map((f) => {
+              {farmers.map((f) => {
                 const name = f.full_name || "Draft (Unnamed)";
                 return (
                 <FarmerListMobileCard
@@ -363,7 +353,15 @@ export function FarmersPage() {
                 );
               })}
             </div>
+            <Pagination
+              page={pagination.page}
+              total={pagination.total}
+              totalPages={pagination.totalPages}
+              onPageChange={setPage}
+            />
           </>
+        ) : (
+          !loading && <p className="muted" style={{ padding: "1rem" }}>No synced farmers match your criteria.</p>
         )}
       </div>
     </main>

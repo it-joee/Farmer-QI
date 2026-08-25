@@ -3,6 +3,7 @@ import type {
   CreateEventRequest,
   EventAttendee,
   EventDetail,
+  EventDetailResponse,
   EventRecord,
   UpdateEventRequest,
 } from "@farmeriq/shared";
@@ -36,11 +37,10 @@ export async function fetchEvents(): Promise<EventRecord[]> {
   return data.events ?? [];
 }
 
-export async function fetchEvent(eventId: string): Promise<EventDetail> {
-  const res = await apiFetch(`/api/events/${eventId}`);
+export async function fetchEvent(eventId: string, page = 1, limit = 20): Promise<EventDetailResponse> {
+  const res = await apiFetch(`/api/events/${eventId}?page=${page}&limit=${limit}`);
   if (!res.ok) throw new Error("Failed to load event");
-  const data = await res.json();
-  return data.event;
+  return res.json();
 }
 
 export async function createEvent(payload: CreateEventRequest, createdBy: string): Promise<EventRecord> {

@@ -14,6 +14,7 @@ const app = new Hono();
 function allowedOrigins(): string[] {
   const origins = new Set<string>([
     "http://localhost:5173",
+    "http://localhost:3000",
     "https://farmeriq.jniagri.ag",
     "https://www.farmeriq.jniagri.ag",
   ]);

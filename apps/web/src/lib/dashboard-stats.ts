@@ -1,4 +1,5 @@
 import type { DashboardOverview, Farmer, StatBucket } from "@farmeriq/shared";
+import { COMMODITIES } from "@farmeriq/shared";
 import { palette } from "../theme/colors";
 
 function pct(count: number, total: number): number {
@@ -11,38 +12,64 @@ function countByLabel(
   getLabel: (f: Farmer) => string | null | undefined,
   unknownLabel = "Not specified"
 ): StatBucket[] {
-  const counts = new Map<string, number>();
+  const counts = new Map<string, { label: string; count: number }>();
 
   for (const farmer of farmers) {
     const raw = getLabel(farmer)?.trim();
-    const label = raw || unknownLabel;
-    counts.set(label, (counts.get(label) ?? 0) + 1);
+    if (!raw) {
+      const key = unknownLabel.toLowerCase();
+      const existing = counts.get(key) ?? { label: unknownLabel, count: 0 };
+      existing.count += 1;
+      counts.set(key, existing);
+      continue;
+    }
+
+    const key = raw.toLowerCase().replace(/\s+/g, " ");
+    const existing = counts.get(key);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      counts.set(key, { label: raw, count: 1 });
+    }
   }
 
   const total = farmers.length;
-  return [...counts.entries()]
-    .map(([label, count]) => ({ label, count, percentage: pct(count, total) }))
+  return [...counts.values()]
+    .map(({ label, count }) => ({ label, count, percentage: pct(count, total) }))
     .sort((a, b) => b.count - a.count);
 }
 
 function countCommodities(farmers: Farmer[]): StatBucket[] {
-  const counts = new Map<string, number>();
+  const counts = new Map<string, { label: string; count: number }>();
 
   for (const farmer of farmers) {
     const commodities = farmer.primary_crops ?? [];
     if (commodities.length === 0) {
-      counts.set("Not specified", (counts.get("Not specified") ?? 0) + 1);
+      const key = "not specified";
+      const existing = counts.get(key) ?? { label: "Not specified", count: 0 };
+      existing.count += 1;
+      counts.set(key, existing);
       continue;
     }
-    for (const commodity of commodities) {
-      counts.set(commodity, (counts.get(commodity) ?? 0) + 1);
+    for (const rawCommodity of commodities) {
+      const trimmed = rawCommodity.trim();
+      if (!trimmed) continue;
+      const key = trimmed.toLowerCase();
+      const match = COMMODITIES.find((c) => c.toLowerCase() === key);
+      const displayLabel = match || (trimmed.charAt(0).toUpperCase() + trimmed.slice(1));
+      const existing = counts.get(key);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        counts.set(key, { label: displayLabel, count: 1 });
+      }
     }
   }
 
   const withCommodities =
     farmers.filter((f) => (f.primary_crops ?? []).length > 0).length || farmers.length;
-  return [...counts.entries()]
-    .map(([label, count]) => ({
+  return [...counts.values()]
+    .map(({ label, count }) => ({
       label,
       count,
       percentage: pct(count, withCommodities),
@@ -82,7 +109,10 @@ export function filterFarmersByCommodity(farmers: Farmer[], commodity: string | 
   if (commodity === "Not specified") {
     return farmers.filter((f) => !(f.primary_crops ?? []).length);
   }
-  return farmers.filter((f) => (f.primary_crops ?? []).includes(commodity));
+  const target = commodity.toLowerCase().trim();
+  return farmers.filter((f) =>
+    (f.primary_crops ?? []).some((c) => c.toLowerCase().trim() === target)
+  );
 }
 
 export function districtStatsForCommodity(farmers: Farmer[], commodity: string | null): StatBucket[] {
@@ -96,9 +126,12 @@ export function getCommodityFilterOptions(
   const extras = new Set<string>();
 
   for (const farmer of farmers) {
-    for (const commodity of farmer.primary_crops ?? []) {
-      if (!standard.includes(commodity)) {
-        extras.add(commodity);
+    for (const raw of farmer.primary_crops ?? []) {
+      const trimmed = raw.trim();
+      if (!trimmed) continue;
+      const match = standard.find((c) => c.toLowerCase() === trimmed.toLowerCase());
+      if (!match) {
+        extras.add(trimmed.charAt(0).toUpperCase() + trimmed.slice(1));
       }
     }
   }
@@ -106,18 +139,33 @@ export function getCommodityFilterOptions(
   return [...standard, ...extras].sort((a, b) => a.localeCompare(b));
 }
 
+/**
+ * Chart color palette:
+ * Starts with the signature brand green (#b0ec80) as primary,
+ * then shifts toward yellow and brown tones (corn yellow, harvest amber, wheat tan, earth brown)
+ * so each bar and pie slice is distinct and visually clear.
+ */
 export const CHART_COLORS = [
-  palette.green[500],
-  palette.green[300],
-  palette.green[400],
-  palette.green[600],
-  palette.orange[200],
-  palette.orange[300],
-  palette.orange[400],
-  palette.wheat[400],
-  palette.corn[400],
-  palette.corn[500],
+  palette.green[500],  // #b0ec80 — Exact Brand Green (Primary)
+  "#facc15",           // Golden Yellow (Corn / Maize)
+  palette.orange[600],  // #c9925a — Warm Harvest Ochre
+  "#8b5a2b",           // Earth Soil Brown
+  palette.green[600],  // #8fd066 — Deeper Brand Green
+  "#f59e0b",           // Amber Gold
+  "#deb781",           // Wheat Tan
+  "#6c431b",           // Rich Cocoa Brown
+  "#eab308",           // Sunlit Gold
+  "#a2673a",           // Terracotta Brown
 ] as const;
+
+export const NOT_SPECIFIED_COLOR = "#94a3b8"; // Neutral slate for "Not specified"
+
+export function getChartColor(label: string, index: number): string {
+  if (label && label.toLowerCase() === "not specified") {
+    return NOT_SPECIFIED_COLOR;
+  }
+  return CHART_COLORS[index % CHART_COLORS.length];
+}
 
 /** @deprecated Use filterFarmersByCommodity */
 export const filterFarmersByCrop = filterFarmersByCommodity;

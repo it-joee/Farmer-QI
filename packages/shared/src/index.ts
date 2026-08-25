@@ -144,6 +144,14 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export type { FarmerPhoto, FarmerPhotoType } from "./photos.js";
 export * from "./plots.js";
 export * from "./crop-cycles.js";
@@ -154,3 +162,4 @@ export * from "./users.js";
 export * from "./normalize.js";
 export * from "./submissions.js";
 export * from "./farmer-id.js";
+
