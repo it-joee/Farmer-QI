@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { User } from "@farmeriq/shared";
+import { useNavigate } from "react-router-dom";
 import { DEMO_USERS, SKIP_AUTH, setDevUser } from "../../auth";
 import { useDropdownPlacement } from "../../hooks/useDropdownPlacement";
 import { ROLE_LABELS } from "./AppNav";
@@ -19,6 +20,7 @@ interface UserProfileMenuProps {
 }
 
 export function UserProfileMenu({ user, onLogout }: UserProfileMenuProps) {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -98,6 +100,17 @@ export function UserProfileMenu({ user, onLogout }: UserProfileMenuProps) {
               ))}
             </div>
           )}
+          <button
+            type="button"
+            className="user-profile__logout"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              navigate("/change-password");
+            }}
+          >
+            Change password
+          </button>
           <button
             type="button"
             className="user-profile__logout"

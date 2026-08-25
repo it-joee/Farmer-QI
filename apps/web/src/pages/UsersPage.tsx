@@ -23,6 +23,7 @@ export function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -53,9 +54,10 @@ export function UsersPage() {
     if (!user) return;
     setSaving(true);
     setError("");
+    setInviteLink(null);
 
     try {
-      await createUser(
+      const result = await createUser(
         {
           email: form.email.trim(),
           full_name: form.full_name.trim(),
@@ -64,6 +66,7 @@ export function UsersPage() {
         },
         user.id
       );
+      setInviteLink(result.invite_link);
       setForm(EMPTY_FORM);
       await loadUsers();
     } catch (err) {
@@ -157,6 +160,32 @@ export function UsersPage() {
             </button>
           </div>
         </form>
+
+        {inviteLink && (
+          <div style={{ marginTop: "1.25rem", padding: "1rem", background: "var(--color-surface-alt, #f0fdf4)", borderRadius: "var(--radius)", border: "1px solid var(--color-success, #16a34a)" }}>
+            <p style={{ margin: "0 0 0.5rem", fontWeight: 600, color: "var(--color-success, #16a34a)" }}>
+              ✓ User created — share this invite link with them:
+            </p>
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+              <input
+                readOnly
+                value={inviteLink}
+                style={{ flex: 1, fontFamily: "monospace", fontSize: "0.8rem" }}
+                onFocus={(e) => e.target.select()}
+              />
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => void navigator.clipboard.writeText(inviteLink)}
+              >
+                Copy
+              </button>
+            </div>
+            <p className="muted" style={{ margin: "0.5rem 0 0", fontSize: "0.8rem" }}>
+              Link expires in 72 hours. The user must open it to set their password before they can log in.
+            </p>
+          </div>
+        )}
       </section>
 
       <section className="card">

@@ -21,7 +21,10 @@ export async function fetchOffices(): Promise<OfficeOption[]> {
   return data.offices ?? [];
 }
 
-export async function createUser(payload: CreateUserRequest, createdBy: string): Promise<UserListItem> {
+export async function createUser(
+  payload: CreateUserRequest,
+  createdBy: string
+): Promise<{ user: UserListItem; invite_link: string }> {
   const res = await apiFetch("/api/users", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -34,7 +37,7 @@ export async function createUser(payload: CreateUserRequest, createdBy: string):
   }
 
   const data = await res.json();
-  return data.user;
+  return { user: data.user, invite_link: data.invite_link };
 }
 
 export async function updateUser(

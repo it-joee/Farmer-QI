@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AppLayout } from "./components/layout/AppLayout";
 import { AddFarmerPage } from "./pages/AddFarmerPage";
+import { ChangePasswordPage } from "./pages/ChangePasswordPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { EditFarmerPage } from "./pages/EditFarmerPage";
 import { EditPendingFarmerPage } from "./pages/EditPendingFarmerPage";
@@ -13,12 +14,14 @@ import { EditEventPage } from "./pages/EditEventPage";
 import { EventDetailPage } from "./pages/EventDetailPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ReportsPage } from "./pages/ReportsPage";
+import { SetPasswordPage } from "./pages/SetPasswordPage";
 import { UsersPage } from "./pages/UsersPage";
 
 export function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/set-password" element={<SetPasswordPage />} />
       <Route element={<AppLayout />}>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/farmers" element={<FarmersPage />} />
@@ -29,6 +32,7 @@ export function App() {
         <Route path="/farmers/:id" element={<FarmerDetailPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/users" element={<UsersPage />} />
+        <Route path="/change-password" element={<ChangePasswordPage />} />
         <Route path="/events" element={<EventsPage />} />
         <Route path="/events/new" element={<NewEventPage />} />
         <Route path="/events/pending/:localId/edit" element={<EditEventPage />} />

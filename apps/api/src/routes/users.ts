@@ -3,11 +3,15 @@ import { CreateUserRequest, UpdateUserRequest } from "@farmeriq/shared";
 import { requireActor } from "../lib/actor.js";
 import { canManageUsers } from "../lib/access.js";
 import { query } from "../db.js";
+import * as argon2 from "argon2";
+import crypto from "crypto";
 
 export const userRoutes = new Hono();
 
-const PLACEHOLDER_PASSWORD_HASH =
-  "$argon2id$v=19$m=65536,t=3,p=4$REPLACE_ME$REPLACE_ME";
+/** Generates a secure random URL-safe token */
+function generateToken(): string {
+  return crypto.randomBytes(32).toString("hex");
+}
 
 userRoutes.get("/", async (c) => {
   const actorResult = requireActor(c);
@@ -51,21 +55,32 @@ userRoutes.post("/", async (c) => {
     return c.json({ error: "Agents and team leads require an office" }, 400);
   }
 
+  // Use a random placeholder hash — the real password is set via the invite link
+  const tempHash = await argon2.hash(crypto.randomBytes(32).toString("hex"));
+
   try {
     const result = await query(
-      `INSERT INTO users (email, password_hash, full_name, role, office_id)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO users (email, password_hash, full_name, role, office_id, must_set_password)
+       VALUES ($1, $2, $3, $4, $5, true)
        RETURNING id, email, full_name, role, office_id, is_active, created_at`,
       [
         data.email.toLowerCase(),
-        PLACEHOLDER_PASSWORD_HASH,
+        tempHash,
         data.full_name,
         role,
-        role === "admin" ? data.office_id ?? null : data.office_id ?? null,
+        data.office_id ?? null,
       ]
     );
 
     const user = result.rows[0];
+
+    // Generate a one-time invite token (72-hour expiry)
+    const token = generateToken();
+    await query(
+      `INSERT INTO password_reset_tokens (user_id, token, expires_at)
+       VALUES ($1, $2, now() + interval '72 hours')`,
+      [user.id, token]
+    );
 
     await query(
       `INSERT INTO audit_log (actor_id, action, entity_type, entity_id, changes)
@@ -73,7 +88,10 @@ userRoutes.post("/", async (c) => {
       [actor.id, user.id, JSON.stringify(user)]
     );
 
-    return c.json({ user }, 201);
+    const webBase = process.env.WEB_ORIGIN?.split(",")[0]?.trim() ?? "http://localhost:5173";
+    const inviteLink = `${webBase}/set-password?token=${token}`;
+
+    return c.json({ user, invite_link: inviteLink }, 201);
   } catch (error) {
     if (error instanceof Error && error.message.includes("unique")) {
       return c.json({ error: "Email is already registered" }, 409);
