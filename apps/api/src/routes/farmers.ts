@@ -99,11 +99,11 @@ farmerRoutes.post("/", async (c) => {
 
   const result = await query(
     `INSERT INTO farmers (
-      reference_id, full_name, community, ghana_card, gender, date_of_birth, age, phone, email,
+      reference_id, full_name, community, ghana_card, gender, age, phone, email,
       region, district, digital_address, farm_address,
       household_size, farming_dependency, years_farming, primary_crops,
       bank_name, bank_branch, bank_account, created_by, office_id, metadata
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23::jsonb)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22::jsonb)
     RETURNING *`,
     [
       referenceId,
@@ -111,7 +111,6 @@ farmerRoutes.post("/", async (c) => {
       farmerFields.community,
       farmerFields.ghana_card ?? null,
       farmerFields.gender ?? null,
-      farmerFields.date_of_birth || null,
       farmerFields.age ?? null,
       farmerFields.phone ?? null,
       farmerFields.email || null,
@@ -261,30 +260,28 @@ farmerRoutes.put("/:id", async (c) => {
       community = $2,
       ghana_card = $3,
       gender = $4,
-      date_of_birth = $5,
-      age = $6,
-      phone = $7,
-      email = $8,
-      region = $9,
-      district = $10,
-      digital_address = $11,
-      farm_address = $12,
-      household_size = $13,
-      farming_dependency = $14,
-      years_farming = $15,
-      primary_crops = $16,
-      bank_name = $17,
-      bank_branch = $18,
-      bank_account = $19,
+      age = $5,
+      phone = $6,
+      email = $7,
+      region = $8,
+      district = $9,
+      digital_address = $10,
+      farm_address = $11,
+      household_size = $12,
+      farming_dependency = $13,
+      years_farming = $14,
+      primary_crops = $15,
+      bank_name = $16,
+      bank_branch = $17,
+      bank_account = $18,
       updated_at = now()
-    WHERE id = $20
+    WHERE id = $19
     RETURNING *`,
     [
       data.full_name,
       data.community,
       data.ghana_card ?? null,
       data.gender ?? null,
-      data.date_of_birth || null,
       data.age ?? null,
       data.phone ?? null,
       data.email || null,

@@ -5,7 +5,7 @@ import { buildPrimaryCommodities } from "./commodities";
 export interface FarmerFormData {
   full_name: string;
   gender: string;
-  date_of_birth: string;
+  age: string;
   household_size: string;
   farming_dependency: string;
   years_farming: string;
@@ -28,7 +28,7 @@ export interface FarmerFormData {
 export const EMPTY_FORM: FarmerFormData = {
   full_name: "",
   gender: "",
-  date_of_birth: "",
+  age: "",
   household_size: "",
   farming_dependency: "",
   years_farming: "",
@@ -66,7 +66,7 @@ export function farmerToFormData(farmer: Farmer): FarmerFormData {
   return {
     full_name: farmer.full_name,
     gender: farmer.gender ?? "",
-    date_of_birth: farmer.date_of_birth?.slice(0, 10) ?? "",
+    age: farmer.age != null ? String(farmer.age) : "",
     household_size: farmer.household_size != null ? String(farmer.household_size) : "",
     farming_dependency: farmer.farming_dependency ?? "",
     years_farming: farmer.years_farming != null ? String(farmer.years_farming) : "",
@@ -87,19 +87,6 @@ export function farmerToFormData(farmer: Farmer): FarmerFormData {
   };
 }
 
-export function ageFromDateOfBirth(dob: string): number | undefined {
-  if (!dob) return undefined;
-  const birth = new Date(dob);
-  if (Number.isNaN(birth.getTime())) return undefined;
-  const today = new Date();
-  let age = today.getFullYear() - birth.getFullYear();
-  const monthDiff = today.getMonth() - birth.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-    age -= 1;
-  }
-  return age > 0 ? age : undefined;
-}
-
 export function formToPayload(
   form: FarmerFormData,
   createdBy: string,
@@ -112,10 +99,11 @@ export function formToPayload(
   };
 
   if (form.gender) body.gender = form.gender;
-  if (form.date_of_birth) {
-    body.date_of_birth = form.date_of_birth;
-    const age = ageFromDateOfBirth(form.date_of_birth);
-    if (age) body.age = age;
+  if (form.age) {
+    const parsedAge = parseInt(form.age, 10);
+    if (!Number.isNaN(parsedAge) && parsedAge > 0) {
+      body.age = parsedAge;
+    }
   }
   if (form.household_size) body.household_size = Number(form.household_size);
   if (form.farming_dependency) body.farming_dependency = form.farming_dependency;

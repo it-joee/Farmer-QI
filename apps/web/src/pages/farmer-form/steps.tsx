@@ -8,7 +8,6 @@ import type { FarmerFormData } from "./types";
 import type { CapturedPhoto } from "../../lib/photos";
 import { FormGroup } from "../../components/FormGroup";
 import { FarmBoundaryCapture } from "../../components/FarmBoundaryCapture";
-import { DateField } from "../../components/fields/DateField";
 import { SelectField } from "../../components/fields/SelectField";
 import { PhotoCaptureField } from "../../components/PhotoCaptureField";
 import { CommodityChipSelect } from "../../components/fields/CommodityChipSelect";
@@ -58,19 +57,21 @@ export function StepPersonal({ form, errors, onChange, onToggleCommodity, onTogg
       </FormGroup>
 
       <FormGroup
-        fieldId="date_of_birth"
+        fieldId="age"
         label={
           <>
-            Date of birth <span className="optional">(optional)</span>
+            Age <span className="optional">(optional)</span>
           </>
         }
+        error={errors?.age}
       >
-        <DateField
-          id="date_of_birth"
-          value={form.date_of_birth}
-          onChange={(value) => onChange("date_of_birth", value)}
-          minYear={1920}
-          maxYear={new Date().getFullYear()}
+        <input
+          id="age"
+          type="number"
+          min="1"
+          max="120"
+          value={form.age}
+          onChange={(e) => onChange("age", e.target.value)}
         />
       </FormGroup>
 
