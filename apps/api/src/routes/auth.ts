@@ -17,8 +17,8 @@ authRoutes.post("/login", async (c) => {
 
   const cleanEmail = parsed.data.email.trim().toLowerCase();
 
-  if (!cleanEmail.endsWith("@farmeriq.local") && !cleanEmail.endsWith("@gmail.com")) {
-    return c.json({ error: "Only corporate emails or @gmail.com are allowed" }, 403);
+  if (!cleanEmail.endsWith("@jniagri.ag") && !cleanEmail.endsWith("@farmeriq.local")) {
+    return c.json({ error: "Only @jniagri.ag accounts are allowed" }, 403);
   }
 
   let result = await query<{
