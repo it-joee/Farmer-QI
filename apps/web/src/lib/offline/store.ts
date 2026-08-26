@@ -1,26 +1,32 @@
 import type {
+  AggregatorIdMapping,
   FarmerIdMapping,
+  PendingAggregatorRecord,
   PendingEventRecord,
   PendingFarmerRecord,
   PendingServerAttendeeAdd,
 } from "./types";
 
 const DB_NAME = "farmeriq-offline";
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 
 /** All object stores and their key paths — every upgrade must ensure these exist. */
 const STORE_DEFS = {
   pending_farmers: "localId",
+  pending_aggregators: "localId",
   pending_events: "localId",
   pending_server_attendees: "id",
   farmer_id_map: "localId",
+  aggregator_id_map: "localId",
 } as const;
 
 export const STORES = {
   farmers: "pending_farmers",
+  aggregators: "pending_aggregators",
   events: "pending_events",
   serverAttendees: "pending_server_attendees",
   farmerMap: "farmer_id_map",
+  aggregatorMap: "aggregator_id_map",
 } as const;
 
 function normalizePendingEvent(
@@ -124,6 +130,39 @@ export async function countPendingFarmers(createdBy: string): Promise<number> {
   return list.filter((record) => record.status === "pending" || record.status === "failed").length;
 }
 
+// --- Aggregators ---
+
+export async function addPendingAggregator(record: PendingAggregatorRecord): Promise<void> {
+  await withStore(STORES.aggregators, "readwrite", (store) => store.put(record));
+}
+
+export async function updatePendingAggregator(record: PendingAggregatorRecord): Promise<void> {
+  await withStore(STORES.aggregators, "readwrite", (store) => store.put(record));
+}
+
+export async function removePendingAggregator(localId: string): Promise<void> {
+  await withStore(STORES.aggregators, "readwrite", (store) => store.delete(localId));
+}
+
+export async function getPendingAggregator(localId: string): Promise<PendingAggregatorRecord | null> {
+  const record = await withStore<PendingAggregatorRecord | undefined>(STORES.aggregators, "readonly", (store) =>
+    store.get(localId)
+  );
+  return record ?? null;
+}
+
+export async function listPendingAggregators(createdBy: string): Promise<PendingAggregatorRecord[]> {
+  const all = await withStore<PendingAggregatorRecord[]>(STORES.aggregators, "readonly", (store) => store.getAll());
+  return all
+    .filter((record) => record.createdBy === createdBy)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+export async function countPendingAggregators(createdBy: string): Promise<number> {
+  const list = await listPendingAggregators(createdBy);
+  return list.filter((record) => record.status === "pending" || record.status === "failed").length;
+}
+
 // --- Events ---
 
 export async function addPendingEvent(record: PendingEventRecord): Promise<void> {
@@ -204,11 +243,34 @@ export async function resolveFarmerId(farmerRef: string): Promise<string> {
   return mapping?.serverId ?? farmerRef;
 }
 
+// --- Aggregator ID mapping ---
+
+export async function saveAggregatorIdMapping(localId: string, serverId: string): Promise<void> {
+  await withStore(STORES.aggregatorMap, "readwrite", (store) =>
+    store.put({ localId, serverId } satisfies AggregatorIdMapping)
+  );
+}
+
+export async function getAggregatorServerId(localId: string): Promise<string | null> {
+  const mapping = await withStore<AggregatorIdMapping | undefined>(STORES.aggregatorMap, "readonly", (store) =>
+    store.get(localId)
+  );
+  return mapping?.serverId ?? null;
+}
+
+export async function resolveAggregatorId(aggregatorRef: string): Promise<string> {
+  const mapping = await withStore<AggregatorIdMapping | undefined>(STORES.aggregatorMap, "readonly", (store) =>
+    store.get(aggregatorRef)
+  );
+  return mapping?.serverId ?? aggregatorRef;
+}
+
 export async function countAllPending(createdBy: string): Promise<number> {
-  const [farmers, events, serverAttendees] = await Promise.all([
+  const [farmers, aggregators, events, serverAttendees] = await Promise.all([
     safeCount(() => countPendingFarmers(createdBy)),
+    safeCount(() => countPendingAggregators(createdBy)),
     safeCount(() => countPendingEvents(createdBy)),
     safeCount(() => countPendingServerAttendees(createdBy)),
   ]);
-  return farmers + events + serverAttendees;
+  return farmers + aggregators + events + serverAttendees;
 }

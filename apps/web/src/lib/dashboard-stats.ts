@@ -120,13 +120,13 @@ export function districtStatsForCommodity(farmers: Farmer[], commodity: string |
 }
 
 export function getCommodityFilterOptions(
-  farmers: Farmer[],
+  records: { primary_crops?: string[] }[],
   standard: readonly string[]
 ): string[] {
   const extras = new Set<string>();
 
-  for (const farmer of farmers) {
-    for (const raw of farmer.primary_crops ?? []) {
+  for (const item of records) {
+    for (const raw of item.primary_crops ?? []) {
       const trimmed = raw.trim();
       if (!trimmed) continue;
       const match = standard.find((c) => c.toLowerCase() === trimmed.toLowerCase());

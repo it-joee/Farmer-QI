@@ -72,8 +72,18 @@ export function canRegisterFarmers(user: User): boolean {
   return user.role === "agent";
 }
 
+export function canRegisterAggregators(user: User): boolean {
+  return user.role === "agent";
+}
+
 export function farmersScopeLabel(user: User): string {
   if (user.role === "admin") return "All farmers";
   if (user.role === "team_lead") return "Office farmers";
   return "Your farmers";
+}
+
+export function aggregatorsScopeLabel(user: User): string {
+  if (user.role === "admin") return "All aggregators";
+  if (user.role === "team_lead") return "Office aggregators";
+  return "Your aggregators";
 }

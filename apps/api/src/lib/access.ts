@@ -12,6 +12,10 @@ export function canRegisterFarmers(actor: Actor): boolean {
   return actor.role === "agent";
 }
 
+export function canRegisterAggregators(actor: Actor): boolean {
+  return actor.role === "agent";
+}
+
 export interface ScopeClause {
   sql: string;
   params: unknown[];
@@ -19,6 +23,29 @@ export interface ScopeClause {
 }
 
 export function farmerScopeClause(actor: Actor, alias = "f", startIndex = 1): ScopeClause {
+  if (actor.role === "admin") {
+    return { sql: "1=1", params: [], nextIndex: startIndex };
+  }
+
+  if (actor.role === "team_lead") {
+    if (!actor.office_id) {
+      return { sql: "1=0", params: [], nextIndex: startIndex };
+    }
+    return {
+      sql: `${alias}.office_id = $${startIndex}`,
+      params: [actor.office_id],
+      nextIndex: startIndex + 1,
+    };
+  }
+
+  return {
+    sql: `${alias}.created_by = $${startIndex}`,
+    params: [actor.id],
+    nextIndex: startIndex + 1,
+  };
+}
+
+export function aggregatorScopeClause(actor: Actor, alias = "a", startIndex = 1): ScopeClause {
   if (actor.role === "admin") {
     return { sql: "1=1", params: [], nextIndex: startIndex };
   }

@@ -8,6 +8,9 @@ import { KpiCards } from "../components/dashboard/KpiCards";
 import { RegionChart } from "../components/dashboard/RegionChart";
 import { SelectField } from "../components/fields/SelectField";
 import { useAllFarmers, useRequireAuth } from "../hooks/useFarmers";
+import { useAllAggregators } from "../hooks/useAggregators";
+import { useEvents } from "../hooks/useEvents";
+import { useOfflineSyncContext } from "../context/OfflineSyncContext";
 import {
   buildDashboardOverview,
   districtStatsForCommodity,
@@ -17,8 +20,16 @@ import {
 export function DashboardPage() {
   const user = useRequireAuth();
   const { farmers } = useAllFarmers();
+  const { aggregators } = useAllAggregators();
+  const { events } = useEvents();
+  const { pendingFarmers, pendingAggregators, pendingEvents } = useOfflineSyncContext();
   const [selectedCommodity, setSelectedCommodity] = useState<string | null>(null);
   const [commodityFilter, setCommodityFilter] = useState<string>("all");
+
+  const totalFarmers = farmers.length + (pendingFarmers?.length ?? 0);
+  const totalAggregators = aggregators.length + (pendingAggregators?.length ?? 0);
+  const totalEvents = events.length + (pendingEvents?.length ?? 0);
+  const totalDrivers = 0;
 
   const overview = useMemo(() => buildDashboardOverview(farmers), [farmers]);
   const commodityOptions = useMemo(
@@ -46,7 +57,12 @@ export function DashboardPage() {
         )}
       </div>
 
-      <KpiCards totals={overview.totals} />
+      <KpiCards
+        totalFarmers={totalFarmers}
+        totalAggregators={totalAggregators}
+        totalEvents={totalEvents}
+        totalDrivers={totalDrivers}
+      />
 
       <div className="dashboard-grid dashboard-grid--2">
         <section className="card card--chart">

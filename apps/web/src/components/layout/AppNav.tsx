@@ -15,6 +15,12 @@ function farmersNavLabel(user: User): string {
   return "My Farmers";
 }
 
+function aggregatorsNavLabel(user: User): string {
+  if (user.role === "admin") return "All Aggregators";
+  if (user.role === "team_lead") return "Office Aggregators";
+  return "My Aggregators";
+}
+
 function getNavItems(user: User) {
   const items: {
     to: string;
@@ -30,6 +36,13 @@ function getNavItems(user: User) {
       tabLabel: "Farmers",
       end: true,
       icon: "farmers",
+    },
+    {
+      to: "/aggregators",
+      label: aggregatorsNavLabel(user),
+      tabLabel: "Aggregators",
+      end: true,
+      icon: "aggregators",
     },
     { to: "/events", label: "Events", tabLabel: "Events", end: true, icon: "events" },
     { to: "/reports", label: "Reports", tabLabel: "Reports", end: true, icon: "reports" },

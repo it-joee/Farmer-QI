@@ -8,6 +8,7 @@ import { reportRoutes } from "./routes/reports.js";
 import { farmerPhotoRoutes, uploadFileRoute } from "./routes/photos.js";
 import { eventRoutes } from "./routes/events.js";
 import { userRoutes } from "./routes/users.js";
+import { aggregatorRoutes } from "./routes/aggregators.js";
 
 const app = new Hono();
 
@@ -52,12 +53,19 @@ app.route("/conflicts", conflictRoutes);
 app.route("/users", userRoutes);
 app.route("/farmers", farmerRoutes);
 app.route("/farmers", farmerPhotoRoutes);
+app.route("/aggregators", aggregatorRoutes);
 app.route("/events", eventRoutes);
 app.route("/uploads", uploadFileRoute);
 
 app.onError((err, c) => {
-  console.error(err);
-  return c.json({ error: "Internal server error" }, 500);
+  console.error("[api error]", err);
+  return c.json(
+    {
+      error: err.message || "Internal server error",
+      details: process.env.NODE_ENV === "production" ? undefined : String(err),
+    },
+    500
+  );
 });
 
 export default app;

@@ -102,3 +102,26 @@ export interface FarmerIdMapping {
   localId: string;
   serverId: string;
 }
+
+export interface PendingAggregatorRecord {
+  localId: string;
+  createdBy: string;
+  createdAt: string;
+  status: PendingStatus;
+  lastError?: string;
+  form: import("../../pages/aggregator-form/types").AggregatorFormData;
+  ghanaCardPhotos: StoredPhoto[];
+  aggregatorPhoto: StoredPhoto | null;
+}
+
+export interface SubmitAggregatorInput {
+  agentId: string;
+  form: import("../../pages/aggregator-form/types").AggregatorFormData;
+  ghanaCardPhotos: CapturedPhoto[];
+  aggregatorPhoto: CapturedPhoto | null;
+}
+
+export interface AggregatorIdMapping {
+  localId: string;
+  serverId: string;
+}

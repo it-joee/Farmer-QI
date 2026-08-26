@@ -1508,6 +1508,14 @@ a {
   margin-bottom: var(--space-5);
 }
 
+.kpi-grid--3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.kpi-grid--5 {
+  grid-template-columns: repeat(5, 1fr);
+}
+
 .kpi-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);

@@ -136,3 +136,70 @@ export async function syncFarmerPhotoChanges(
 
   await uploadFarmerPhotos(farmerId, ghanaCardPhotos, farmerPhoto);
 }
+
+export function existingAggregatorPhotoToCaptured(photo: { id: string; url: string }): CapturedPhoto {
+  const previewUrl = photo.url.startsWith("http") ? photo.url : apiAssetUrl(photo.url);
+  return {
+    id: photo.id,
+    previewUrl,
+    serverPhotoId: photo.id,
+  };
+}
+
+export async function deleteAggregatorPhoto(photoId: string) {
+  const res = await apiFetch(`/api/aggregators/photos/${photoId}`, {
+    method: "DELETE",
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to delete photo");
+  }
+}
+
+export async function uploadAggregatorPhotos(
+  aggregatorId: string,
+  ghanaCardPhotos: CapturedPhoto[],
+  aggregatorPhoto: CapturedPhoto | null
+) {
+  const ghanaUploads = ghanaCardPhotos.filter((photo) => photo.file);
+  const portraitUpload = aggregatorPhoto?.file ? aggregatorPhoto : null;
+
+  if (ghanaUploads.length === 0 && !portraitUpload) return;
+
+  const formData = new FormData();
+  for (const photo of ghanaUploads) {
+    formData.append("ghana_card", photo.file!);
+  }
+  if (portraitUpload) {
+    formData.append("portrait", portraitUpload.file!);
+  }
+
+  const res = await apiFetch(`/api/aggregators/${aggregatorId}/photos`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(body?.error ?? "Photo upload failed");
+  }
+
+  const data = (await res.json()) as { photos?: unknown[] };
+  const expectedCount = ghanaUploads.length + (portraitUpload ? 1 : 0);
+  if ((data.photos?.length ?? 0) < expectedCount) {
+    throw new Error("Photo upload failed — no files were saved");
+  }
+}
+
+export async function syncAggregatorPhotoChanges(
+  aggregatorId: string,
+  ghanaCardPhotos: CapturedPhoto[],
+  aggregatorPhoto: CapturedPhoto | null,
+  removedPhotoIds: string[]
+) {
+  for (const photoId of removedPhotoIds) {
+    await deleteAggregatorPhoto(photoId);
+  }
+
+  await uploadAggregatorPhotos(aggregatorId, ghanaCardPhotos, aggregatorPhoto);
+}

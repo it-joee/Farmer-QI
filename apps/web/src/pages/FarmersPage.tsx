@@ -6,7 +6,7 @@ import { FarmerActionsMenu } from "../components/FarmerActionsMenu";
 import { FarmerListMobileCard } from "../components/FarmerListMobileCard";
 import { useOfflineSyncContext } from "../context/OfflineSyncContext";
 import { SelectField } from "../components/fields/SelectField";
-import { useFarmers, useRequireAuth } from "../hooks/useFarmers";
+import { useFarmers, useAllFarmers, useRequireAuth } from "../hooks/useFarmers";
 import { useConfirmDialog } from "../context/ConfirmDialogContext";
 import { useToast } from "../context/ToastContext";
 import { getCommodityFilterOptions } from "../lib/dashboard-stats";
@@ -28,9 +28,44 @@ export function FarmersPage() {
   }, [search, commodityFilter]);
 
   const { farmers, pagination, loading, refetch } = useFarmers(page, 20, search, commodityFilter === "all" ? "" : commodityFilter);
+  const { farmers: allFarmers } = useAllFarmers();
   const { pendingFarmers, refreshPending } = useOfflineSyncContext();
   const { confirm, alert } = useConfirmDialog();
   const { showSuccess } = useToast();
+
+  const farmerStats = useMemo(() => {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    let thisMonth = allFarmers.filter((f) => new Date(f.created_at) >= monthStart).length;
+    const districtSet = new Set(allFarmers.map((f) => f.district?.trim()).filter(Boolean));
+    const regionSet = new Set(allFarmers.map((f) => f.region?.trim()).filter(Boolean));
+    let male = 0;
+    let female = 0;
+
+    for (const f of allFarmers) {
+      const g = f.gender?.trim().toLowerCase();
+      if (g === "male" || g === "m") male++;
+      else if (g === "female" || g === "f") female++;
+    }
+
+    for (const p of pendingFarmers) {
+      if (new Date(p.createdAt) >= monthStart) thisMonth++;
+      if (p.form.district?.trim()) districtSet.add(p.form.district.trim());
+      if (p.form.region?.trim()) regionSet.add(p.form.region.trim());
+      const g = p.form.gender?.trim().toLowerCase();
+      if (g === "male" || g === "m") male++;
+      else if (g === "female" || g === "f") female++;
+    }
+
+    return {
+      thisMonth,
+      districts: districtSet.size,
+      regions: regionSet.size,
+      male,
+      female,
+    };
+  }, [allFarmers, pendingFarmers]);
 
   const commodityOptions = useMemo(
     () => getCommodityFilterOptions(farmers, COMMODITIES),
@@ -120,6 +155,29 @@ export function FarmersPage() {
             + Register Farmer
           </Link>
         )}
+      </div>
+
+      <div className="kpi-grid kpi-grid--5">
+        <div className="kpi-card">
+          <span className="kpi-card__value">{farmerStats.thisMonth}</span>
+          <span className="kpi-card__label">Registered this month</span>
+        </div>
+        <div className="kpi-card">
+          <span className="kpi-card__value">{farmerStats.districts}</span>
+          <span className="kpi-card__label">Districts covered</span>
+        </div>
+        <div className="kpi-card">
+          <span className="kpi-card__value">{farmerStats.regions}</span>
+          <span className="kpi-card__label">Regions covered</span>
+        </div>
+        <div className="kpi-card">
+          <span className="kpi-card__value">{farmerStats.male}</span>
+          <span className="kpi-card__label">Male</span>
+        </div>
+        <div className="kpi-card">
+          <span className="kpi-card__value">{farmerStats.female}</span>
+          <span className="kpi-card__label">Female</span>
+        </div>
       </div>
 
       <div className="card">
