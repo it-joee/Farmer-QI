@@ -2980,6 +2980,8 @@ a {
     min-width: 140px;
     padding: var(--space-3);
   }
+
+  .kpi-card__value {
     font-size: 1.5rem;
   }
 

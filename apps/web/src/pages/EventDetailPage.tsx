@@ -456,18 +456,18 @@ export function EventDetailPage() {
         )}
       </div>
 
-      <div className="event-detail__stats-row">
-        <div className="event-detail__stats card">
-          <span className="event-detail__stat-value">{totalAttendees}</span>
-          <span className="event-detail__stat-label muted">Total attendees</span>
+      <div className="kpi-grid">
+        <div className="kpi-card">
+          <span className="kpi-card__value">{totalAttendees}</span>
+          <span className="kpi-card__label">Total attendees</span>
         </div>
-        <div className="event-detail__stats card">
-          <span className="event-detail__stat-value">{genderCounts.male}</span>
-          <span className="event-detail__stat-label muted">Male</span>
+        <div className="kpi-card">
+          <span className="kpi-card__value">{genderCounts.male}</span>
+          <span className="kpi-card__label">Male</span>
         </div>
-        <div className="event-detail__stats card">
-          <span className="event-detail__stat-value">{genderCounts.female}</span>
-          <span className="event-detail__stat-label muted">Female</span>
+        <div className="kpi-card">
+          <span className="kpi-card__value">{genderCounts.female}</span>
+          <span className="kpi-card__label">Female</span>
         </div>
       </div>
 
