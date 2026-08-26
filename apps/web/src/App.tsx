@@ -18,6 +18,7 @@ import { EventsPage } from "./pages/EventsPage";
 import { NewEventPage } from "./pages/NewEventPage";
 import { EditEventPage } from "./pages/EditEventPage";
 import { EventDetailPage } from "./pages/EventDetailPage";
+import { DriversPage } from "./pages/DriversPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { SetPasswordPage } from "./pages/SetPasswordPage";
@@ -42,6 +43,7 @@ export function App() {
         <Route path="/aggregators/pending/:localId" element={<PendingAggregatorDetailPage />} />
         <Route path="/aggregators/:id/edit" element={<EditAggregatorPage />} />
         <Route path="/aggregators/:id" element={<AggregatorDetailPage />} />
+        <Route path="/drivers" element={<DriversPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/users" element={<UsersPage />} />
         <Route path="/change-password" element={<ChangePasswordPage />} />
