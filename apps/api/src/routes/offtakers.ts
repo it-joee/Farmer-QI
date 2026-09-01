@@ -223,7 +223,7 @@ offtakerRoutes.post("/", async (c) => {
     [
       referenceId,
       offtakerFields.company_name.trim(),
-      offtakerFields.contact_person.trim(),
+      offtakerFields.contact_person?.trim() || null,
       offtakerFields.contact?.trim() || null,
       offtakerFields.designation?.trim() || null,
       offtakerFields.official_email?.trim() || null,
@@ -326,7 +326,7 @@ offtakerRoutes.put("/:id", async (c) => {
     RETURNING *`,
     [
       data.company_name.trim(),
-      data.contact_person.trim(),
+      data.contact_person?.trim() || null,
       data.contact?.trim() || null,
       data.designation?.trim() || null,
       data.official_email?.trim() || null,

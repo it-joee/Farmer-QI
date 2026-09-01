@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const CreateOfftakerRequest = z.object({
   company_name: z.string().min(1, "Company name is required"),
-  contact_person: z.string().min(1, "Contact person is required"),
+  contact_person: z.string().optional().default(""),
   contact: z.string().optional().nullable(),
   designation: z.string().optional().nullable(),
   official_email: z.string().email().optional().nullable(),
@@ -33,7 +33,7 @@ export interface Offtaker {
   id: string;
   reference_id?: string | null;
   company_name: string;
-  contact_person: string;
+  contact_person: string | null;
   contact: string | null;
   designation: string | null;
   official_email: string | null;

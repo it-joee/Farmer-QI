@@ -42,6 +42,7 @@ export const COMMODITIES = [
   "Sesame",
   "Coffee",
   "Cocoa",
+  "Maize",
 ] as const;
 
 /** @deprecated Use COMMODITIES */

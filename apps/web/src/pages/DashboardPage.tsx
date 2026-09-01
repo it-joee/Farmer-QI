@@ -9,6 +9,7 @@ import { RegionChart } from "../components/dashboard/RegionChart";
 import { SelectField } from "../components/fields/SelectField";
 import { useAllFarmers, useRequireAuth } from "../hooks/useFarmers";
 import { useAllAggregators } from "../hooks/useAggregators";
+import { useAllOfftakers } from "../hooks/useOfftakers";
 import { useEvents } from "../hooks/useEvents";
 import { useOfflineSyncContext } from "../context/OfflineSyncContext";
 import {
@@ -21,13 +22,15 @@ export function DashboardPage() {
   const user = useRequireAuth();
   const { farmers } = useAllFarmers();
   const { aggregators } = useAllAggregators();
+  const { offtakers } = useAllOfftakers();
   const { events } = useEvents();
-  const { pendingFarmers, pendingAggregators, pendingEvents } = useOfflineSyncContext();
+  const { pendingFarmers, pendingAggregators, pendingOfftakers, pendingEvents } = useOfflineSyncContext();
   const [selectedCommodity, setSelectedCommodity] = useState<string | null>(null);
   const [commodityFilter, setCommodityFilter] = useState<string>("all");
 
   const totalFarmers = farmers.length + (pendingFarmers?.length ?? 0);
   const totalAggregators = aggregators.length + (pendingAggregators?.length ?? 0);
+  const totalOfftakers = offtakers.length + (pendingOfftakers?.length ?? 0);
   const totalEvents = events.length + (pendingEvents?.length ?? 0);
   const totalDrivers = 0;
 
@@ -60,6 +63,7 @@ export function DashboardPage() {
       <KpiCards
         totalFarmers={totalFarmers}
         totalAggregators={totalAggregators}
+        totalOfftakers={totalOfftakers}
         totalEvents={totalEvents}
         totalDrivers={totalDrivers}
       />

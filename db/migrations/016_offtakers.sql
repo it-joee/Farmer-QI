@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS offtakers (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   reference_id        TEXT NOT NULL UNIQUE,
   company_name TEXT NOT NULL,
-  contact_person TEXT NOT NULL,
+  contact_person TEXT,
   contact TEXT,
   designation TEXT,
   official_email TEXT,
