@@ -164,3 +164,5 @@ export * from "./submissions.js";
 export * from "./farmer-id.js";
 export * from "./aggregators.js";
 
+
+export * from "./offtakers.js";

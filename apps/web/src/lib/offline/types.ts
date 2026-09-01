@@ -1,3 +1,4 @@
+import type { OfftakerFormData } from "../../pages/offtaker-form/types";
 import type { GpsPin } from "@farmeriq/shared";
 import type { FarmerFormData } from "../../pages/farmer-form/types";
 import type { CapturedPhoto } from "../photos";
@@ -122,6 +123,27 @@ export interface SubmitAggregatorInput {
 }
 
 export interface AggregatorIdMapping {
+  localId: string;
+  serverId: string;
+}
+
+export interface PendingOfftakerRecord {
+  localId: string;
+  createdBy: string;
+  form: OfftakerFormData;
+  offtakerPhoto: StoredPhoto | null;
+  status: "pending" | "syncing" | "failed";
+  lastError?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SubmitOfftakerInput {
+  agentId: string;
+  form: OfftakerFormData;
+}
+
+export interface OfftakerIdMapping {
   localId: string;
   serverId: string;
 }

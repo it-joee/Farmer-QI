@@ -1,32 +1,38 @@
 import type {
   AggregatorIdMapping,
   FarmerIdMapping,
+  OfftakerIdMapping,
   PendingAggregatorRecord,
   PendingEventRecord,
   PendingFarmerRecord,
+  PendingOfftakerRecord,
   PendingServerAttendeeAdd,
 } from "./types";
 
 const DB_NAME = "farmeriq-offline";
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 
 /** All object stores and their key paths — every upgrade must ensure these exist. */
 const STORE_DEFS = {
   pending_farmers: "localId",
   pending_aggregators: "localId",
+  pending_offtakers: "localId",
   pending_events: "localId",
   pending_server_attendees: "id",
   farmer_id_map: "localId",
   aggregator_id_map: "localId",
+  offtaker_id_map: "localId",
 } as const;
 
 export const STORES = {
   farmers: "pending_farmers",
   aggregators: "pending_aggregators",
+  offtakers: "pending_offtakers",
   events: "pending_events",
   serverAttendees: "pending_server_attendees",
   farmerMap: "farmer_id_map",
   aggregatorMap: "aggregator_id_map",
+  offtakerMap: "offtaker_id_map",
 } as const;
 
 function normalizePendingEvent(
@@ -265,12 +271,68 @@ export async function resolveAggregatorId(aggregatorRef: string): Promise<string
   return mapping?.serverId ?? aggregatorRef;
 }
 
+// --- Offtaker ID mapping ---
+
+export async function saveOfftakerIdMapping(localId: string, serverId: string): Promise<void> {
+  await withStore(STORES.offtakerMap, "readwrite", (store) =>
+    store.put({ localId, serverId } satisfies OfftakerIdMapping)
+  );
+}
+
+export async function getOfftakerServerId(localId: string): Promise<string | null> {
+  const mapping = await withStore<OfftakerIdMapping | undefined>(STORES.offtakerMap, "readonly", (store) =>
+    store.get(localId)
+  );
+  return mapping?.serverId ?? null;
+}
+
+export async function resolveOfftakerId(offtakerRef: string): Promise<string> {
+  const mapping = await withStore<OfftakerIdMapping | undefined>(STORES.offtakerMap, "readonly", (store) =>
+    store.get(offtakerRef)
+  );
+  return mapping?.serverId ?? offtakerRef;
+}
+
 export async function countAllPending(createdBy: string): Promise<number> {
-  const [farmers, aggregators, events, serverAttendees] = await Promise.all([
+  const [farmers, aggregators, offtakers, events, serverAttendees] = await Promise.all([
     safeCount(() => countPendingFarmers(createdBy)),
     safeCount(() => countPendingAggregators(createdBy)),
+    safeCount(() => countPendingOfftakers(createdBy)),
     safeCount(() => countPendingEvents(createdBy)),
     safeCount(() => countPendingServerAttendees(createdBy)),
   ]);
-  return farmers + aggregators + events + serverAttendees;
+  return farmers + aggregators + offtakers + events + serverAttendees;
+}
+
+// --- Offtakers ---
+
+export async function addPendingOfftaker(record: PendingOfftakerRecord): Promise<void> {
+  await withStore(STORES.offtakers, "readwrite", (store) => store.put(record));
+}
+
+export async function updatePendingOfftaker(record: PendingOfftakerRecord): Promise<void> {
+  await withStore(STORES.offtakers, "readwrite", (store) => store.put(record));
+}
+
+export async function removePendingOfftaker(localId: string): Promise<void> {
+  await withStore(STORES.offtakers, "readwrite", (store) => store.delete(localId));
+}
+
+export async function getPendingOfftaker(localId: string): Promise<PendingOfftakerRecord | null> {
+  const record = await withStore<PendingOfftakerRecord | undefined>(STORES.offtakers, "readonly", (store) =>
+    store.get(localId)
+  );
+  return record ?? null;
+}
+
+export async function listPendingOfftakers(createdBy: string): Promise<PendingOfftakerRecord[]> {
+  const all = await withStore<PendingOfftakerRecord[]>(STORES.offtakers, "readonly", (store) => store.getAll());
+  return all
+    .filter((record) => record.createdBy === createdBy)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+export async function countPendingOfftakers(createdBy: string): Promise<number> {
+  const list = await listPendingOfftakers(createdBy);
+  return list.filter((record) => record.status === "pending" || record.status === "failed").length;
 }

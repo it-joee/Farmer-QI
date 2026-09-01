@@ -23,6 +23,12 @@ import { LoginPage } from "./pages/LoginPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { SetPasswordPage } from "./pages/SetPasswordPage";
 import { UsersPage } from "./pages/UsersPage";
+import { OfftakersPage } from "./pages/OfftakersPage";
+import { AddOfftakerPage } from "./pages/AddOfftakerPage";
+import { EditOfftakerPage } from "./pages/EditOfftakerPage";
+import { EditPendingOfftakerPage } from "./pages/EditPendingOfftakerPage";
+import { PendingOfftakerDetailPage } from "./pages/PendingOfftakerDetailPage";
+import { OfftakerDetailPage } from "./pages/OfftakerDetailPage";
 
 export function App() {
   return (
@@ -43,6 +49,12 @@ export function App() {
         <Route path="/aggregators/pending/:localId" element={<PendingAggregatorDetailPage />} />
         <Route path="/aggregators/:id/edit" element={<EditAggregatorPage />} />
         <Route path="/aggregators/:id" element={<AggregatorDetailPage />} />
+        <Route path="/offtakers" element={<OfftakersPage />} />
+        <Route path="/offtakers/new" element={<AddOfftakerPage />} />
+        <Route path="/offtakers/pending/:localId/edit" element={<EditPendingOfftakerPage />} />
+        <Route path="/offtakers/pending/:localId" element={<PendingOfftakerDetailPage />} />
+        <Route path="/offtakers/:id/edit" element={<EditOfftakerPage />} />
+        <Route path="/offtakers/:id" element={<OfftakerDetailPage />} />
         <Route path="/drivers" element={<DriversPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/users" element={<UsersPage />} />

@@ -2,9 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FARMERS_SYNCED_EVENT } from "./useFarmers";
 import { EVENTS_SYNCED_EVENT } from "../lib/offline/event-sync";
 import { AGGREGATORS_SYNCED_EVENT, syncPendingAggregators } from "../lib/offline/aggregator-sync";
+import { OFFTAKERS_SYNCED_EVENT, syncPendingOfftakers } from "../lib/offline/offtaker-sync";
 import {
   countAllPending,
   listPendingAggregators,
+  listPendingOfftakers,
   listPendingEvents,
   listPendingFarmers,
 } from "../lib/offline/store";
@@ -12,6 +14,7 @@ import { syncPendingEvents, syncPendingServerAttendees } from "../lib/offline/ev
 import { syncPendingFarmers } from "../lib/offline/sync";
 import type {
   PendingAggregatorRecord,
+  PendingOfftakerRecord,
   PendingEventRecord,
   PendingFarmerRecord,
 } from "../lib/offline/types";
@@ -21,6 +24,7 @@ export function useOfflineSync(createdBy: string | undefined) {
   const [pendingCount, setPendingCount] = useState(0);
   const [pendingFarmers, setPendingFarmers] = useState<PendingFarmerRecord[]>([]);
   const [pendingAggregators, setPendingAggregators] = useState<PendingAggregatorRecord[]>([]);
+  const [pendingOfftakers, setPendingOfftakers] = useState<PendingOfftakerRecord[]>([]);
   const [pendingEvents, setPendingEvents] = useState<PendingEventRecord[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [lastSyncError, setLastSyncError] = useState<string | null>(null);
@@ -31,30 +35,35 @@ export function useOfflineSync(createdBy: string | undefined) {
       setPendingCount(0);
       setPendingFarmers([]);
       setPendingAggregators([]);
+      setPendingOfftakers([]);
       setPendingEvents([]);
       return;
     }
 
-    const [farmersResult, aggregatorsResult, eventsResult, countResult] = await Promise.allSettled([
+    const [farmersResult, aggregatorsResult, offtakersResult, eventsResult, countResult] = await Promise.allSettled([
       listPendingFarmers(createdBy),
       listPendingAggregators(createdBy),
+      listPendingOfftakers(createdBy),
       listPendingEvents(createdBy),
       countAllPending(createdBy),
     ]);
 
     const farmers = farmersResult.status === "fulfilled" ? farmersResult.value : [];
     const aggregators = aggregatorsResult.status === "fulfilled" ? aggregatorsResult.value : [];
+    const offtakers = offtakersResult.status === "fulfilled" ? offtakersResult.value : [];
     const events = eventsResult.status === "fulfilled" ? eventsResult.value : [];
     const count =
       countResult.status === "fulfilled"
         ? countResult.value
         : farmers.filter((r) => r.status === "pending" || r.status === "failed").length +
           aggregators.filter((r) => r.status === "pending" || r.status === "failed").length +
+          offtakers.filter((r) => r.status === "pending" || r.status === "failed").length +
           events.filter((r) => r.status === "pending" || r.status === "failed").length;
 
     setPendingCount(count);
     setPendingFarmers(farmers);
     setPendingAggregators(aggregators);
+    setPendingOfftakers(offtakers);
     setPendingEvents(events);
   }, [createdBy]);
 
@@ -76,6 +85,11 @@ export function useOfflineSync(createdBy: string | undefined) {
         window.dispatchEvent(new CustomEvent(AGGREGATORS_SYNCED_EVENT));
       }
 
+      const offtakerResult = await syncPendingOfftakers(createdBy);
+      if (offtakerResult.synced > 0) {
+        window.dispatchEvent(new CustomEvent(OFFTAKERS_SYNCED_EVENT));
+      }
+
       const eventResult = await syncPendingEvents(createdBy);
 
       let attendeeResult = { synced: 0, failed: 0 };
@@ -88,11 +102,13 @@ export function useOfflineSync(createdBy: string | undefined) {
       const totalSynced =
         farmerResult.synced +
         aggregatorResult.synced +
+        offtakerResult.synced +
         eventResult.synced +
         attendeeResult.synced;
       const totalFailed =
         farmerResult.failed +
         aggregatorResult.failed +
+        offtakerResult.failed +
         eventResult.failed +
         attendeeResult.failed;
 
@@ -146,6 +162,7 @@ export function useOfflineSync(createdBy: string | undefined) {
     pendingCount,
     pendingFarmers,
     pendingAggregators,
+    pendingOfftakers,
     pendingEvents,
     syncing,
     lastSyncError,

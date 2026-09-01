@@ -12,6 +12,10 @@ export function canRegisterFarmers(actor: Actor): boolean {
   return actor.role === "agent";
 }
 
+export function canRegisterOfftakers(actor: Actor): boolean {
+  return actor.role === "agent" || actor.role === "team_lead" || actor.role === "admin";
+}
+
 export function canRegisterAggregators(actor: Actor): boolean {
   return actor.role === "agent";
 }
@@ -43,6 +47,10 @@ export function farmerScopeClause(actor: Actor, alias = "f", startIndex = 1): Sc
     params: [actor.id],
     nextIndex: startIndex + 1,
   };
+}
+
+export function offtakerScopeClause(user: Actor, tableAlias = "o", actorParamIndex = 1) {
+  return aggregatorScopeClause(user, tableAlias, actorParamIndex);
 }
 
 export function aggregatorScopeClause(actor: Actor, alias = "a", startIndex = 1): ScopeClause {

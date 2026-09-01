@@ -9,6 +9,7 @@ import { farmerPhotoRoutes, uploadFileRoute } from "./routes/photos.js";
 import { eventRoutes } from "./routes/events.js";
 import { userRoutes } from "./routes/users.js";
 import { aggregatorRoutes } from "./routes/aggregators.js";
+import { offtakerRoutes } from "./routes/offtakers.js";
 
 const app = new Hono();
 
@@ -54,6 +55,7 @@ app.route("/users", userRoutes);
 app.route("/farmers", farmerRoutes);
 app.route("/farmers", farmerPhotoRoutes);
 app.route("/aggregators", aggregatorRoutes);
+app.route("/offtakers", offtakerRoutes);
 app.route("/events", eventRoutes);
 app.route("/uploads", uploadFileRoute);
 

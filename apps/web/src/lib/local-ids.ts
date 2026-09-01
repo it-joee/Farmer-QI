@@ -20,7 +20,11 @@ export function formatFarmerLocalId(localId: string): string {
 
 /** New offline aggregator records use a short jni-ag reference id. */
 export function createAggregatorLocalId(): string {
-  return createAggregatorReferenceId();
+  return `temp_a_${crypto.randomUUID()}`;
+}
+
+export function createOfftakerLocalId(): string {
+  return `temp_o_${crypto.randomUUID()}`;
 }
 
 export function formatAggregatorLocalId(localId: string): string {

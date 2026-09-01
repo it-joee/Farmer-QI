@@ -87,3 +87,12 @@ export function aggregatorsScopeLabel(user: User): string {
   if (user.role === "team_lead") return "Office aggregators";
   return "Your aggregators";
 }
+
+export function canRegisterOfftakers(user: User) {
+  return user.role === "agent" || user.role === "team_lead" || user.role === "admin";
+}
+export function offtakersScopeLabel(user: User) {
+  if (user.role === "admin") return "All Offtakers";
+  if (user.role === "team_lead") return "Office Offtakers";
+  return "My Offtakers";
+}
