@@ -34,10 +34,7 @@ export function FarmersPage() {
   const { showSuccess } = useToast();
 
   const farmerStats = useMemo(() => {
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    let thisMonth = allFarmers.filter((f) => new Date(f.created_at) >= monthStart).length;
+    const totalRegistered = allFarmers.length + pendingFarmers.length;
     const districtSet = new Set(allFarmers.map((f) => f.district?.trim()).filter(Boolean));
     const regionSet = new Set(allFarmers.map((f) => f.region?.trim()).filter(Boolean));
     let male = 0;
@@ -50,7 +47,6 @@ export function FarmersPage() {
     }
 
     for (const p of pendingFarmers) {
-      if (new Date(p.createdAt) >= monthStart) thisMonth++;
       if (p.form.district?.trim()) districtSet.add(p.form.district.trim());
       if (p.form.region?.trim()) regionSet.add(p.form.region.trim());
       const g = p.form.gender?.trim().toLowerCase();
@@ -59,7 +55,7 @@ export function FarmersPage() {
     }
 
     return {
-      thisMonth,
+      totalRegistered,
       districts: districtSet.size,
       regions: regionSet.size,
       male,
@@ -159,8 +155,8 @@ export function FarmersPage() {
 
       <div className="kpi-grid kpi-grid--5">
         <div className="kpi-card">
-          <span className="kpi-card__value">{farmerStats.thisMonth}</span>
-          <span className="kpi-card__label">Registered this month</span>
+          <span className="kpi-card__value">{farmerStats.totalRegistered}</span>
+          <span className="kpi-card__label">Total farmers registered</span>
         </div>
         <div className="kpi-card">
           <span className="kpi-card__value">{farmerStats.districts}</span>
