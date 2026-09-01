@@ -8,6 +8,8 @@ import { SyncStatusBanner } from "../SyncStatusBanner";
 import { AppLogo } from "./AppLogo";
 import { AppNav } from "./AppNav";
 import { UserProfileMenu } from "./UserProfileMenu";
+import { AppHeader } from "./AppHeader";
+import { AppSidebar } from "./AppSidebar";
 
 function AppLayoutContent() {
   const navigate = useNavigate();
@@ -41,27 +43,20 @@ function AppLayoutShell({
   const { online, pendingCount, syncing, lastSyncError, runSync } = useOfflineSyncContext();
 
   return (
-    <div className="layout">
-      <SyncStatusBanner
-        online={online}
-        pendingCount={pendingCount}
-        syncing={syncing}
-        lastSyncError={lastSyncError}
-        onRetry={runSync}
-      />
-      <header className="header">
-        <div className="header__inner">
-          <div className="header__start">
-            <AppLogo as="h1" />
-            <AppNav user={user} variant="top" />
-          </div>
-          <div className="header__actions">
-            <UserProfileMenu user={user} onLogout={onLogout} />
-          </div>
-        </div>
-      </header>
-      <Outlet />
-      <AppNav user={user} variant="bottom" />
+    <div className="layout-with-sidebar">
+      <AppSidebar user={user} onLogout={onLogout} />
+      <div className="layout">
+        <SyncStatusBanner
+          online={online}
+          pendingCount={pendingCount}
+          syncing={syncing}
+          lastSyncError={lastSyncError}
+          onRetry={runSync}
+        />
+        <AppHeader user={user} onLogout={onLogout} />
+        <Outlet />
+        <AppNav user={user} variant="bottom" />
+      </div>
     </div>
   );
 }

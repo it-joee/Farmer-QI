@@ -104,11 +104,12 @@ export function EditOfftakerPage() {
       });
 
       if (!res.ok) {
-        throw new Error(
-          res.status >= 500
-            ? "Server error while updating offtaker"
-            : "Could not update offtaker. Check required fields."
-        );
+        const errorData = await res.json().catch(() => ({}));
+        const message =
+          (typeof errorData.error === "string" && errorData.error) ||
+          (errorData.error?.formErrors?.join(", ")) ||
+          (res.status >= 500 ? "Server error while updating offtaker" : "Could not update offtaker.");
+        throw new Error(message);
       }
 
       showSuccess("Offtaker Updated", `${form.company_name} has been updated.`);

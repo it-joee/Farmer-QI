@@ -66,8 +66,18 @@ export function UserProfileMenu({ user, onLogout }: UserProfileMenuProps) {
           <span className="user-profile__name">{user.full_name}</span>
           <span className="user-profile__role">{ROLE_LABELS[user.role]}</span>
         </span>
-        <span className={`user-profile__chevron${open ? " user-profile__chevron--open" : ""}`} aria-hidden="true">
-          ▾
+        <span className="user-profile__more" aria-hidden="true">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            width="18"
+            height="18"
+            fill="currentColor"
+          >
+            <circle cx="12" cy="5" r="1.75" />
+            <circle cx="12" cy="12" r="1.75" />
+            <circle cx="12" cy="19" r="1.75" />
+          </svg>
         </span>
       </button>
       {open && (
@@ -79,7 +89,7 @@ export function UserProfileMenu({ user, onLogout }: UserProfileMenuProps) {
           <div className="user-profile__menu-header">
             <span className="user-profile__menu-name">{user.full_name}</span>
             <span className="user-profile__menu-email muted">{user.email}</span>
-            <span className="user-profile__menu-role">{ROLE_LABELS[user.role]}</span>
+            <span className="user-profile__menu-role-badge">{ROLE_LABELS[user.role]}</span>
           </div>
           {SKIP_AUTH && (
             <div className="user-profile__dev-switch">
@@ -100,28 +110,39 @@ export function UserProfileMenu({ user, onLogout }: UserProfileMenuProps) {
               ))}
             </div>
           )}
-          <button
-            type="button"
-            className="user-profile__logout"
-            role="menuitem"
-            onClick={() => {
-              setOpen(false);
-              navigate("/change-password");
-            }}
-          >
-            Change password
-          </button>
-          <button
-            type="button"
-            className="user-profile__logout"
-            role="menuitem"
-            onClick={() => {
-              setOpen(false);
-              onLogout();
-            }}
-          >
-            Log out
-          </button>
+          <div className="user-profile__menu-actions">
+            <button
+              type="button"
+              className="user-profile__menu-item"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                navigate("/change-password");
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M21 2l-2 2m-1.5 1.5L14 9l-1.5-1.5L11 9l-1.5-1.5L8 9" />
+                <circle cx="7.5" cy="15.5" r="5.5" />
+              </svg>
+              Change password
+            </button>
+            <button
+              type="button"
+              className="user-profile__menu-item user-profile__menu-item--danger"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onLogout();
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              Log out
+            </button>
+          </div>
         </div>
       )}
     </div>

@@ -67,20 +67,20 @@ export function offtakerToFormData(offtaker: Offtaker): OfftakerFormData {
 
 export function offtakerFormToPayload(
   form: OfftakerFormData,
-  createdBy: string,
+  userId: string,
   submission?: { capturedAt?: string; deviceId?: string; clientLocalId?: string }
 ) {
   const body: Record<string, unknown> = {
     company_name: form.company_name.trim(),
-    contact_person: form.contact_person.trim(),
-    created_by: createdBy,
+    contact_person: form.contact_person.trim() || null,
+    contact: form.contact?.trim() || null,
+    designation: form.designation?.trim() || null,
+    official_email: form.official_email?.trim() || null,
+    payment_terms: form.payment_terms?.trim() || null,
+    delivery_location: form.delivery_location?.trim() || null,
+    created_by: userId,
+    updated_by: userId,
   };
-
-  if (form.contact) body.contact = form.contact.trim();
-  if (form.designation) body.designation = form.designation.trim();
-  if (form.official_email) body.official_email = form.official_email.trim();
-  if (form.payment_terms) body.payment_terms = form.payment_terms.trim();
-  if (form.delivery_location) body.delivery_location = form.delivery_location.trim();
   
   const commodities = buildOfftakerCommodities(form);
   body.target_products = commodities;

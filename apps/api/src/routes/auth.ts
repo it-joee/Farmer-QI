@@ -8,6 +8,28 @@ import { z } from "zod";
 
 export const authRoutes = new Hono();
 
+authRoutes.get("/me", async (c) => {
+  const actorResult = requireActor(c);
+  if (actorResult instanceof Response) return actorResult;
+  const actor = actorResult;
+
+  const result = await query<{
+    id: string;
+    email: string;
+    full_name: string;
+    role: string;
+    office_id: string | null;
+  }>("SELECT id, email, full_name, role, office_id FROM users WHERE id = $1 AND is_active = true", [
+    actor.id,
+  ]);
+
+  if (result.rowCount === 0) {
+    return c.json({ error: "User not found or inactive" }, 404);
+  }
+
+  return c.json({ user: result.rows[0] });
+});
+
 authRoutes.post("/login", async (c) => {
   const body = await c.req.json();
   const parsed = LoginRequest.safeParse(body);

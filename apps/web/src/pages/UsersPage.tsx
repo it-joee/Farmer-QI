@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { UserListItem, UserRole } from "@farmeriq/shared";
 import { Navigate } from "react-router-dom";
-import { canManageUsers } from "../auth";
+import { canManageUsers, USER_CHANGED_EVENT } from "../auth";
 import { ROLE_LABELS } from "../components/layout/AppNav";
 import { SelectField } from "../components/fields/SelectField";
 import { UserListMobileCard } from "../components/UserListMobileCard";
@@ -142,6 +142,18 @@ export function UsersPage() {
         },
         user.id
       );
+
+      if (editingUser.id === user.id) {
+        const updatedUser = {
+          ...user,
+          full_name: editForm.full_name.trim(),
+          role: editForm.role,
+          office_id: editForm.role === "admin" ? null : editForm.office_id || null,
+        };
+        localStorage.setItem("farmeriq_user", JSON.stringify(updatedUser));
+        window.dispatchEvent(new Event(USER_CHANGED_EVENT));
+      }
+
       setEditingUser(null);
       await loadUsers();
     } catch (err) {
@@ -254,7 +266,7 @@ export function UsersPage() {
 
       <section className="card">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-          <h3 className="card-title" style={{ margin: 0 }}>All users</h3>
+          <h3 className="card-title" style={{ margin: 0 }}>Users</h3>
           <div className="form-group" style={{ margin: 0, width: "300px", maxWidth: "100%" }}>
             <label htmlFor="user-search" className="sr-only">Search users</label>
             <input

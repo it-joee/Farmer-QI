@@ -2,16 +2,18 @@ import { z } from "zod";
 
 export const CreateOfftakerRequest = z.object({
   company_name: z.string().min(1, "Company name is required"),
-  contact_person: z.string().optional().default(""),
+  contact_person: z.string().optional().nullable().default(""),
   contact: z.string().optional().nullable(),
   designation: z.string().optional().nullable(),
-  official_email: z.string().email().optional().nullable(),
+  official_email: z.string().email("Invalid email address").optional().nullable().or(z.literal("")),
   target_products: z.array(z.string()).optional().default([]),
   payment_terms: z.string().optional().nullable(),
   delivery_location: z.string().optional().nullable(),
   captured_at: z.string().min(1).optional(),
   device_id: z.string().min(1).max(128).optional(),
   client_local_id: z.string().min(1).max(128).optional(),
+  created_by: z.string().optional().nullable(),
+  updated_by: z.string().optional().nullable(),
 });
 export type CreateOfftakerRequest = z.infer<typeof CreateOfftakerRequest>;
 

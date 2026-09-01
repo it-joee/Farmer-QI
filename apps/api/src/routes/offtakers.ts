@@ -46,7 +46,7 @@ function normalizeUploadFiles(value: unknown): File[] {
 async function assertOfftakerInScope(offtakerId: string, actor: Actor) {
   const scope = offtakerScopeClause(actor, "a", 2);
   const result = await query(
-    `SELECT a.id FROM offtakers a WHERE a.id = $1 AND a.deleted_at IS NULL AND ${scope.sql}`,
+    `SELECT a.id FROM offtakers a WHERE (a.id::text = $1 OR a.reference_id = $1) AND a.deleted_at IS NULL AND ${scope.sql}`,
     [offtakerId, ...scope.params]
   );
   return (result.rowCount ?? 0) > 0;
@@ -172,7 +172,7 @@ offtakerRoutes.post("/", async (c) => {
 
     const data = parsed.data;
   const { captured_at, device_id, client_local_id, ...offtakerFields } = data;
-  const createdBy = SKIP_AUTH ? actor.id : (body as { created_by?: string }).created_by;
+  const createdBy = (body as { created_by?: string }).created_by || actor.id;
 
   if (!createdBy) {
     return c.json({ error: "Authentication required" }, 401);
@@ -278,7 +278,7 @@ offtakerRoutes.get("/:id", async (c) => {
   const offtakerId = c.req.param("id");
   const scope = offtakerScopeClause(actorResult, "a", 2);
   const result = await query(
-    `SELECT * FROM offtakers a WHERE a.id = $1 AND a.deleted_at IS NULL AND ${scope.sql}`,
+    `SELECT * FROM offtakers a WHERE (a.id::text = $1 OR a.reference_id = $1) AND a.deleted_at IS NULL AND ${scope.sql}`,
     [offtakerId, ...scope.params]
   );
 
@@ -306,7 +306,7 @@ offtakerRoutes.put("/:id", async (c) => {
   }
 
   const data = parsed.data;
-  const actorId = SKIP_AUTH ? actorResult.id : (body as { updated_by?: string }).updated_by;
+  const actorId = (body as { updated_by?: string }).updated_by || actorResult.id;
 
   if (!actorId) {
     return c.json({ error: "Authentication required" }, 401);
@@ -323,7 +323,7 @@ offtakerRoutes.put("/:id", async (c) => {
       payment_terms = $7,
       delivery_location = $8,
       updated_at = now()
-    WHERE id = $9
+    WHERE (id::text = $9 OR reference_id = $9) AND deleted_at IS NULL
     RETURNING *`,
     [
       data.company_name.trim(),
@@ -369,34 +369,40 @@ offtakerRoutes.delete("/:id", async (c) => {
     return c.json({ error: "Authentication required" }, 401);
   }
 
-  const existing = await query("SELECT * FROM offtakers WHERE id = $1 AND deleted_at IS NULL", [offtakerId]);
+  const existing = await query("SELECT * FROM offtakers WHERE (id::text = $1 OR reference_id = $1) AND deleted_at IS NULL", [offtakerId]);
   if (existing.rowCount === 0) {
     return c.json({ error: "Offtaker not found" }, 404);
   }
 
   const offtaker = existing.rows[0];
+  const realId = offtaker.id;
   const reason = (body as { reason?: string }).reason ?? "Removed by agent";
 
   await query(
     `INSERT INTO audit_log (actor_id, action, entity_type, entity_id, changes, reason)
      VALUES ($1, 'delete', 'offtaker', $2, $3, $4)`,
-    [actorId, offtakerId, JSON.stringify(offtaker), reason]
+    [actorId, realId, JSON.stringify(offtaker), reason]
   );
 
-  await query("UPDATE offtakers SET deleted_at = now() WHERE id = $1", [offtakerId]);
+  await query("UPDATE offtakers SET deleted_at = now() WHERE id = $1", [realId]);
 
   return c.json({ ok: true });
 });
 
 offtakerRoutes.get("/:id/photos", async (c) => {
   const offtakerId = c.req.param("id");
+  const offtaker = await query("SELECT id FROM offtakers WHERE (id::text = $1 OR reference_id = $1) AND deleted_at IS NULL", [offtakerId]);
+  if (offtaker.rowCount === 0) {
+    return c.json({ photos: [] });
+  }
+  const realId = offtaker.rows[0].id;
   const result = await query<{
     id: string;
     offtaker_id: string;
     photo_type: string;
     file_name: string;
     created_at: string;
-  }>("SELECT * FROM offtaker_photos WHERE offtaker_id = $1 ORDER BY created_at ASC", [offtakerId]);
+  }>("SELECT * FROM offtaker_photos WHERE offtaker_id = $1 ORDER BY created_at ASC", [realId]);
 
   const photos: OfftakerPhoto[] = result.rows.map((row) => ({
     id: row.id,
@@ -413,10 +419,11 @@ offtakerRoutes.get("/:id/photos", async (c) => {
 offtakerRoutes.post("/:id/photos", async (c) => {
   const offtakerId = c.req.param("id");
 
-  const offtaker = await query("SELECT id FROM offtakers WHERE id = $1", [offtakerId]);
+  const offtaker = await query("SELECT id FROM offtakers WHERE (id::text = $1 OR reference_id = $1) AND deleted_at IS NULL", [offtakerId]);
   if (offtaker.rowCount === 0) {
     return c.json({ error: "Offtaker not found" }, 404);
   }
+  const realId = offtaker.rows[0].id;
 
   const body = await c.req.parseBody({ all: true });
   const ghanaList = normalizeUploadFiles(body.ghana_card);

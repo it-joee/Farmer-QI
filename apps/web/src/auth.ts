@@ -23,7 +23,7 @@ export const DEMO_USERS: User[] = [
   {
     id: "00000000-0000-0000-0000-000000000012",
     email: "admin@farmeriq.local",
-    full_name: "System Admin",
+    full_name: "Joseph - Admin",
     role: "admin",
     office_id: null,
   },
@@ -77,22 +77,22 @@ export function canRegisterAggregators(user: User): boolean {
 }
 
 export function farmersScopeLabel(user: User): string {
-  if (user.role === "admin") return "All farmers";
+  if (user.role === "admin") return "Farmers";
   if (user.role === "team_lead") return "Office farmers";
-  return "Your farmers";
+  return "My farmers";
 }
 
 export function aggregatorsScopeLabel(user: User): string {
-  if (user.role === "admin") return "All aggregators";
+  if (user.role === "admin") return "Aggregators";
   if (user.role === "team_lead") return "Office aggregators";
-  return "Your aggregators";
+  return "My aggregators";
 }
 
 export function canRegisterOfftakers(user: User) {
   return user.role === "agent" || user.role === "team_lead" || user.role === "admin";
 }
 export function offtakersScopeLabel(user: User) {
-  if (user.role === "admin") return "All Offtakers";
-  if (user.role === "team_lead") return "Office Offtakers";
-  return "My Offtakers";
+  if (user.role === "admin") return "Offtakers";
+  if (user.role === "team_lead") return "Office offtakers";
+  return "My offtakers";
 }
