@@ -10,6 +10,7 @@ import { eventRoutes } from "./routes/events.js";
 import { userRoutes } from "./routes/users.js";
 import { aggregatorRoutes } from "./routes/aggregators.js";
 import { offtakerRoutes } from "./routes/offtakers.js";
+import { trashRoutes } from "./routes/trash.js";
 
 const app = new Hono();
 
@@ -58,6 +59,7 @@ app.route("/aggregators", aggregatorRoutes);
 app.route("/offtakers", offtakerRoutes);
 app.route("/events", eventRoutes);
 app.route("/uploads", uploadFileRoute);
+app.route("/trash", trashRoutes);
 
 app.onError((err, c) => {
   console.error("[api error]", err);

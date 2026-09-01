@@ -29,6 +29,7 @@ import { EditOfftakerPage } from "./pages/EditOfftakerPage";
 import { EditPendingOfftakerPage } from "./pages/EditPendingOfftakerPage";
 import { PendingOfftakerDetailPage } from "./pages/PendingOfftakerDetailPage";
 import { OfftakerDetailPage } from "./pages/OfftakerDetailPage";
+import { TrashPage } from "./pages/TrashPage";
 
 export function App() {
   return (
@@ -58,6 +59,7 @@ export function App() {
         <Route path="/drivers" element={<DriversPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/users" element={<UsersPage />} />
+        <Route path="/trash" element={<TrashPage />} />
         <Route path="/change-password" element={<ChangePasswordPage />} />
         <Route path="/events" element={<EventsPage />} />
         <Route path="/events/new" element={<NewEventPage />} />

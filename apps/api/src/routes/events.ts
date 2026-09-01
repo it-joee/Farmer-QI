@@ -15,12 +15,13 @@ const eventListSelect = `
   SELECT e.*,
     (SELECT COUNT(*)::int FROM event_attendees ea WHERE ea.event_id = e.id) AS attendance_count
   FROM events e
+  WHERE e.deleted_at IS NULL
 `;
 
 async function assertEventInScope(eventId: string, actor: import("../lib/actor.js").Actor) {
   const scope = eventScopeClause(actor, "e", 2);
   const result = await query(
-    `SELECT e.id FROM events e WHERE e.id = $1 AND ${scope.sql}`,
+    `SELECT e.id FROM events e WHERE e.id = $1 AND e.deleted_at IS NULL AND ${scope.sql}`,
     [eventId, ...scope.params]
   );
   return (result.rowCount ?? 0) > 0;
@@ -32,7 +33,7 @@ eventRoutes.get("/", async (c) => {
 
   const scope = eventScopeClause(actorResult, "e", 1);
   const result = await query(
-    `${eventListSelect} WHERE ${scope.sql} ORDER BY e.event_date DESC, e.created_at DESC`,
+    `${eventListSelect} AND ${scope.sql} ORDER BY e.event_date DESC, e.created_at DESC`,
     scope.params
   );
 
@@ -103,19 +104,19 @@ eventRoutes.get("/:id", async (c) => {
   const limit = parseInt(c.req.query("limit") ?? "20", 10) || 20;
   const offset = (page - 1) * limit;
 
-  const eventResult = await query(`${eventListSelect} WHERE e.id = $1`, [id]);
+  const eventResult = await query(`${eventListSelect} AND e.id = $1`, [id]);
 
   const countResult = await query(
     `SELECT
       COUNT(*)::int AS total,
       COALESCE(SUM(CASE WHEN gender = 'male' THEN 1 ELSE 0 END), 0)::int AS male_count,
       COALESCE(SUM(CASE WHEN gender = 'female' THEN 1 ELSE 0 END), 0)::int AS female_count
-     FROM event_attendees WHERE event_id = $1`,
+     FROM event_attendees WHERE event_id = $1 AND deleted_at IS NULL`,
     [id]
   );
 
   const attendeesResult = await query(
-    `SELECT * FROM event_attendees WHERE event_id = $1 ORDER BY marked_at DESC LIMIT $2 OFFSET $3`,
+    `SELECT * FROM event_attendees WHERE event_id = $1 AND deleted_at IS NULL ORDER BY marked_at DESC LIMIT $2 OFFSET $3`,
     [id, limit, offset]
   );
 
@@ -145,7 +146,7 @@ eventRoutes.put("/:id", async (c) => {
   }
 
   const existingResult = await query(
-    "SELECT event_date FROM events WHERE id = $1",
+    "SELECT event_date FROM events WHERE id = $1 AND deleted_at IS NULL",
     [id]
   );
   if (existingResult.rows.length === 0) {
@@ -207,7 +208,7 @@ eventRoutes.put("/:id", async (c) => {
   );
 
   const countResult = await query(
-    "SELECT COUNT(*)::int AS attendance_count FROM event_attendees WHERE event_id = $1",
+    "SELECT COUNT(*)::int AS attendance_count FROM event_attendees WHERE event_id = $1 AND deleted_at IS NULL",
     [id]
   );
 
@@ -253,7 +254,7 @@ eventRoutes.post("/:id/attendees", async (c) => {
   );
 
   const countResult = await query(
-    "SELECT COUNT(*)::int AS attendance_count FROM event_attendees WHERE event_id = $1",
+    "SELECT COUNT(*)::int AS attendance_count FROM event_attendees WHERE event_id = $1 AND deleted_at IS NULL",
     [eventId]
   );
 
@@ -286,7 +287,7 @@ eventRoutes.put("/:id/attendees/:attendeeId", async (c) => {
   const result = await query(
     `UPDATE event_attendees
      SET full_name = $1, phone = $2, community = $3, gender = $4, age = $5
-     WHERE id = $6 AND event_id = $7
+     WHERE id = $6 AND event_id = $7 AND deleted_at IS NULL
      RETURNING *`,
     [
       parsed.data.full_name.trim(),
@@ -318,7 +319,7 @@ eventRoutes.delete("/:id/attendees/:attendeeId", async (c) => {
   const attendeeId = c.req.param("attendeeId");
 
   const result = await query(
-    "DELETE FROM event_attendees WHERE id = $1 AND event_id = $2 RETURNING id",
+    "UPDATE event_attendees SET deleted_at = now() WHERE id = $1 AND event_id = $2 RETURNING id",
     [attendeeId, eventId]
   );
 
@@ -327,7 +328,7 @@ eventRoutes.delete("/:id/attendees/:attendeeId", async (c) => {
   }
 
   const countResult = await query(
-    "SELECT COUNT(*)::int AS attendance_count FROM event_attendees WHERE event_id = $1",
+    "SELECT COUNT(*)::int AS attendance_count FROM event_attendees WHERE event_id = $1 AND deleted_at IS NULL",
     [eventId]
   );
 
@@ -350,7 +351,7 @@ eventRoutes.delete("/:id", async (c) => {
     return c.json({ error: "Authentication required" }, 401);
   }
 
-  await query("DELETE FROM events WHERE id = $1 RETURNING id", [id]);
+  await query("UPDATE events SET deleted_at = now() WHERE id = $1 RETURNING id", [id]);
 
   await query(
     `INSERT INTO audit_log (actor_id, action, entity_type, entity_id, changes)

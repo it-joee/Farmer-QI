@@ -57,6 +57,7 @@ function getNavItems(user: User) {
 
   if (canManageUsers(user)) {
     items.push({ to: "/users", label: "Users", tabLabel: "Users", end: true, icon: "users" });
+    items.push({ to: "/trash", label: "Trash Bin", tabLabel: "Trash", end: true, icon: "trash" });
   }
 
   return items;

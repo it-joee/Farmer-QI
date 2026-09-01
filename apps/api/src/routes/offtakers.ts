@@ -46,7 +46,7 @@ function normalizeUploadFiles(value: unknown): File[] {
 async function assertOfftakerInScope(offtakerId: string, actor: Actor) {
   const scope = offtakerScopeClause(actor, "a", 2);
   const result = await query(
-    `SELECT a.id FROM offtakers a WHERE a.id = $1 AND ${scope.sql}`,
+    `SELECT a.id FROM offtakers a WHERE a.id = $1 AND a.deleted_at IS NULL AND ${scope.sql}`,
     [offtakerId, ...scope.params]
   );
   return (result.rowCount ?? 0) > 0;
@@ -93,7 +93,7 @@ offtakerRoutes.get("/", async (c) => {
     }
 
     const countResult = await query(
-      `SELECT COUNT(*) FROM offtakers a WHERE ${scope.sql} ${filterSql}`,
+      `SELECT COUNT(*) FROM offtakers a WHERE a.deleted_at IS NULL AND ${scope.sql} ${filterSql}`,
       params
     );
 
@@ -102,7 +102,7 @@ offtakerRoutes.get("/", async (c) => {
 
     const dataParams = [...params, limit, offset];
     const result = await query(
-      `SELECT * FROM offtakers a WHERE ${scope.sql} ${filterSql} ORDER BY a.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+      `SELECT * FROM offtakers a WHERE a.deleted_at IS NULL AND ${scope.sql} ${filterSql} ORDER BY a.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
       dataParams
     );
 
@@ -136,7 +136,7 @@ offtakerRoutes.get("/all", async (c) => {
   try {
     const scope = offtakerScopeClause(actorResult, "a", 1);
     const result = await query(
-      `SELECT * FROM offtakers a WHERE ${scope.sql} ORDER BY a.created_at DESC`,
+      `SELECT * FROM offtakers a WHERE a.deleted_at IS NULL AND ${scope.sql} ORDER BY a.created_at DESC`,
       scope.params
     );
 
@@ -182,7 +182,7 @@ offtakerRoutes.post("/", async (c) => {
 
   if (clientLocalId) {
     const existingByClientId = await query(
-      `SELECT * FROM offtakers WHERE created_by = $1 AND metadata->>'client_local_id' = $2`,
+      `SELECT * FROM offtakers WHERE created_by = $1 AND deleted_at IS NULL AND metadata->>'client_local_id' = $2`,
       [createdBy, clientLocalId]
     );
     if (existingByClientId.rows[0]) {
@@ -195,6 +195,7 @@ offtakerRoutes.post("/", async (c) => {
       `SELECT a.* FROM submission_records sr
        JOIN offtakers a ON a.id = sr.entity_id
        WHERE sr.entity_type = 'offtaker'
+         AND a.deleted_at IS NULL
          AND sr.agent_id = $1
          AND sr.device_id = $2
          AND sr.captured_at = $3`,
@@ -277,7 +278,7 @@ offtakerRoutes.get("/:id", async (c) => {
   const offtakerId = c.req.param("id");
   const scope = offtakerScopeClause(actorResult, "a", 2);
   const result = await query(
-    `SELECT * FROM offtakers a WHERE a.id = $1 AND ${scope.sql}`,
+    `SELECT * FROM offtakers a WHERE a.id = $1 AND a.deleted_at IS NULL AND ${scope.sql}`,
     [offtakerId, ...scope.params]
   );
 
@@ -368,7 +369,7 @@ offtakerRoutes.delete("/:id", async (c) => {
     return c.json({ error: "Authentication required" }, 401);
   }
 
-  const existing = await query("SELECT * FROM offtakers WHERE id = $1", [offtakerId]);
+  const existing = await query("SELECT * FROM offtakers WHERE id = $1 AND deleted_at IS NULL", [offtakerId]);
   if (existing.rowCount === 0) {
     return c.json({ error: "Offtaker not found" }, 404);
   }
@@ -382,7 +383,7 @@ offtakerRoutes.delete("/:id", async (c) => {
     [actorId, offtakerId, JSON.stringify(offtaker), reason]
   );
 
-  await query("DELETE FROM offtakers WHERE id = $1", [offtakerId]);
+  await query("UPDATE offtakers SET deleted_at = now() WHERE id = $1", [offtakerId]);
 
   return c.json({ ok: true });
 });

@@ -14,7 +14,7 @@ export const farmerRoutes = new Hono();
 async function assertFarmerInScope(farmerId: string, actor: Actor) {
   const scope = farmerScopeClause(actor, "f", 2);
   const result = await query(
-    `SELECT f.id FROM farmers f WHERE f.id = $1 AND ${scope.sql}`,
+    `SELECT f.id FROM farmers f WHERE f.id = $1 AND f.deleted_at IS NULL AND ${scope.sql}`,
     [farmerId, ...scope.params]
   );
   return (result.rowCount ?? 0) > 0;
@@ -60,7 +60,7 @@ farmerRoutes.get("/", async (c) => {
   }
 
   const countResult = await query(
-    `SELECT COUNT(*) FROM farmers f WHERE ${scope.sql} ${filterSql}`,
+    `SELECT COUNT(*) FROM farmers f WHERE f.deleted_at IS NULL AND ${scope.sql} ${filterSql}`,
     params
   );
   
@@ -69,7 +69,7 @@ farmerRoutes.get("/", async (c) => {
 
   const dataParams = [...params, limit, offset];
   const result = await query(
-    `SELECT * FROM farmers f WHERE ${scope.sql} ${filterSql} ORDER BY f.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+    `SELECT * FROM farmers f WHERE f.deleted_at IS NULL AND ${scope.sql} ${filterSql} ORDER BY f.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
     dataParams
   );
 
@@ -88,7 +88,7 @@ farmerRoutes.get("/all", async (c) => {
 
   const scope = farmerScopeClause(actorResult, "f", 1);
   const result = await query(
-    `SELECT * FROM farmers f WHERE ${scope.sql} ORDER BY f.created_at DESC`,
+    `SELECT * FROM farmers f WHERE f.deleted_at IS NULL AND ${scope.sql} ORDER BY f.created_at DESC`,
     scope.params
   );
 
@@ -123,7 +123,7 @@ farmerRoutes.post("/", async (c) => {
 
   if (clientLocalId) {
     const existingByClientId = await query(
-      `SELECT * FROM farmers WHERE created_by = $1 AND metadata->>'client_local_id' = $2`,
+      `SELECT * FROM farmers WHERE created_by = $1 AND deleted_at IS NULL AND metadata->>'client_local_id' = $2`,
       [createdBy, clientLocalId]
     );
     if (existingByClientId.rows[0]) {
@@ -138,6 +138,7 @@ farmerRoutes.post("/", async (c) => {
       `SELECT f.* FROM submission_records sr
        JOIN farmers f ON f.id = sr.entity_id
        WHERE sr.entity_type = 'farmer'
+         AND f.deleted_at IS NULL
          AND sr.agent_id = $1
          AND sr.device_id = $2
          AND sr.captured_at = $3`,
@@ -386,7 +387,7 @@ farmerRoutes.get("/:id", async (c) => {
 
   const farmerId = c.req.param("id");
   const scope = farmerScopeClause(actorResult, "f", 2);
-  const result = await query(`SELECT * FROM farmers f WHERE f.id = $1 AND ${scope.sql}`, [
+  const result = await query(`SELECT * FROM farmers f WHERE f.id = $1 AND f.deleted_at IS NULL AND ${scope.sql}`, [
     farmerId,
     ...scope.params,
   ]);
@@ -414,7 +415,7 @@ farmerRoutes.delete("/:id", async (c) => {
     return c.json({ error: "Authentication required" }, 401);
   }
 
-  const existing = await query("SELECT * FROM farmers WHERE id = $1", [farmerId]);
+  const existing = await query("SELECT * FROM farmers WHERE id = $1 AND deleted_at IS NULL", [farmerId]);
   if (existing.rowCount === 0) {
     return c.json({ error: "Farmer not found" }, 404);
   }
@@ -428,7 +429,7 @@ farmerRoutes.delete("/:id", async (c) => {
     [actorId, farmerId, JSON.stringify(farmer), reason]
   );
 
-  await query("DELETE FROM farmers WHERE id = $1", [farmerId]);
+  await query("UPDATE farmers SET deleted_at = now() WHERE id = $1", [farmerId]);
 
   return c.json({ ok: true });
 });

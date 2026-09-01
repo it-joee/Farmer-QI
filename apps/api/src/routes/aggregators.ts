@@ -46,7 +46,7 @@ function normalizeUploadFiles(value: unknown): File[] {
 async function assertAggregatorInScope(aggregatorId: string, actor: Actor) {
   const scope = aggregatorScopeClause(actor, "a", 2);
   const result = await query(
-    `SELECT a.id FROM aggregators a WHERE a.id = $1 AND ${scope.sql}`,
+    `SELECT a.id FROM aggregators a WHERE a.id = $1 AND a.deleted_at IS NULL AND ${scope.sql}`,
     [aggregatorId, ...scope.params]
   );
   return (result.rowCount ?? 0) > 0;
@@ -93,7 +93,7 @@ aggregatorRoutes.get("/", async (c) => {
     }
 
     const countResult = await query(
-      `SELECT COUNT(*) FROM aggregators a WHERE ${scope.sql} ${filterSql}`,
+      `SELECT COUNT(*) FROM aggregators a WHERE a.deleted_at IS NULL AND ${scope.sql} ${filterSql}`,
       params
     );
 
@@ -102,7 +102,7 @@ aggregatorRoutes.get("/", async (c) => {
 
     const dataParams = [...params, limit, offset];
     const result = await query(
-      `SELECT * FROM aggregators a WHERE ${scope.sql} ${filterSql} ORDER BY a.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+      `SELECT * FROM aggregators a WHERE a.deleted_at IS NULL AND ${scope.sql} ${filterSql} ORDER BY a.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
       dataParams
     );
 
@@ -136,7 +136,7 @@ aggregatorRoutes.get("/all", async (c) => {
   try {
     const scope = aggregatorScopeClause(actorResult, "a", 1);
     const result = await query(
-      `SELECT * FROM aggregators a WHERE ${scope.sql} ORDER BY a.created_at DESC`,
+      `SELECT * FROM aggregators a WHERE a.deleted_at IS NULL AND ${scope.sql} ORDER BY a.created_at DESC`,
       scope.params
     );
 
@@ -182,7 +182,7 @@ aggregatorRoutes.post("/", async (c) => {
 
   if (clientLocalId) {
     const existingByClientId = await query(
-      `SELECT * FROM aggregators WHERE created_by = $1 AND metadata->>'client_local_id' = $2`,
+      `SELECT * FROM aggregators WHERE created_by = $1 AND deleted_at IS NULL AND metadata->>'client_local_id' = $2`,
       [createdBy, clientLocalId]
     );
     if (existingByClientId.rows[0]) {
@@ -195,6 +195,7 @@ aggregatorRoutes.post("/", async (c) => {
       `SELECT a.* FROM submission_records sr
        JOIN aggregators a ON a.id = sr.entity_id
        WHERE sr.entity_type = 'aggregator'
+         AND a.deleted_at IS NULL
          AND sr.agent_id = $1
          AND sr.device_id = $2
          AND sr.captured_at = $3`,
@@ -276,7 +277,7 @@ aggregatorRoutes.get("/:id", async (c) => {
   const aggregatorId = c.req.param("id");
   const scope = aggregatorScopeClause(actorResult, "a", 2);
   const result = await query(
-    `SELECT * FROM aggregators a WHERE a.id = $1 AND ${scope.sql}`,
+    `SELECT * FROM aggregators a WHERE a.id = $1 AND a.deleted_at IS NULL AND ${scope.sql}`,
     [aggregatorId, ...scope.params]
   );
 
@@ -365,7 +366,7 @@ aggregatorRoutes.delete("/:id", async (c) => {
     return c.json({ error: "Authentication required" }, 401);
   }
 
-  const existing = await query("SELECT * FROM aggregators WHERE id = $1", [aggregatorId]);
+  const existing = await query("SELECT * FROM aggregators WHERE id = $1 AND deleted_at IS NULL", [aggregatorId]);
   if (existing.rowCount === 0) {
     return c.json({ error: "Aggregator not found" }, 404);
   }
@@ -379,7 +380,7 @@ aggregatorRoutes.delete("/:id", async (c) => {
     [actorId, aggregatorId, JSON.stringify(aggregator), reason]
   );
 
-  await query("DELETE FROM aggregators WHERE id = $1", [aggregatorId]);
+  await query("UPDATE aggregators SET deleted_at = now() WHERE id = $1", [aggregatorId]);
 
   return c.json({ ok: true });
 });
