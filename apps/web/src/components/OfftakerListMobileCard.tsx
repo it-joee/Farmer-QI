@@ -5,7 +5,7 @@ export type OfftakerListStatus = "synced" | "pending" | "syncing" | "failed";
 interface OfftakerListMobileCardProps {
   name: string;
   deliveryLocation: string;
-  companyName?: string | null;
+  contactPerson?: string | null;
   contact?: string | null;
   status: OfftakerListStatus;
   statusLabel?: string;
@@ -23,7 +23,7 @@ const STATUS_LABEL: Record<OfftakerListStatus, string> = {
 export function OfftakerListMobileCard({
   name,
   deliveryLocation,
-  companyName,
+  contactPerson,
   contact,
   status,
   statusLabel,
@@ -37,12 +37,22 @@ export function OfftakerListMobileCard({
         ? "sync-badge--failed"
         : "sync-badge--pending";
 
+  const showContactPerson = Boolean(
+    contactPerson &&
+      contactPerson.trim() &&
+      contactPerson.trim().toLowerCase() !== name.trim().toLowerCase()
+  );
+
   return (
     <article className="farmer-list-card">
       <button type="button" className="farmer-list-card__main" onClick={onOpen}>
         <div className="farmer-list-card__content">
           <h3 className="farmer-list-card__name">{name}</h3>
-          {companyName && <p className="muted" style={{ fontSize: "0.85rem", fontWeight: 600 }}>{companyName}</p>}
+          {showContactPerson && (
+            <p className="muted" style={{ fontSize: "0.85rem", fontWeight: 500, margin: "0.125rem 0 0" }}>
+              {contactPerson}
+            </p>
+          )}
           <p className="farmer-list-card__community">{deliveryLocation || "—"}</p>
           {contact && <p className="farmer-list-card__phone">{contact}</p>}
         </div>

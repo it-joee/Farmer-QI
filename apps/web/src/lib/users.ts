@@ -77,3 +77,28 @@ export async function updateUser(
   const data = await res.json();
   return data.user;
 }
+
+export async function resetUserPassword(userId: string): Promise<string> {
+  const res = await apiFetch(`/api/users/${userId}/reset-password`, {
+    method: "POST",
+  });
+  
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error((data as { error?: string }).error ?? "Could not issue password reset");
+  }
+
+  const data = await res.json();
+  return data.invite_link;
+}
+
+export async function deleteUser(userId: string): Promise<void> {
+  const res = await apiFetch(`/api/users/${userId}`, {
+    method: "DELETE",
+  });
+  
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error((data as { error?: string }).error ?? "Could not delete user");
+  }
+}

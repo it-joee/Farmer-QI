@@ -1,11 +1,11 @@
 import { apiFetch } from "./api-client";
 
-export interface TrashedEntity {
-  type: "farmer" | "aggregator" | "offtaker" | "event";
+export type TrashedEntity = {
+  type: "farmer" | "aggregator" | "offtaker" | "event" | "user";
   id: string;
   name: string;
   deleted_at: string;
-}
+};
 
 export interface TrashResponse {
   data: TrashedEntity[];

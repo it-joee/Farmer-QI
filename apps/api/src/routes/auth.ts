@@ -5,6 +5,8 @@ import * as argon2 from "argon2";
 import jwt from "jsonwebtoken";
 import { requireActor } from "../lib/actor.js";
 import { z } from "zod";
+import { sendWelcomeEmail } from "../lib/email.js";
+import { clearFailedAttempts, getLockoutMinutes, recordFailedAttempt } from "../lib/rate-limiter.js";
 
 export const authRoutes = new Hono();
 
@@ -40,8 +42,17 @@ authRoutes.post("/login", async (c) => {
 
   const cleanEmail = parsed.data.email.trim().toLowerCase();
 
-  if (!cleanEmail.endsWith("@jniagri.ag") && !cleanEmail.endsWith("@farmeriq.local")) {
-    return c.json({ error: "Only @jniagri.ag accounts are allowed" }, 403);
+  if (!cleanEmail.endsWith("@jniagri.ag")) {
+    return c.json({ error: "Invalid email or password" }, 401);
+  }
+
+  // --- Brute-force check (keyed by email) ---
+  const lockoutMins = getLockoutMinutes(cleanEmail);
+  if (lockoutMins > 0) {
+    return c.json(
+      { error: `Too many failed attempts. Try again in ${lockoutMins} minute${lockoutMins === 1 ? "" : "s"}.` },
+      429
+    );
   }
 
   const result = await query<{
@@ -56,7 +67,10 @@ authRoutes.post("/login", async (c) => {
     cleanEmail,
   ]);
 
+  // Use the same error for "no such user" and "wrong password" to avoid leaking
+  // whether a particular @jniagri.ag address is registered in the system.
   if (result.rowCount === 0) {
+    recordFailedAttempt(cleanEmail);
     return c.json({ error: "Invalid email or password" }, 401);
   }
 
@@ -64,6 +78,7 @@ authRoutes.post("/login", async (c) => {
 
   const validPassword = await argon2.verify(user.password_hash, parsed.data.password);
   if (!validPassword) {
+    recordFailedAttempt(cleanEmail);
     return c.json({ error: "Invalid email or password" }, 401);
   }
 
@@ -71,6 +86,9 @@ authRoutes.post("/login", async (c) => {
   if (user.must_set_password) {
     return c.json({ error: "You must set your password using the invite link sent to you before you can log in." }, 403);
   }
+
+  // Success — reset the failure counter
+  clearFailedAttempts(cleanEmail);
 
   const secret = process.env.JWT_SECRET || "fallback-secret";
   const token = jwt.sign(
@@ -146,6 +164,16 @@ authRoutes.post("/set-password", async (c) => {
     `UPDATE password_reset_tokens SET used_at = now() WHERE id = $1`,
     [row.id]
   );
+
+  // Fetch user's details to send a personalised welcome email
+  const userRow = await query<{ email: string; full_name: string }>(
+    `SELECT email, full_name FROM users WHERE id = $1`,
+    [row.user_id]
+  );
+  if (userRow.rowCount) {
+    const { email, full_name } = userRow.rows[0];
+    void sendWelcomeEmail(email, full_name);
+  }
 
   return c.json({ ok: true, message: "Password set successfully. You can now log in." });
 });

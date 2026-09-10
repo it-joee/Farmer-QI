@@ -37,12 +37,22 @@ export function AggregatorListMobileCard({
         ? "sync-badge--failed"
         : "sync-badge--pending";
 
+  const showBusinessName = Boolean(
+    businessName &&
+      businessName.trim() &&
+      businessName.trim().toLowerCase() !== name.trim().toLowerCase()
+  );
+
   return (
     <article className="farmer-list-card">
       <button type="button" className="farmer-list-card__main" onClick={onOpen}>
         <div className="farmer-list-card__content">
           <h3 className="farmer-list-card__name">{name}</h3>
-          {businessName && <p className="muted" style={{ fontSize: "0.85rem", fontWeight: 600 }}>{businessName}</p>}
+          {showBusinessName && (
+            <p className="muted" style={{ fontSize: "0.85rem", fontWeight: 600 }}>
+              {businessName}
+            </p>
+          )}
           <p className="farmer-list-card__community">{town || "—"}</p>
           {phone && <p className="farmer-list-card__phone">{phone}</p>}
         </div>

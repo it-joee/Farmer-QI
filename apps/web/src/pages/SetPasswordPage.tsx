@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AppLogo } from "../components/layout/AppLogo";
+import { PasswordField } from "../components/fields/PasswordField";
 import { apiFetch } from "../lib/api-client";
 
 export function SetPasswordPage() {
@@ -79,9 +80,8 @@ export function SetPasswordPage() {
             <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <label htmlFor="sp-password">New password</label>
-                <input
+                <PasswordField
                   id="sp-password"
-                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Min. 8 characters"
@@ -92,9 +92,8 @@ export function SetPasswordPage() {
               </div>
               <div className="form-group">
                 <label htmlFor="sp-confirm">Confirm password</label>
-                <input
+                <PasswordField
                   id="sp-confirm"
-                  type="password"
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   placeholder="Repeat password"

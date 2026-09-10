@@ -17,3 +17,7 @@ CREATE INDEX IF NOT EXISTS idx_events_deleted_at ON events(deleted_at);
 -- Add deleted_at to event_attendees
 ALTER TABLE event_attendees ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
 CREATE INDEX IF NOT EXISTS idx_event_attendees_deleted_at ON event_attendees(deleted_at);
+
+-- Add deleted_at to users
+ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON users(deleted_at);

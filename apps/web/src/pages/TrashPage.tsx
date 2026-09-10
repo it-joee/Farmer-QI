@@ -5,9 +5,11 @@ import { useRequireAuth } from "../hooks/useFarmers";
 import { Pagination } from "../components/Pagination";
 import { NavIconTrash } from "../components/layout/NavIcons";
 import { fetchTrash, restoreTrashItem, permanentDeleteTrashItem, emptyTrash, type TrashedEntity } from "../lib/trash";
+import { useConfirmDialog } from "../context/ConfirmDialogContext";
 
 export function TrashPage() {
   const user = useRequireAuth();
+  const { confirm, alert } = useConfirmDialog();
   const [items, setItems] = useState<TrashedEntity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -51,34 +53,45 @@ export function TrashPage() {
       await restoreTrashItem(item.type, item.id);
       await loadTrash();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to restore");
+      await alert(err instanceof Error ? err.message : "Failed to restore", "Error");
     } finally {
       setProcessingId(null);
     }
   };
 
   const handlePermanentDelete = async (item: TrashedEntity) => {
-    if (!window.confirm("Are you sure you want to permanently delete this item? This action cannot be undone.")) return;
+    const isConfirmed = await confirm({
+      title: "Delete Item",
+      message: "Are you sure you want to permanently delete this item? This action cannot be undone.",
+      variant: "danger",
+    });
+    if (!isConfirmed) return;
     
     setProcessingId(item.id);
     try {
       await permanentDeleteTrashItem(item.type, item.id);
       await loadTrash();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete");
+      await alert(err instanceof Error ? err.message : "Failed to delete", "Error");
     } finally {
       setProcessingId(null);
     }
   };
 
   const handleEmptyTrash = async () => {
-    if (!window.confirm("Are you sure you want to empty the trash? All items will be permanently deleted and cannot be restored.")) return;
+    const isConfirmed = await confirm({
+      title: "Empty Trash",
+      message: "Are you sure you want to empty the trash? All items will be permanently deleted and cannot be restored.",
+      variant: "danger",
+      confirmText: "Empty Trash",
+    });
+    if (!isConfirmed) return;
     
     try {
       await emptyTrash();
       await loadTrash();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to empty trash");
+      await alert(err instanceof Error ? err.message : "Failed to empty trash", "Error");
     }
   };
 

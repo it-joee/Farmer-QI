@@ -7,7 +7,9 @@ import { SelectField } from "../components/fields/SelectField";
 import { UserListMobileCard } from "../components/UserListMobileCard";
 import { Pagination } from "../components/Pagination";
 import { useRequireAuth } from "../hooks/useFarmers";
-import { createUser, fetchOffices, fetchUsers, updateUser, type OfficeOption } from "../lib/users";
+import { useConfirmDialog } from "../context/ConfirmDialogContext";
+import { useToast } from "../context/ToastContext";
+import { createUser, fetchOffices, fetchUsers, updateUser, resetUserPassword, deleteUser, type OfficeOption } from "../lib/users";
 
 const EMPTY_FORM = {
   email: "",
@@ -24,13 +26,14 @@ function formatOffice(name: string | null, region?: string | null): string {
 
 export function UsersPage() {
   const user = useRequireAuth();
+  const { confirm } = useConfirmDialog();
+  const { showSuccess } = useToast();
   const [users, setUsers] = useState<UserListItem[]>([]);
   const [offices, setOffices] = useState<OfficeOption[]>([]);
   const [form, setForm] = useState(EMPTY_FORM);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<UserListItem | null>(null);
   const [editForm, setEditForm] = useState({
     full_name: "",
@@ -83,7 +86,6 @@ export function UsersPage() {
     if (!user) return;
     setSaving(true);
     setError("");
-    setInviteLink(null);
 
     try {
       const result = await createUser(
@@ -95,7 +97,7 @@ export function UsersPage() {
         },
         user.id
       );
-      setInviteLink(result.invite_link);
+      showSuccess("User created", `An invitation email has been sent to ${form.full_name}.`);
       setForm(EMPTY_FORM);
       await loadUsers();
     } catch (err) {
@@ -124,6 +126,50 @@ export function UsersPage() {
       office_id: target.office_id ?? "",
     });
     setEditError("");
+  }
+
+  async function handleResetPassword(target: UserListItem) {
+    if (!user) return;
+    const isConfirmed = await confirm({
+      title: "Reset Password",
+      message: `Are you sure you want to issue a password reset for ${target.full_name}? This will invalidate any existing invite links.`,
+      confirmText: "Issue Reset",
+      cancelText: "Cancel",
+      variant: "warning",
+    });
+
+    if (!isConfirmed) return;
+
+    setError("");
+    try {
+      await resetUserPassword(target.id);
+      showSuccess("Password Reset Issued", `A password reset email has been sent to ${target.full_name}.`);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not issue password reset.");
+    }
+  }
+
+  async function handleDelete(target: UserListItem) {
+    if (!user) return;
+    const isConfirmed = await confirm({
+      title: "Delete User",
+      message: `Are you sure you want to delete ${target.full_name}? This will move the user to the trash.`,
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      variant: "danger",
+    });
+
+    if (!isConfirmed) return;
+
+    setError("");
+    try {
+      await deleteUser(target.id);
+      showSuccess("User Deleted", `${target.full_name} has been moved to the trash.`);
+      await loadUsers();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete user.");
+    }
   }
 
   async function handleUpdate(e: React.FormEvent) {
@@ -236,36 +282,10 @@ export function UsersPage() {
             </button>
           </div>
         </form>
-
-        {inviteLink && (
-          <div style={{ marginTop: "1.25rem", padding: "1rem", background: "var(--color-surface-alt, #f0fdf4)", borderRadius: "var(--radius)", border: "1px solid var(--color-success, #16a34a)" }}>
-            <p style={{ margin: "0 0 0.5rem", fontWeight: 600, color: "var(--color-success, #16a34a)" }}>
-              ✓ User created — share this invite link with them:
-            </p>
-            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-              <input
-                readOnly
-                value={inviteLink}
-                style={{ flex: 1, fontFamily: "monospace", fontSize: "0.8rem" }}
-                onFocus={(e) => e.target.select()}
-              />
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => void navigator.clipboard.writeText(inviteLink)}
-              >
-                Copy
-              </button>
-            </div>
-            <p className="muted" style={{ margin: "0.5rem 0 0", fontSize: "0.8rem" }}>
-              Link expires in 72 hours. The user must open it to set their password before they can log in.
-            </p>
-          </div>
-        )}
       </section>
 
       <section className="card">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+        <div className="card-title-row" style={{ marginBottom: "1rem" }}>
           <h3 className="card-title" style={{ margin: 0 }}>Users</h3>
           <div className="form-group" style={{ margin: 0, width: "300px", maxWidth: "100%" }}>
             <label htmlFor="user-search" className="sr-only">Search users</label>
@@ -317,10 +337,26 @@ export function UsersPage() {
                           <button
                             type="button"
                             className="btn btn-secondary btn-sm"
+                            onClick={() => void handleResetPassword(row)}
+                          >
+                            Reset Password
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
                             onClick={() => void toggleActive(row)}
                             disabled={row.id === user.id}
                           >
                             {row.is_active ? "Deactivate" : "Activate"}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => void handleDelete(row)}
+                            disabled={row.id === user.id}
+                            style={{ color: "var(--color-danger, #ef4444)" }}
+                          >
+                            Delete
                           </button>
                         </div>
                       </td>
@@ -338,25 +374,26 @@ export function UsersPage() {
                   roleLabel={ROLE_LABELS[row.role]}
                   officeName={formatOffice(row.office_name, row.office_region)}
                   isActive={row.is_active}
-                  actions={
-                    <div style={{ display: "flex", gap: "0.375rem" }}>
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => startEdit(row)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => void toggleActive(row)}
-                        disabled={row.id === user.id}
-                      >
-                        {row.is_active ? "Deactivate" : "Activate"}
-                      </button>
-                    </div>
-                  }
+                  onOpen={() => startEdit(row)}
+                  menuItems={[
+                    {
+                      label: "Edit user",
+                      onClick: () => startEdit(row),
+                    },
+                    {
+                      label: "Reset password",
+                      onClick: () => void handleResetPassword(row),
+                    },
+                    {
+                      label: row.is_active ? "Deactivate" : "Activate",
+                      onClick: () => void toggleActive(row),
+                    },
+                    {
+                      label: "Delete",
+                      variant: "danger" as const,
+                      onClick: () => void handleDelete(row),
+                    },
+                  ].filter(Boolean) as any}
                 />
               ))}
             </div>

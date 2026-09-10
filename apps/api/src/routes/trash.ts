@@ -15,7 +15,7 @@ trashRoutes.use("*", async (c, next) => {
 });
 
 export type TrashedEntity = {
-  type: "farmer" | "aggregator" | "offtaker" | "event";
+  type: "farmer" | "aggregator" | "offtaker" | "event" | "user";
   id: string;
   name: string;
   deleted_at: string;
@@ -39,6 +39,9 @@ trashRoutes.get("/", async (c) => {
     UNION ALL
     SELECT 'event' AS type, id, title AS name, deleted_at 
     FROM events WHERE deleted_at IS NOT NULL
+    UNION ALL
+    SELECT 'user' AS type, id, full_name AS name, deleted_at 
+    FROM users WHERE deleted_at IS NOT NULL
   `;
 
   const countResult = await query(`
@@ -76,6 +79,7 @@ trashRoutes.post("/restore", async (c) => {
   else if (type === "aggregator") tableName = "aggregators";
   else if (type === "offtaker") tableName = "offtakers";
   else if (type === "event") tableName = "events";
+  else if (type === "user") tableName = "users";
   else return c.json({ error: "Invalid type" }, 400);
 
   const result = await query(`UPDATE ${tableName} SET deleted_at = NULL WHERE id = $1 RETURNING id`, [id]);
@@ -100,6 +104,7 @@ trashRoutes.delete("/permanent", async (c) => {
   else if (type === "aggregator") tableName = "aggregators";
   else if (type === "offtaker") tableName = "offtakers";
   else if (type === "event") tableName = "events";
+  else if (type === "user") tableName = "users";
   else return c.json({ error: "Invalid type" }, 400);
 
   const result = await query(`DELETE FROM ${tableName} WHERE id = $1 AND deleted_at IS NOT NULL RETURNING id`, [id]);
@@ -117,6 +122,7 @@ trashRoutes.delete("/empty", async (c) => {
   await query("DELETE FROM aggregators WHERE deleted_at IS NOT NULL");
   await query("DELETE FROM offtakers WHERE deleted_at IS NOT NULL");
   await query("DELETE FROM events WHERE deleted_at IS NOT NULL");
+  await query("DELETE FROM users WHERE deleted_at IS NOT NULL");
   
   // Note: event_attendees have ON DELETE CASCADE to events, but what if they were soft-deleted individually?
   // We can just permanently delete soft-deleted attendees too.

@@ -1,11 +1,15 @@
 import { FormEvent, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { SKIP_AUTH } from "../auth";
 import { AppLogo } from "../components/layout/AppLogo";
+import { PasswordField } from "../components/fields/PasswordField";
 import { apiFetch } from "../lib/api-client";
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const sessionExpired = searchParams.get("expired") === "1";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -46,7 +50,29 @@ export function LoginPage() {
       <div className="card">
         <AppLogo as="h2" />
         <p className="muted">Sign in to your account</p>
+
+        {sessionExpired && (
+          <div
+            style={{
+              background: "var(--color-warning-bg, #fef9ec)",
+              border: "1px solid var(--color-warning, #f59e0b)",
+              borderRadius: "var(--radius)",
+              padding: "0.75rem 1rem",
+              marginBottom: "1rem",
+              display: "flex",
+              gap: "0.5rem",
+              alignItems: "flex-start",
+            }}
+          >
+            <span style={{ fontSize: "1rem", lineHeight: 1.4 }}>⏱️</span>
+            <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-warning-text, #92400e)", lineHeight: 1.5 }}>
+              <strong>Your session has expired.</strong> Please sign in again to continue.
+            </p>
+          </div>
+        )}
+
         {error && <p className="error">{error}</p>}
+
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="email">Email</label>
@@ -61,9 +87,8 @@ export function LoginPage() {
           </div>
           <div className="form-group">
             <label htmlFor="password">Password</label>
-            <input
+            <PasswordField
               id="password"
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"

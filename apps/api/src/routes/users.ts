@@ -5,6 +5,7 @@ import { canManageUsers } from "../lib/access.js";
 import { query } from "../db.js";
 import * as argon2 from "argon2";
 import crypto from "crypto";
+import { sendInviteEmail } from "../lib/email.js";
 
 export const userRoutes = new Hono();
 
@@ -28,11 +29,11 @@ userRoutes.get("/", async (c) => {
   
   const offset = (page - 1) * limit;
   
-  let filterSql = "";
+  let filterSql = "WHERE u.deleted_at IS NULL";
   const params: any[] = [];
   
   if (search) {
-    filterSql = `WHERE u.full_name ILIKE $1 OR u.email ILIKE $1 OR o.name ILIKE $1`;
+    filterSql += ` AND (u.full_name ILIKE $1 OR u.email ILIKE $1 OR o.name ILIKE $1)`;
     params.push(`%${search}%`);
   }
 
@@ -85,6 +86,10 @@ userRoutes.post("/", async (c) => {
   const data = parsed.data;
   const role = data.role;
 
+  if (!data.email.toLowerCase().endsWith("@jniagri.ag")) {
+    return c.json({ error: "Only @jniagri.ag email addresses can be registered." }, 400);
+  }
+
   if (role !== "admin" && !data.office_id) {
     return c.json({ error: "Agents and team leads require an office" }, 400);
   }
@@ -124,6 +129,9 @@ userRoutes.post("/", async (c) => {
 
     const webBase = process.env.WEB_ORIGIN?.split(",")[0]?.trim() ?? "http://localhost:5173";
     const inviteLink = `${webBase}/set-password?token=${token}`;
+
+    // Send the invite email — fire-and-forget so a mail failure never breaks the API response
+    void sendInviteEmail(user.email, user.full_name, inviteLink);
 
     return c.json({ user, invite_link: inviteLink }, 201);
   } catch (error) {
@@ -207,4 +215,75 @@ userRoutes.get("/offices", async (c) => {
     `SELECT id, name, region FROM offices ORDER BY CASE WHEN name = 'Head Office' THEN 1 ELSE 2 END, region`
   );
   return c.json({ offices: result.rows });
+});
+
+userRoutes.post("/:id/reset-password", async (c) => {
+  const actorResult = requireActor(c);
+  if (actorResult instanceof Response) return actorResult;
+  const actor = actorResult;
+
+  if (!canManageUsers(actor)) {
+    return c.json({ error: "Only admins can manage users" }, 403);
+  }
+
+  const userId = c.req.param("id");
+
+  const existing = await query("SELECT email, full_name FROM users WHERE id = $1", [userId]);
+  if (!existing.rowCount) {
+    return c.json({ error: "User not found" }, 404);
+  }
+
+  const user = existing.rows[0];
+  const token = generateToken();
+
+  await query(
+    `INSERT INTO password_reset_tokens (user_id, token, expires_at)
+     VALUES ($1, $2, now() + interval '72 hours')`,
+    [userId, token]
+  );
+
+  const webBase = process.env.WEB_ORIGIN?.split(",")[0]?.trim() ?? "http://localhost:5173";
+  const inviteLink = `${webBase}/set-password?token=${token}`;
+
+  void sendInviteEmail(user.email, user.full_name, inviteLink);
+
+  await query(
+    `INSERT INTO audit_log (actor_id, action, entity_type, entity_id, changes)
+     VALUES ($1, 'password_reset_issued', 'user', $2, $3)`,
+    [actor.id, userId, JSON.stringify({ issued: true })]
+  );
+
+  return c.json({ invite_link: inviteLink });
+});
+
+userRoutes.delete("/:id", async (c) => {
+  const actorResult = requireActor(c);
+  if (actorResult instanceof Response) return actorResult;
+  const actor = actorResult;
+
+  if (!canManageUsers(actor)) {
+    return c.json({ error: "Only admins can manage users" }, 403);
+  }
+
+  const userId = c.req.param("id");
+  if (userId === actor.id) {
+    return c.json({ error: "You cannot delete yourself" }, 400);
+  }
+
+  const result = await query(
+    `UPDATE users SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL RETURNING id`,
+    [userId]
+  );
+
+  if (result.rowCount === 0) {
+    return c.json({ error: "User not found or already deleted" }, 404);
+  }
+
+  await query(
+    `INSERT INTO audit_log (actor_id, action, entity_type, entity_id, changes)
+     VALUES ($1, 'delete', 'user', $2, $3)`,
+    [actor.id, userId, JSON.stringify({ deleted: true })]
+  );
+
+  return c.json({ ok: true });
 });

@@ -30,7 +30,8 @@ CREATE TABLE users (
   office_id     UUID REFERENCES offices(id),
   is_active     BOOLEAN NOT NULL DEFAULT true,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at    TIMESTAMPTZ DEFAULT NULL
 );
 
 CREATE INDEX idx_users_office ON users(office_id);

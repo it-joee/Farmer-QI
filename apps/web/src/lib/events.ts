@@ -72,6 +72,19 @@ export async function updateEvent(
   return data.event;
 }
 
+export async function deleteEvent(eventId: string, deletedBy: string, permanent: boolean = false): Promise<void> {
+  const url = permanent ? `/api/events/${eventId}?permanent=true` : `/api/events/${eventId}`;
+  const res = await apiFetch(url, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ deleted_by: deletedBy }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error ?? "Failed to delete event");
+  }
+}
+
 export async function addEventAttendee(
   eventId: string,
   payload: CreateEventAttendeeRequest,

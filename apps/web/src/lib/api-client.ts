@@ -1,8 +1,17 @@
-import { getCurrentUser } from "../auth";
+import { clearSession, getCurrentUser, SKIP_AUTH } from "../auth";
 import { apiUrl } from "./api-url";
+
+export const SESSION_EXPIRED_EVENT = "farmeriq:session-expired";
 
 async function assertApiResponse(res: Response): Promise<Response> {
   if (res.ok) return res;
+
+  // Token expired or invalid — clear session and signal the app to redirect
+  if (res.status === 401 && !SKIP_AUTH) {
+    clearSession();
+    window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    return res;
+  }
 
   const contentType = res.headers.get("content-type") ?? "";
   if (contentType.includes("text/html")) {

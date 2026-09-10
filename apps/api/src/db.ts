@@ -40,3 +40,11 @@ export async function query<T extends pg.QueryResultRow>(
 ): Promise<pg.QueryResult<T>> {
   return pool.query<T>(text, params);
 }
+
+// Gracefully close pool on exit to prevent connection leaks during hot-reloads
+function cleanup() {
+  pool.end().catch(() => {});
+}
+
+process.on('SIGINT', cleanup);
+process.on('SIGTERM', cleanup);

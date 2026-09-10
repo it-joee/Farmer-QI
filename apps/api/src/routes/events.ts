@@ -344,6 +344,8 @@ eventRoutes.delete("/:id", async (c) => {
     return c.json({ error: "Event not found" }, 404);
   }
 
+  const permanent = c.req.query("permanent") === "true";
+
   const body = await c.req.json().catch(() => ({}));
   const deletedBy = SKIP_AUTH ? actorResult.id : (body as { deleted_by?: string }).deleted_by;
 
@@ -351,13 +353,21 @@ eventRoutes.delete("/:id", async (c) => {
     return c.json({ error: "Authentication required" }, 401);
   }
 
-  await query("UPDATE events SET deleted_at = now() WHERE id = $1 RETURNING id", [id]);
-
-  await query(
-    `INSERT INTO audit_log (actor_id, action, entity_type, entity_id, changes)
-     VALUES ($1, 'delete', 'event', $2, $3)`,
-    [deletedBy, id, JSON.stringify({ id })]
-  );
+  if (permanent) {
+    await query("DELETE FROM events WHERE id = $1 RETURNING id", [id]);
+    await query(
+      `INSERT INTO audit_log (actor_id, action, entity_type, entity_id, changes)
+       VALUES ($1, 'hard_delete', 'event', $2, $3)`,
+      [deletedBy, id, JSON.stringify({ id })]
+    );
+  } else {
+    await query("UPDATE events SET deleted_at = now() WHERE id = $1 RETURNING id", [id]);
+    await query(
+      `INSERT INTO audit_log (actor_id, action, entity_type, entity_id, changes)
+       VALUES ($1, 'delete', 'event', $2, $3)`,
+      [deletedBy, id, JSON.stringify({ id })]
+    );
+  }
 
   return c.json({ ok: true });
 });

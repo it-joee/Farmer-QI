@@ -244,7 +244,7 @@ export function OfftakersPage() {
                     key={record.localId}
                     name={name}
                     deliveryLocation={record.form.delivery_location}
-                    companyName={record.form.company_name}
+                    contactPerson={record.form.contact_person}
                     contact={record.form.contact || null}
                     status={status}
                     onOpen={() => navigate(`/offtakers/pending/${record.localId}`)}
@@ -336,7 +336,7 @@ export function OfftakersPage() {
                     key={a.id}
                     name={name}
                     deliveryLocation={a.delivery_location || "—"}
-                    companyName={a.company_name}
+                    contactPerson={a.contact_person}
                     contact={a.contact}
                     status="synced"
                     onOpen={() => navigate(`/offtakers/${a.id}`)}

@@ -2,10 +2,22 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { User } from "@farmeriq/shared";
 import { getCurrentUser, SKIP_AUTH, USER_CHANGED_EVENT } from "../auth";
-import { apiFetch } from "../lib/api-client";
+import { apiFetch, SESSION_EXPIRED_EVENT } from "../lib/api-client";
 
 export function useAuthUser(): User | null {
   const [user, setUser] = useState<User | null>(() => getCurrentUser());
+  const navigate = useNavigate();
+
+  // Redirect to login with an expired flag whenever any API call gets a 401
+  useEffect(() => {
+    function handleExpired() {
+      setUser(null);
+      navigate("/login?expired=1", { replace: true });
+    }
+
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleExpired);
+  }, [navigate]);
 
   useEffect(() => {
     function refresh() {
@@ -20,9 +32,10 @@ export function useAuthUser(): User | null {
       apiFetch("/api/auth/me")
         .then((res) => {
           if (res.ok) return res.json();
-          throw new Error("Failed to fetch current user");
+          // 401 is handled globally by SESSION_EXPIRED_EVENT — skip here
+          return null;
         })
-        .then((data: { user: User }) => {
+        .then((data: { user: User } | null) => {
           if (data?.user) {
             const currentRaw = localStorage.getItem("farmeriq_user");
             const freshJson = JSON.stringify(data.user);

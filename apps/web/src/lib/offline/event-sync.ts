@@ -450,4 +450,4 @@ export async function syncPendingServerAttendees(createdBy: string): Promise<Syn
   return { synced, failed };
 }
 
-export { getPendingEvent, listPendingEvents } from "./store";
+export { getPendingEvent, listPendingEvents, removePendingEvent } from "./store";

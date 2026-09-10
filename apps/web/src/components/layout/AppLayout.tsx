@@ -5,9 +5,7 @@ import { OfflineSyncProvider, useOfflineSyncContext } from "../../context/Offlin
 import { ConfirmDialogProvider } from "../../context/ConfirmDialogContext";
 import { ToastProvider } from "../../context/ToastContext";
 import { SyncStatusBanner } from "../SyncStatusBanner";
-import { AppLogo } from "./AppLogo";
 import { AppNav } from "./AppNav";
-import { UserProfileMenu } from "./UserProfileMenu";
 import { AppHeader } from "./AppHeader";
 import { AppSidebar } from "./AppSidebar";
 
@@ -55,7 +53,7 @@ function AppLayoutShell({
         />
         <AppHeader user={user} onLogout={onLogout} />
         <Outlet />
-        <AppNav user={user} variant="bottom" />
+        <AppNav user={user} variant="bottom" onLogout={onLogout} />
       </div>
     </div>
   );

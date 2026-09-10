@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { FarmerActionsMenu, type FarmerActionItem } from "./FarmerActionsMenu";
 
 function initialsFromName(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -13,7 +13,8 @@ interface UserListMobileCardProps {
   roleLabel: string;
   officeName: string | null;
   isActive: boolean;
-  actions: ReactNode;
+  menuItems: FarmerActionItem[];
+  onOpen?: () => void;
 }
 
 export function UserListMobileCard({
@@ -22,11 +23,16 @@ export function UserListMobileCard({
   roleLabel,
   officeName,
   isActive,
-  actions,
+  menuItems,
+  onOpen,
 }: UserListMobileCardProps) {
   return (
-    <article className="farmer-list-card farmer-list-card--static">
-      <div className="farmer-list-card__main farmer-list-card__main--static">
+    <article className="farmer-list-card">
+      <button
+        type="button"
+        className="farmer-list-card__main"
+        onClick={onOpen}
+      >
         <div className="farmer-profile-avatar farmer-profile-avatar--list">
           <span className="farmer-profile-avatar__initials" aria-hidden="true">
             {initialsFromName(name)}
@@ -40,12 +46,18 @@ export function UserListMobileCard({
             {officeName ? ` · ${officeName}` : ""}
           </p>
         </div>
-      </div>
-      <div className="farmer-list-card__aside">
+      </button>
+      <div
+        className="farmer-list-card__aside"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+      >
         <span className={`sync-badge ${isActive ? "sync-badge--synced" : "sync-badge--failed"}`}>
           {isActive ? "Active" : "Inactive"}
         </span>
-        <div className="farmer-list-card__menu">{actions}</div>
+        <div className="farmer-list-card__menu">
+          <FarmerActionsMenu label={`Actions for ${name}`} items={menuItems} />
+        </div>
       </div>
     </article>
   );

@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BackButton } from "../components/BackButton";
+import { PasswordField } from "../components/fields/PasswordField";
 import { useRequireAuth } from "../hooks/useFarmers";
 import { apiFetch } from "../lib/api-client";
 
@@ -68,9 +69,8 @@ export function ChangePasswordPage() {
 
             <div className="form-group">
               <label htmlFor="cp-current">Current password</label>
-              <input
+              <PasswordField
                 id="cp-current"
-                type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 required
@@ -79,9 +79,8 @@ export function ChangePasswordPage() {
 
             <div className="form-group">
               <label htmlFor="cp-new">New password</label>
-              <input
+              <PasswordField
                 id="cp-new"
-                type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Min. 8 characters"
@@ -92,9 +91,8 @@ export function ChangePasswordPage() {
 
             <div className="form-group">
               <label htmlFor="cp-confirm">Confirm new password</label>
-              <input
+              <PasswordField
                 id="cp-confirm"
-                type="password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 required

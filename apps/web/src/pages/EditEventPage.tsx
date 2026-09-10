@@ -12,14 +12,15 @@ import {
 import { getCurrentUser } from "../auth";
 import { useOfflineSyncContext } from "../context/OfflineSyncContext";
 import { useToast } from "../context/ToastContext";
+import { useConfirmDialog } from "../context/ConfirmDialogContext";
 import { useRequireAuth } from "../hooks/useFarmers";
 import {
   applyFieldValidation,
   clearFieldError,
   type FieldErrors,
 } from "../lib/form-validation";
-import { fetchEvent, isEventUpcoming, updateEvent } from "../lib/events";
-import { getPendingEvent, updatePendingEventDetails } from "../lib/offline/event-sync";
+import { fetchEvent, isEventUpcoming, updateEvent, deleteEvent } from "../lib/events";
+import { getPendingEvent, updatePendingEventDetails, removePendingEvent } from "../lib/offline/event-sync";
 
 const EVENT_FIELD_IDS: Record<keyof EventFormValues, string> = {
   title: "event-title",
@@ -39,12 +40,14 @@ export function EditEventPage() {
   const navigate = useNavigate();
   const { refreshPending } = useOfflineSyncContext();
   const { showSuccess } = useToast();
+  const { confirm } = useConfirmDialog();
   const [values, setValues] = useState<EventFormValues | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const loadEvent = useCallback(async () => {
     setLoading(true);
@@ -135,6 +138,47 @@ export function EditEventPage() {
     }
   }
 
+  async function handleDelete(permanent: boolean = false) {
+    const actor = getCurrentUser();
+    if (!actor) return;
+
+    const isConfirmed = await confirm({
+      title: permanent ? "Permanent Delete" : "Delete Event",
+      message: permanent 
+        ? "Are you sure you want to permanently delete this event and all its attendees? This action cannot be undone."
+        : "Are you sure you want to delete this event? It will be moved to the trash.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      variant: "danger",
+    });
+
+    if (!isConfirmed) return;
+
+    setDeleting(true);
+    setFormError("");
+
+    try {
+      if (isPendingEvent && pendingLocalId) {
+        await removePendingEvent(pendingLocalId);
+        void refreshPending();
+        showSuccess("Event Deleted", "Pending event was removed successfully.");
+        navigate("/events", { replace: true });
+        return;
+      }
+
+      if (id) {
+        await deleteEvent(id, actor.id, permanent);
+        void refreshPending();
+        showSuccess(permanent ? "Event Deleted Permanently" : "Event Deleted", "Event was deleted successfully.");
+        navigate("/events", { replace: true });
+      }
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Could not delete event. Try again.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <main className="main main--wide">
       <BackButton
@@ -154,9 +198,28 @@ export function EditEventPage() {
 
         <EventFormFields values={values} errors={fieldErrors} onChange={handleChange} />
 
-        <div className="form-actions">
-          <span />
-          <button type="submit" className="btn btn-primary" disabled={saving}>
+        <div className="form-actions" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "2rem", flexWrap: "wrap", gap: "1rem" }}>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ color: "var(--color-danger, #ef4444)", borderColor: "var(--color-danger, #ef4444)" }}
+              disabled={saving || deleting}
+              onClick={() => handleDelete(false)}
+            >
+              {deleting ? "Deleting…" : "Delete event"}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ color: "var(--color-danger, #ef4444)", borderColor: "var(--color-danger, #ef4444)" }}
+              disabled={saving || deleting}
+              onClick={() => handleDelete(true)}
+            >
+              Permanent delete
+            </button>
+          </div>
+          <button type="submit" className="btn btn-primary" disabled={saving || deleting}>
             {saving ? "Saving…" : "Save changes"}
           </button>
         </div>
