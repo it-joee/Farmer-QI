@@ -15,17 +15,25 @@ function resolveDatabaseUrl(): string | undefined {
 
 const connectionString = resolveDatabaseUrl();
 
+// IMPORTANT: For Vercel serverless, DATABASE_URL should point to Supabase's
+// Transaction Mode pooler (port 6543, not 5432). This avoids EMAXCONNSESSION
+// errors because transaction mode does not hold connections between queries.
+// In Supabase dashboard: Project Settings → Database → Connection Pooling →
+// set Mode to "Transaction" and copy the pooler connection string.
 export const pool = new Pool({
   connectionString,
   ssl: connectionString?.includes("supabase.com")
     ? { rejectUnauthorized: false }
     : undefined,
-  // Evict idle connections after 30s so stale clients from a Supabase
-  // pause/resume cycle don't block queries indefinitely.
-  idleTimeoutMillis: 30_000,
-  // Fail fast if the DB is still waking up, so callers get a clear error.
+  // Serverless: keep the per-instance pool tiny. Each Vercel function only
+  // needs 1–2 connections. A large pool * many concurrent invocations = pool
+  // exhaustion on Supabase's session-mode limit (EMAXCONNSESSION).
+  max: 2,
+  // Release idle connections quickly so Supabase doesn't hold slots open
+  // across concurrent serverless invocations.
+  idleTimeoutMillis: 10_000,
+  // Fail fast if the DB is unreachable.
   connectionTimeoutMillis: 10_000,
-  max: 5,
 });
 
 // Prevent unhandled 'error' events from crashing the process when
