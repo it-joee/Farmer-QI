@@ -147,7 +147,7 @@ export function FarmersPage() {
           </p>
         </div>
         {canRegisterFarmers(user) && (
-          <Link to="/farmers/new" className="btn btn-primary">
+          <Link to="/farmers/new" className="btn btn-primary" style={{ display: "none" }}>
             + Register Farmer
           </Link>
         )}

@@ -28,7 +28,7 @@ export function EventsPage() {
           </p>
         </div>
         {canRegisterFarmers(user) && (
-          <Link to="/events/new" className="btn btn-primary">
+          <Link to="/events/new" className="btn btn-primary" style={{ display: "none" }}>
             + New event
           </Link>
         )}

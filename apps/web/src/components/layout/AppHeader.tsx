@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import type { User, UserRole } from "@farmeriq/shared";
 import { AppLogo } from "./AppLogo";
+import { NavIcon, type NavIconKey } from "./NavIcons";
 
 const ROLE_LABELS: Record<UserRole, string> = {
   agent: "Field Agent",
@@ -15,18 +16,30 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ user }: AppHeaderProps) {
-  const navigate = useNavigate();
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
+  const mobileNotifRef = useRef<HTMLDivElement>(null);
   const addRef = useRef<HTMLDivElement>(null);
+  const mobileAddRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        notifRef.current &&
+        !notifRef.current.contains(target) &&
+        mobileNotifRef.current &&
+        !mobileNotifRef.current.contains(target)
+      ) {
         setNotificationsOpen(false);
       }
-      if (addRef.current && !addRef.current.contains(e.target as Node)) {
+      if (
+        addRef.current &&
+        !addRef.current.contains(target) &&
+        mobileAddRef.current &&
+        !mobileAddRef.current.contains(target)
+      ) {
         setAddMenuOpen(false);
       }
     }
@@ -46,87 +59,64 @@ export function AppHeader({ user }: AppHeaderProps) {
     };
   }, []);
 
-  const handleNavigate = (path: string) => {
-    setAddMenuOpen(false);
-    navigate(path);
-  };
-
-  const addOptions = [
+  const addOptions: { label: string; desc: string; path: string; icon: NavIconKey }[] = [
     {
       label: "Register Farmer",
       desc: "Add a new farmer record",
       path: "/farmers/new",
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-          <path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-        </svg>
-      ),
+      icon: "farmers",
     },
     {
       label: "Add Aggregator",
       desc: "Register a commodity aggregator",
       path: "/aggregators/new",
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-          <path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z" />
-        </svg>
-      ),
+      icon: "aggregators",
     },
     {
       label: "Add Offtaker",
       desc: "Register a buying offtaker",
       path: "/offtakers/new",
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-          <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
-        </svg>
-      ),
+      icon: "offtakers",
     },
     {
       label: "Create Event",
       desc: "Schedule a field event",
       path: "/events/new",
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-          <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2zm-7 5h5v5h-5z" />
-        </svg>
-      ),
+      icon: "events",
     },
     ...(user.role === "admin"
       ? [
-          {
-            label: "Add User",
-            desc: "Invite an agent or team lead",
-            path: "/users",
-            icon: (
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
-              </svg>
-            ),
-          },
-        ]
+        {
+          label: "Add User",
+          desc: "Invite an agent or team lead",
+          path: "/users",
+          icon: "users" as NavIconKey,
+        },
+      ]
       : []),
   ];
 
   const renderAddDropdown = () => (
     <div className="quick-add-dropdown" role="dialog" aria-label="Add new record">
       <div className="quick-add-header">
-        <span className="quick-add-title">Quick Add</span>
+        <span className="quick-add-title">QUICK ADD</span>
       </div>
       <div className="quick-add-body">
         {addOptions.map((opt) => (
-          <button
+          <Link
             key={opt.path}
-            type="button"
+            to={opt.path}
             className="quick-add-item"
-            onClick={() => handleNavigate(opt.path)}
+            onClick={() => setAddMenuOpen(false)}
           >
-            <div className="quick-add-item__icon">{opt.icon}</div>
+            <div className="quick-add-item__icon">
+              <NavIcon name={opt.icon} />
+            </div>
             <div className="quick-add-item__content">
               <span className="quick-add-item__label">{opt.label}</span>
               <span className="quick-add-item__desc">{opt.desc}</span>
             </div>
-          </button>
+          </Link>
         ))}
       </div>
     </div>
@@ -142,7 +132,7 @@ export function AppHeader({ user }: AppHeaderProps) {
 
         <div className="mobile-topbar__end">
           {/* Quick Add Button */}
-          <div className="quick-add-wrap" ref={addRef}>
+          <div className="quick-add-wrap" ref={mobileAddRef}>
             <button
               type="button"
               className={`quick-add-btn${addMenuOpen ? " quick-add-btn--active" : ""}`}
@@ -171,7 +161,7 @@ export function AppHeader({ user }: AppHeaderProps) {
           </div>
 
           {/* Notification */}
-          <div className="mobile-topbar__notif-wrap" ref={notifRef}>
+          <div className="mobile-topbar__notif-wrap" ref={mobileNotifRef}>
             <button
               type="button"
               className={`mobile-topbar__notif-btn${notificationsOpen ? " mobile-topbar__notif-btn--active" : ""}`}

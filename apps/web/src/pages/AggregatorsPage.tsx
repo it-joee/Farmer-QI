@@ -124,7 +124,7 @@ export function AggregatorsPage() {
           </p>
         </div>
         {canRegisterAggregators(user) && (
-          <Link to="/aggregators/new" className="btn btn-primary">
+          <Link to="/aggregators/new" className="btn btn-primary" style={{ display: "none" }}>
             + Register Aggregator
           </Link>
         )}

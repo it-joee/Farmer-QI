@@ -1,7 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { COMMODITIES } from "@farmeriq/shared";
-import { canRegisterFarmers } from "../auth";
 import { CropChart } from "../components/dashboard/CropChart";
 import { DistrictChart } from "../components/dashboard/DistrictChart";
 import { KpiCards } from "../components/dashboard/KpiCards";
@@ -53,11 +51,6 @@ export function DashboardPage() {
             Registry insights for your field office
           </p>
         </div>
-        {user && canRegisterFarmers(user) && (
-          <Link to="/farmers/new" className="btn btn-primary">
-            + Register Farmer
-          </Link>
-        )}
       </div>
 
       <KpiCards

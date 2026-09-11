@@ -124,7 +124,7 @@ export function OfftakersPage() {
           </p>
         </div>
         {canRegisterOfftakers(user) && (
-          <Link to="/offtakers/new" className="btn btn-primary">
+          <Link to="/offtakers/new" className="btn btn-primary" style={{ display: "none" }}>
             + Register Offtaker
           </Link>
         )}
