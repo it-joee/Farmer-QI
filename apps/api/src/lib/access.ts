@@ -26,11 +26,7 @@ export interface ScopeClause {
   nextIndex: number;
 }
 
-export function farmerScopeClause(actor: Actor, _alias = "f", startIndex = 1): ScopeClause {
-  if (actor.role === "team_lead" && !actor.office_id) {
-    return { sql: "1=0", params: [], nextIndex: startIndex };
-  }
-  // admin, team_lead (with office), and agents all see all records
+export function farmerScopeClause(_actor: Actor, _alias = "f", startIndex = 1): ScopeClause {
   return { sql: "1=1", params: [], nextIndex: startIndex };
 }
 
@@ -38,18 +34,10 @@ export function offtakerScopeClause(user: Actor, tableAlias = "o", actorParamInd
   return aggregatorScopeClause(user, tableAlias, actorParamIndex);
 }
 
-export function aggregatorScopeClause(actor: Actor, _alias = "a", startIndex = 1): ScopeClause {
-  if (actor.role === "team_lead" && !actor.office_id) {
-    return { sql: "1=0", params: [], nextIndex: startIndex };
-  }
-  // admin, team_lead (with office), and agents all see all records
+export function aggregatorScopeClause(_actor: Actor, _alias = "a", startIndex = 1): ScopeClause {
   return { sql: "1=1", params: [], nextIndex: startIndex };
 }
 
-export function eventScopeClause(actor: Actor, _alias = "e", startIndex = 1): ScopeClause {
-  if (actor.role === "team_lead" && !actor.office_id) {
-    return { sql: "1=0", params: [], nextIndex: startIndex };
-  }
-  // admin, team_lead (with office), and agents all see all records
+export function eventScopeClause(_actor: Actor, _alias = "e", startIndex = 1): ScopeClause {
   return { sql: "1=1", params: [], nextIndex: startIndex };
 }
