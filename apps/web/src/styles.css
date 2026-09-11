@@ -3806,15 +3806,134 @@ a {
   line-height: 1.4;
 }
 
-/* Desktop tablet width */
-@media (min-width: 820px) and (max-width: 1023px) {
-  .top-header-card__search {
-    width: 220px;
+/* Quick Add Button & Dropdown */
+.quick-add-wrap {
+  position: relative;
+}
+
+.quick-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 42px;
+  padding: 0 1.125rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-primary);
+  background: var(--color-primary);
+  color: #ffffff;
+  font-family: var(--font);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-add-btn:hover,
+.quick-add-btn--active {
+  background: var(--color-primary-hover, #1f2937);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 819px) {
+  .quick-add-btn {
+    height: 38px;
+    padding: 0 0.875rem;
+    font-size: 0.8125rem;
   }
 }
 
+.quick-add-dropdown {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  z-index: 1000;
+  width: 260px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  animation: notifDropdownFade 0.15s ease-out;
+}
+
+.quick-add-header {
+  padding: 0.75rem 1rem 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.quick-add-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.quick-add-body {
+  padding: 0.375rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.quick-add-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  color: var(--color-text);
+}
+
+.quick-add-item:hover {
+  background: var(--color-accent-soft);
+}
+
+.quick-add-item__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-accent-strong);
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.quick-add-item:hover .quick-add-item__icon {
+  background: var(--color-accent-strong);
+  color: #ffffff;
+}
+
+.quick-add-item__content {
+  display: flex;
+  flex-direction: column;
+}
+
+.quick-add-item__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+.quick-add-item__desc {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: 0.125rem;
+}
+
 /* ==========================================================================
-   Mobile Topbar — logo left, search + notif right
+   Mobile Topbar — logo left, add + notif right
    ========================================================================== */
 
 /* Hidden on desktop */
