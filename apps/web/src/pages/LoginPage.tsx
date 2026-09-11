@@ -13,6 +13,7 @@ export function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (SKIP_AUTH) {
@@ -22,25 +23,32 @@ export function LoginPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (loading) return;
+
     setError("");
+    setLoading(true);
 
-    const res = await apiFetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const res = await apiFetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Invalid credentials");
-      return;
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "Invalid credentials");
+        return;
+      }
+
+      const data = await res.json();
+      localStorage.setItem("farmeriq_user", JSON.stringify(data.user));
+      localStorage.setItem("farmeriq_token", data.token);
+      window.dispatchEvent(new Event("farmeriq:user-changed"));
+      navigate("/");
+    } finally {
+      setLoading(false);
     }
-
-    const data = await res.json();
-    localStorage.setItem("farmeriq_user", JSON.stringify(data.user));
-    localStorage.setItem("farmeriq_token", data.token);
-    window.dispatchEvent(new Event("farmeriq:user-changed"));
-    navigate("/");
   }
 
   if (SKIP_AUTH) return null;
@@ -96,8 +104,8 @@ export function LoginPage() {
               minLength={4}
             />
           </div>
-          <button type="submit" className="btn btn-primary" style={{ width: "100%" }}>
-            Sign in
+          <button type="submit" className="btn btn-primary" style={{ width: "100%" }} disabled={loading}>
+            {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
       </div>
