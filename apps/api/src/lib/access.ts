@@ -26,75 +26,30 @@ export interface ScopeClause {
   nextIndex: number;
 }
 
-export function farmerScopeClause(actor: Actor, alias = "f", startIndex = 1): ScopeClause {
-  if (actor.role === "admin") {
-    return { sql: "1=1", params: [], nextIndex: startIndex };
+export function farmerScopeClause(actor: Actor, _alias = "f", startIndex = 1): ScopeClause {
+  if (actor.role === "team_lead" && !actor.office_id) {
+    return { sql: "1=0", params: [], nextIndex: startIndex };
   }
-
-  if (actor.role === "team_lead") {
-    if (!actor.office_id) {
-      return { sql: "1=0", params: [], nextIndex: startIndex };
-    }
-    return {
-      sql: `${alias}.office_id = $${startIndex}`,
-      params: [actor.office_id],
-      nextIndex: startIndex + 1,
-    };
-  }
-
-  return {
-    sql: `${alias}.created_by = $${startIndex}`,
-    params: [actor.id],
-    nextIndex: startIndex + 1,
-  };
+  // admin, team_lead (with office), and agents all see all records
+  return { sql: "1=1", params: [], nextIndex: startIndex };
 }
 
 export function offtakerScopeClause(user: Actor, tableAlias = "o", actorParamIndex = 1) {
   return aggregatorScopeClause(user, tableAlias, actorParamIndex);
 }
 
-export function aggregatorScopeClause(actor: Actor, alias = "a", startIndex = 1): ScopeClause {
-  if (actor.role === "admin") {
-    return { sql: "1=1", params: [], nextIndex: startIndex };
+export function aggregatorScopeClause(actor: Actor, _alias = "a", startIndex = 1): ScopeClause {
+  if (actor.role === "team_lead" && !actor.office_id) {
+    return { sql: "1=0", params: [], nextIndex: startIndex };
   }
-
-  if (actor.role === "team_lead") {
-    if (!actor.office_id) {
-      return { sql: "1=0", params: [], nextIndex: startIndex };
-    }
-    return {
-      sql: `${alias}.office_id = $${startIndex}`,
-      params: [actor.office_id],
-      nextIndex: startIndex + 1,
-    };
-  }
-
-  return {
-    sql: `${alias}.created_by = $${startIndex}`,
-    params: [actor.id],
-    nextIndex: startIndex + 1,
-  };
+  // admin, team_lead (with office), and agents all see all records
+  return { sql: "1=1", params: [], nextIndex: startIndex };
 }
 
-export function eventScopeClause(actor: Actor, alias = "e", startIndex = 1): ScopeClause {
-  if (actor.role === "admin") {
-    return { sql: "1=1", params: [], nextIndex: startIndex };
+export function eventScopeClause(actor: Actor, _alias = "e", startIndex = 1): ScopeClause {
+  if (actor.role === "team_lead" && !actor.office_id) {
+    return { sql: "1=0", params: [], nextIndex: startIndex };
   }
-
-  if (actor.role === "team_lead") {
-    if (!actor.office_id) {
-      return { sql: "1=0", params: [], nextIndex: startIndex };
-    }
-    return {
-      sql: `${alias}.office_id = $${startIndex}`,
-      params: [actor.office_id],
-      nextIndex: startIndex + 1,
-    };
-  }
-
-  return {
-    sql: `${alias}.created_by = $${startIndex}`,
-    params: [actor.id],
-    nextIndex: startIndex + 1,
-  };
+  // admin, team_lead (with office), and agents all see all records
+  return { sql: "1=1", params: [], nextIndex: startIndex };
 }
