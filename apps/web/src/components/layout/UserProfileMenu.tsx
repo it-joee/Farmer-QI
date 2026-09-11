@@ -120,9 +120,8 @@ export function UserProfileMenu({ user, onLogout }: UserProfileMenuProps) {
                 navigate("/change-password");
               }}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M21 2l-2 2m-1.5 1.5L14 9l-1.5-1.5L11 9l-1.5-1.5L8 9" />
-                <circle cx="7.5" cy="15.5" r="5.5" />
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path fillRule="evenodd" clipRule="evenodd" d="M22 4H2v1.5h20V4Zm0 14.5H2V20h20v-1.5ZM5 12.865l-1.415.82-.5-.87L4.5 12l-1.415-.815.5-.87 1.415.82V9.5h1v1.635l1.415-.82.5.87L6.5 12l1.415.815-.5.87L6 12.865V14.5H5v-1.635Zm5.085.82 1.415-.82V14.5h1v-1.635l1.415.82.5-.87L13 12l1.415-.815-.5-.87-1.415.82V9.5h-1v1.635l-1.415-.82-.5.87L11 12l-1.415.815.5.87Zm7.915-.82-1.415.82-.5-.87L17.5 12l-1.415-.815.5-.87 1.415.82V9.5h1v1.635l1.415-.82.5.87L19.5 12l1.415.815-.5.87-1.415-.82V14.5h-1v-1.635Z" />
               </svg>
               Change password
             </button>
