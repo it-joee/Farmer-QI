@@ -1,6 +1,6 @@
 import type { User } from "@farmeriq/shared";
 import { NavLink } from "react-router-dom";
-import { canManageUsers } from "../../auth";
+import { canAccessOfftakers, canAccessReports, canManageUsers } from "../../auth";
 import { NavIcon, type NavIconKey } from "./NavIcons";
 import { AppLogo } from "./AppLogo";
 import { UserProfileMenu } from "./UserProfileMenu";
@@ -10,12 +10,16 @@ export function AppSidebar({ user, onLogout }: { user: User; onLogout: () => voi
     { to: "/", label: "Overview", icon: "overview" as NavIconKey },
     { to: "/farmers", label: "Farmers", icon: "farmers" as NavIconKey },
     { to: "/aggregators", label: "Aggregators", icon: "aggregators" as NavIconKey },
-    { to: "/offtakers", label: "Offtakers", icon: "offtakers" as NavIconKey },
+    ...(canAccessOfftakers(user)
+      ? [{ to: "/offtakers", label: "Offtakers", icon: "offtakers" as NavIconKey }]
+      : []),
   ];
 
   const activitiesItems = [
     { to: "/events", label: "Events", icon: "events" as NavIconKey },
-    { to: "/reports", label: "Reports", icon: "reports" as NavIconKey },
+    ...(canAccessReports(user)
+      ? [{ to: "/reports", label: "Reports", icon: "reports" as NavIconKey }]
+      : []),
   ];
 
   const adminItems = canManageUsers(user)

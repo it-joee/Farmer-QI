@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import type { User, UserRole } from "@farmeriq/shared";
+import { canAccessOfftakers } from "../../auth";
 import { AppLogo } from "./AppLogo";
 import { NavIcon, type NavIconKey } from "./NavIcons";
 
@@ -72,12 +73,16 @@ export function AppHeader({ user }: AppHeaderProps) {
       path: "/aggregators/new",
       icon: "aggregators",
     },
-    {
-      label: "Add Offtaker",
-      desc: "Register a buying offtaker",
-      path: "/offtakers/new",
-      icon: "offtakers",
-    },
+    ...(canAccessOfftakers(user)
+      ? [
+          {
+            label: "Add Offtaker",
+            desc: "Register a buying offtaker",
+            path: "/offtakers/new",
+            icon: "offtakers" as NavIconKey,
+          },
+        ]
+      : []),
     {
       label: "Create Event",
       desc: "Schedule a field event",

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { COMMODITIES } from "@farmeriq/shared";
+import { canAccessOfftakers } from "../auth";
 import { CropChart } from "../components/dashboard/CropChart";
 import { DistrictChart } from "../components/dashboard/DistrictChart";
 import { KpiCards } from "../components/dashboard/KpiCards";
@@ -59,6 +60,7 @@ export function DashboardPage() {
         totalOfftakers={totalOfftakers}
         totalEvents={totalEvents}
         totalDrivers={totalDrivers}
+        showOfftakers={canAccessOfftakers(user)}
       />
 
       <div className="dashboard-grid dashboard-grid--2">

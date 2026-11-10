@@ -12,8 +12,16 @@ export function canRegisterFarmers(actor: Actor): boolean {
   return actor.role === "agent";
 }
 
+export function canAccessOfftakers(actor: Actor): boolean {
+  return actor.role === "team_lead" || actor.role === "admin";
+}
+
 export function canRegisterOfftakers(actor: Actor): boolean {
-  return actor.role === "agent" || actor.role === "team_lead" || actor.role === "admin";
+  return actor.role === "team_lead" || actor.role === "admin";
+}
+
+export function canAccessReports(actor: Actor): boolean {
+  return actor.role === "team_lead" || actor.role === "admin";
 }
 
 export function canRegisterAggregators(actor: Actor): boolean {

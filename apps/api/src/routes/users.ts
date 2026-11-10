@@ -49,7 +49,7 @@ userRoutes.get("/", async (c) => {
   const paramIndex = params.length + 1;
 
   const result = await query(
-    `SELECT u.id, u.email, u.full_name, u.role, u.office_id, u.is_active, u.created_at,
+    `SELECT u.id, u.email, u.full_name, u.role, u.office_id, u.is_active, u.must_set_password, u.created_at,
             o.name AS office_name, o.region AS office_region
      FROM users u
      LEFT JOIN offices o ON o.id = u.office_id
@@ -94,14 +94,14 @@ userRoutes.post("/", async (c) => {
     return c.json({ error: "Agents and team leads require an office" }, 400);
   }
 
-  // Use a random placeholder hash — the real password is set via the invite link
+  // Use a random placeholder hash — the real password must be set via the invite link before signing in
   const tempHash = await argon2.hash(crypto.randomBytes(32).toString("hex"));
 
   try {
     const result = await query(
       `INSERT INTO users (email, password_hash, full_name, role, office_id, must_set_password)
        VALUES ($1, $2, $3, $4, $5, true)
-       RETURNING id, email, full_name, role, office_id, is_active, created_at`,
+       RETURNING id, email, full_name, role, office_id, is_active, must_set_password, created_at`,
       [
         data.email.toLowerCase(),
         tempHash,
@@ -158,7 +158,7 @@ userRoutes.patch("/:id", async (c) => {
     return c.json({ error: parsed.error.flatten() }, 400);
   }
 
-  const existing = await query("SELECT * FROM users WHERE id = $1", [userId]);
+  const existing = await query("SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL", [userId]);
   if (!existing.rowCount) {
     return c.json({ error: "User not found" }, 404);
   }
@@ -181,7 +181,7 @@ userRoutes.patch("/:id", async (c) => {
       is_active = COALESCE($5, is_active),
       updated_at = now()
      WHERE id = $1
-     RETURNING id, email, full_name, role, office_id, is_active, created_at`,
+     RETURNING id, email, full_name, role, office_id, is_active, must_set_password, created_at`,
     [
       userId,
       data.full_name ?? null,
@@ -228,13 +228,25 @@ userRoutes.post("/:id/reset-password", async (c) => {
 
   const userId = c.req.param("id");
 
-  const existing = await query("SELECT email, full_name FROM users WHERE id = $1", [userId]);
+  const existing = await query("SELECT email, full_name FROM users WHERE id = $1 AND deleted_at IS NULL", [userId]);
   if (!existing.rowCount) {
     return c.json({ error: "User not found" }, 404);
   }
 
   const user = existing.rows[0];
   const token = generateToken();
+  const tempHash = await argon2.hash(crypto.randomBytes(32).toString("hex"));
+
+  // Invalidate any prior unused invite/reset tokens and force password change before next sign-in
+  await query(
+    `UPDATE password_reset_tokens SET used_at = now() WHERE user_id = $1 AND used_at IS NULL`,
+    [userId]
+  );
+
+  await query(
+    `UPDATE users SET password_hash = $1, must_set_password = true, updated_at = now() WHERE id = $2`,
+    [tempHash, userId]
+  );
 
   await query(
     `INSERT INTO password_reset_tokens (user_id, token, expires_at)

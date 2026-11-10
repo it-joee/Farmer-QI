@@ -4,21 +4,25 @@ interface KpiCardsProps {
   totalFarmers: number;
   totalAggregators: number;
   totalEvents: number;
-  totalOfftakers: number;
+  totalOfftakers?: number;
   totalDrivers?: number;
+  showOfftakers?: boolean;
 }
 
 export function KpiCards({
   totalFarmers,
   totalAggregators,
   totalEvents,
-  totalOfftakers,
+  totalOfftakers = 0,
   totalDrivers = 0,
+  showOfftakers = true,
 }: KpiCardsProps) {
   const cards = [
     { label: "Total farmers", value: totalFarmers, to: "/farmers" },
     { label: "Total aggregators", value: totalAggregators, to: "/aggregators" },
-    { label: "Total offtakers", value: totalOfftakers, to: "/offtakers" },
+    ...(showOfftakers
+      ? [{ label: "Total offtakers", value: totalOfftakers, to: "/offtakers" }]
+      : []),
     { label: "Total events", value: totalEvents, to: "/events" },
     { label: "Total drivers", value: totalDrivers, to: "/drivers" },
   ];

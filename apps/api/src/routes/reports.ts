@@ -2,10 +2,19 @@ import { Hono } from "hono";
 import { ReportFiltersSchema } from "@farmeriq/shared";
 import type { Actor } from "../lib/actor.js";
 import { requireActor } from "../lib/actor.js";
-import { farmerScopeClause } from "../lib/access.js";
+import { canAccessReports, farmerScopeClause } from "../lib/access.js";
 import { query } from "../db.js";
 
 export const reportRoutes = new Hono();
+
+reportRoutes.use("*", async (c, next) => {
+  const actorResult = requireActor(c);
+  if (actorResult instanceof Response) return actorResult;
+  if (!canAccessReports(actorResult)) {
+    return c.json({ error: "Forbidden: Field agents do not have access to reports" }, 403);
+  }
+  await next();
+});
 
 type ResolvedFilters = {
   region?: string;

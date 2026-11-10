@@ -8,7 +8,7 @@ import {
 } from "@farmeriq/shared";
 import { SKIP_AUTH } from "../config.js";
 import { requireActor, type Actor } from "../lib/actor.js";
-import { canRegisterOfftakers, offtakerScopeClause } from "../lib/access.js";
+import { canAccessOfftakers, canRegisterOfftakers, offtakerScopeClause } from "../lib/access.js";
 import { recordSubmission } from "../lib/submissions.js";
 import {
   deletePhotoFile,
@@ -18,6 +18,15 @@ import {
 import { query } from "../db.js";
 
 export const offtakerRoutes = new Hono();
+
+offtakerRoutes.use("*", async (c, next) => {
+  const actorResult = requireActor(c);
+  if (actorResult instanceof Response) return actorResult;
+  if (!canAccessOfftakers(actorResult)) {
+    return c.json({ error: "Forbidden: Field agents do not have access to offtakers" }, 403);
+  }
+  await next();
+});
 
 function contentTypeForFileName(fileName: string): string {
   const ext = path.extname(fileName).toLowerCase();

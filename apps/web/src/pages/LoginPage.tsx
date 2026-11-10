@@ -1,6 +1,5 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { SKIP_AUTH } from "../auth";
 import { AppLogo } from "../components/layout/AppLogo";
 import { PasswordField } from "../components/fields/PasswordField";
 import { apiFetch } from "../lib/api-client";
@@ -14,12 +13,6 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (SKIP_AUTH) {
-      navigate("/", { replace: true });
-    }
-  }, [navigate]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -51,8 +44,6 @@ export function LoginPage() {
     }
   }
 
-  if (SKIP_AUTH) return null;
-
   return (
     <div className="login-page">
       <div className="card">
@@ -60,22 +51,8 @@ export function LoginPage() {
         <p className="muted">Sign in to your account</p>
 
         {sessionExpired && (
-          <div
-            style={{
-              background: "var(--color-warning-bg, #fef9ec)",
-              border: "1px solid var(--color-warning, #f59e0b)",
-              borderRadius: "var(--radius)",
-              padding: "0.75rem 1rem",
-              marginBottom: "1rem",
-              display: "flex",
-              gap: "0.5rem",
-              alignItems: "flex-start",
-            }}
-          >
-            <span style={{ fontSize: "1rem", lineHeight: 1.4 }}>⏱️</span>
-            <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-warning-text, #92400e)", lineHeight: 1.5 }}>
-              <strong>Your session has expired.</strong> Please sign in again to continue.
-            </p>
+          <div className="alert--danger" role="alert">
+            <strong>Your session has expired.</strong> Please sign in again to continue.
           </div>
         )}
 

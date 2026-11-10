@@ -21,12 +21,13 @@ authRoutes.get("/me", async (c) => {
     full_name: string;
     role: string;
     office_id: string | null;
-  }>("SELECT id, email, full_name, role, office_id FROM users WHERE id = $1 AND is_active = true", [
-    actor.id,
-  ]);
+  }>(
+    "SELECT id, email, full_name, role, office_id FROM users WHERE id = $1 AND is_active = true AND deleted_at IS NULL AND must_set_password = false",
+    [actor.id]
+  );
 
   if (result.rowCount === 0) {
-    return c.json({ error: "User not found or inactive" }, 404);
+    return c.json({ error: "User not found or inactive" }, 401);
   }
 
   return c.json({ user: result.rows[0] });
@@ -63,9 +64,10 @@ authRoutes.post("/login", async (c) => {
     office_id: string | null;
     password_hash: string;
     must_set_password: boolean;
-  }>("SELECT id, email, full_name, role, office_id, password_hash, must_set_password FROM users WHERE LOWER(email) = $1 AND is_active = true", [
-    cleanEmail,
-  ]);
+  }>(
+    "SELECT id, email, full_name, role, office_id, password_hash, must_set_password FROM users WHERE LOWER(email) = $1 AND is_active = true AND deleted_at IS NULL",
+    [cleanEmail]
+  );
 
   // Use the same error for "no such user" and "wrong password" to avoid leaking
   // whether a particular @jniagri.ag address is registered in the system.
@@ -76,15 +78,18 @@ authRoutes.post("/login", async (c) => {
 
   const user = result.rows[0];
 
+  // Block login if account has not been activated via invite link yet
+  if (user.must_set_password) {
+    return c.json(
+      { error: "You must set your password using the invite link sent to your email before you can log in." },
+      403
+    );
+  }
+
   const validPassword = await argon2.verify(user.password_hash, parsed.data.password);
   if (!validPassword) {
     recordFailedAttempt(cleanEmail);
     return c.json({ error: "Invalid email or password" }, 401);
-  }
-
-  // Block login if account has not been activated via invite link
-  if (user.must_set_password) {
-    return c.json({ error: "You must set your password using the invite link sent to you before you can log in." }, 403);
   }
 
   // Success — reset the failure counter
@@ -161,17 +166,18 @@ authRoutes.post("/set-password", async (c) => {
   );
 
   await query(
-    `UPDATE password_reset_tokens SET used_at = now() WHERE id = $1`,
-    [row.id]
+    `UPDATE password_reset_tokens SET used_at = now() WHERE user_id = $1 AND used_at IS NULL`,
+    [row.user_id]
   );
 
-  // Fetch user's details to send a personalised welcome email
+  // Fetch user's details to send a personalised welcome email and clear any lockout
   const userRow = await query<{ email: string; full_name: string }>(
     `SELECT email, full_name FROM users WHERE id = $1`,
     [row.user_id]
   );
   if (userRow.rowCount) {
     const { email, full_name } = userRow.rows[0];
+    clearFailedAttempts(email.trim().toLowerCase());
     void sendWelcomeEmail(email, full_name);
   }
 
@@ -197,7 +203,7 @@ authRoutes.post("/change-password", async (c) => {
   const { current_password, new_password } = parsed.data;
 
   const result = await query<{ password_hash: string }>(
-    "SELECT password_hash FROM users WHERE id = $1",
+    "SELECT password_hash FROM users WHERE id = $1 AND deleted_at IS NULL",
     [actor.id]
   );
 
@@ -212,7 +218,7 @@ authRoutes.post("/change-password", async (c) => {
 
   const hash = await argon2.hash(new_password);
   await query(
-    `UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2`,
+    `UPDATE users SET password_hash = $1, must_set_password = false, updated_at = now() WHERE id = $2`,
     [hash, actor.id]
   );
 

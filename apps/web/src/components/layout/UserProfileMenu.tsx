@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { User } from "@farmeriq/shared";
 import { useNavigate } from "react-router-dom";
-import { DEMO_USERS, SKIP_AUTH, setDevUser } from "../../auth";
 import { useDropdownPlacement } from "../../hooks/useDropdownPlacement";
 import { ROLE_LABELS } from "./AppNav";
 
@@ -91,25 +90,6 @@ export function UserProfileMenu({ user, onLogout }: UserProfileMenuProps) {
             <span className="user-profile__menu-email muted">{user.email}</span>
             <span className="user-profile__menu-role-badge">{ROLE_LABELS[user.role]}</span>
           </div>
-          {SKIP_AUTH && (
-            <div className="user-profile__dev-switch">
-              <span className="user-profile__dev-label muted">Switch role (dev)</span>
-              {DEMO_USERS.map((demoUser) => (
-                <button
-                  key={demoUser.id}
-                  type="button"
-                  className={`user-profile__dev-option${demoUser.id === user.id ? " user-profile__dev-option--active" : ""}`}
-                  role="menuitem"
-                  onClick={() => {
-                    setDevUser(demoUser.id);
-                    setOpen(false);
-                  }}
-                >
-                  {ROLE_LABELS[demoUser.role]}
-                </button>
-              ))}
-            </div>
-          )}
           <div className="user-profile__menu-actions">
             <button
               type="button"

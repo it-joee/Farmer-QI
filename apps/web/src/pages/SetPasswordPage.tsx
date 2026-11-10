@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { clearSession } from "../auth";
 import { AppLogo } from "../components/layout/AppLogo";
 import { PasswordField } from "../components/fields/PasswordField";
 import { apiFetch } from "../lib/api-client";
@@ -16,6 +17,7 @@ export function SetPasswordPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    clearSession();
     if (!token) {
       setError("Invalid or missing invite link. Please ask your admin for a new one.");
     }

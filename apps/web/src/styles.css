@@ -987,13 +987,31 @@ a {
   justify-content: center;
   min-height: 100vh;
   padding: var(--space-4);
+  background: var(--color-bg, #f7f8f7);
 }
 
 .login-page .card {
   width: 100%;
-  max-width: 400px;
-  border: none;
+  max-width: 420px;
+  background: var(--color-surface, #ffffff);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: var(--radius-lg);
+  padding: 2.25rem 2rem;
+  box-shadow:
+    0 20px 48px -12px rgba(0, 0, 0, 0.12),
+    0 8px 24px -4px rgba(0, 0, 0, 0.06),
+    0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.alert--danger {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  color: #991b1b;
+  font-size: 0.875rem;
+  line-height: 1.5;
 }
 
 .login-page .app-logo {

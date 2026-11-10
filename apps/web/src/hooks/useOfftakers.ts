@@ -24,7 +24,7 @@ export function useOfftakers(page = 1, limit = 20, search = "", commodity = "") 
   const refetch = useCallback(() => setRefreshKey((key) => key + 1), []);
 
   useEffect(() => {
-    if (!user) {
+    if (!user || user.role === "agent") {
       setOfftakers([]);
       setLoading(false);
       return;
@@ -88,7 +88,7 @@ export function useAllOfftakers() {
   const refetch = useCallback(() => setRefreshKey((key) => key + 1), []);
 
   useEffect(() => {
-    if (!user) {
+    if (!user || user.role === "agent") {
       setOfftakers([]);
       setLoading(false);
       return;

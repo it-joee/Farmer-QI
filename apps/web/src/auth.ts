@@ -1,62 +1,24 @@
-import type { User, UserRole } from "@farmeriq/shared";
+import type { User } from "@farmeriq/shared";
 
-/** Set VITE_SKIP_AUTH=true in .env.local to browse the UI without logging in. */
-export const SKIP_AUTH = import.meta.env.VITE_SKIP_AUTH === "true";
-
-export const DEV_OFFICE_ID = "00000000-0000-0000-0000-000000000001";
-
-export const DEMO_USERS: User[] = [
-  {
-    id: "00000000-0000-0000-0000-000000000010",
-    email: "agent@farmeriq.local",
-    full_name: "Pilot Agent",
-    role: "agent",
-    office_id: DEV_OFFICE_ID,
-  },
-  {
-    id: "00000000-0000-0000-0000-000000000011",
-    email: "lead@farmeriq.local",
-    full_name: "Pilot Team Lead",
-    role: "team_lead",
-    office_id: DEV_OFFICE_ID,
-  },
-  {
-    id: "00000000-0000-0000-0000-000000000012",
-    email: "admin@farmeriq.local",
-    full_name: "Joseph - Admin",
-    role: "admin",
-    office_id: null,
-  },
-];
-
-const DEV_USER_KEY = "farmeriq_dev_user_id";
+export const SKIP_AUTH = false;
 
 export const USER_CHANGED_EVENT = "farmeriq:user-changed";
 
-export function getDemoUserByRole(role: UserRole): User {
-  return DEMO_USERS.find((user) => user.role === role) ?? DEMO_USERS[0];
-}
-
 export function getCurrentUser(): User | null {
-  if (SKIP_AUTH) {
-    const savedId = localStorage.getItem(DEV_USER_KEY);
-    return DEMO_USERS.find((user) => user.id === savedId) ?? DEMO_USERS[0];
-  }
-
+  const token = localStorage.getItem("farmeriq_token");
   const raw = localStorage.getItem("farmeriq_user");
-  return raw ? JSON.parse(raw) : null;
-}
-
-export function setDevUser(userId: string): void {
-  if (!SKIP_AUTH) return;
-  localStorage.setItem(DEV_USER_KEY, userId);
-  window.dispatchEvent(new Event(USER_CHANGED_EVENT));
+  if (!token || !raw) return null;
+  try {
+    return JSON.parse(raw) as User;
+  } catch {
+    return null;
+  }
 }
 
 export function clearSession() {
   localStorage.removeItem("farmeriq_user");
   localStorage.removeItem("farmeriq_token");
-  localStorage.removeItem(DEV_USER_KEY);
+  localStorage.removeItem("farmeriq_dev_user_id");
   window.dispatchEvent(new Event(USER_CHANGED_EVENT));
 }
 
@@ -88,11 +50,20 @@ export function aggregatorsScopeLabel(user: User): string {
   return "My aggregators";
 }
 
-export function canRegisterOfftakers(user: User) {
-  return user.role === "agent" || user.role === "team_lead" || user.role === "admin";
+export function canRegisterOfftakers(user: User | null | undefined): boolean {
+  return user?.role === "team_lead" || user?.role === "admin";
 }
+
+export function canAccessOfftakers(user: User | null | undefined): boolean {
+  return user?.role === "team_lead" || user?.role === "admin";
+}
+
+export function canAccessReports(user: User | null | undefined): boolean {
+  return user?.role === "team_lead" || user?.role === "admin";
+}
+
 export function offtakersScopeLabel(user: User) {
   if (user.role === "admin") return "Offtakers";
   if (user.role === "team_lead") return "Office offtakers";
-  return "My offtakers";
+  return "Offtakers";
 }

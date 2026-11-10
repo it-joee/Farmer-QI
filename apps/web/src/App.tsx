@@ -1,4 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import { canAccessOfftakers, canAccessReports } from "./auth";
+import { useRequireAuth } from "./hooks/useFarmers";
 import { AppLayout } from "./components/layout/AppLayout";
 import { AddFarmerPage } from "./pages/AddFarmerPage";
 import { ChangePasswordPage } from "./pages/ChangePasswordPage";
@@ -31,6 +33,24 @@ import { PendingOfftakerDetailPage } from "./pages/PendingOfftakerDetailPage";
 import { OfftakerDetailPage } from "./pages/OfftakerDetailPage";
 import { TrashPage } from "./pages/TrashPage";
 
+function RequireOfftakersAccess({ children }: { children: React.ReactNode }) {
+  const user = useRequireAuth();
+  if (!user) return null;
+  if (!canAccessOfftakers(user)) {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+}
+
+function RequireReportsAccess({ children }: { children: React.ReactNode }) {
+  const user = useRequireAuth();
+  if (!user) return null;
+  if (!canAccessReports(user)) {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+}
+
 export function App() {
   return (
     <Routes>
@@ -50,14 +70,63 @@ export function App() {
         <Route path="/aggregators/pending/:localId" element={<PendingAggregatorDetailPage />} />
         <Route path="/aggregators/:id/edit" element={<EditAggregatorPage />} />
         <Route path="/aggregators/:id" element={<AggregatorDetailPage />} />
-        <Route path="/offtakers" element={<OfftakersPage />} />
-        <Route path="/offtakers/new" element={<AddOfftakerPage />} />
-        <Route path="/offtakers/pending/:localId/edit" element={<EditPendingOfftakerPage />} />
-        <Route path="/offtakers/pending/:localId" element={<PendingOfftakerDetailPage />} />
-        <Route path="/offtakers/:id/edit" element={<EditOfftakerPage />} />
-        <Route path="/offtakers/:id" element={<OfftakerDetailPage />} />
+        <Route
+          path="/offtakers"
+          element={
+            <RequireOfftakersAccess>
+              <OfftakersPage />
+            </RequireOfftakersAccess>
+          }
+        />
+        <Route
+          path="/offtakers/new"
+          element={
+            <RequireOfftakersAccess>
+              <AddOfftakerPage />
+            </RequireOfftakersAccess>
+          }
+        />
+        <Route
+          path="/offtakers/pending/:localId/edit"
+          element={
+            <RequireOfftakersAccess>
+              <EditPendingOfftakerPage />
+            </RequireOfftakersAccess>
+          }
+        />
+        <Route
+          path="/offtakers/pending/:localId"
+          element={
+            <RequireOfftakersAccess>
+              <PendingOfftakerDetailPage />
+            </RequireOfftakersAccess>
+          }
+        />
+        <Route
+          path="/offtakers/:id/edit"
+          element={
+            <RequireOfftakersAccess>
+              <EditOfftakerPage />
+            </RequireOfftakersAccess>
+          }
+        />
+        <Route
+          path="/offtakers/:id"
+          element={
+            <RequireOfftakersAccess>
+              <OfftakerDetailPage />
+            </RequireOfftakersAccess>
+          }
+        />
         <Route path="/drivers" element={<DriversPage />} />
-        <Route path="/reports" element={<ReportsPage />} />
+        <Route
+          path="/reports"
+          element={
+            <RequireReportsAccess>
+              <ReportsPage />
+            </RequireReportsAccess>
+          }
+        />
         <Route path="/users" element={<UsersPage />} />
         <Route path="/trash" element={<TrashPage />} />
         <Route path="/change-password" element={<ChangePasswordPage />} />
