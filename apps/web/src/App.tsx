@@ -60,6 +60,7 @@ export function App() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/farmers" element={<FarmersPage />} />
         <Route path="/farmers/new" element={<AddFarmerPage />} />
+        <Route path="/farmers/import" element={<Navigate to="/farmers" replace />} />
         <Route path="/farmers/pending/:localId/edit" element={<EditPendingFarmerPage />} />
         <Route path="/farmers/pending/:localId" element={<PendingFarmerDetailPage />} />
         <Route path="/farmers/:id/edit" element={<EditFarmerPage />} />

@@ -113,9 +113,6 @@ export function EditPendingFarmerPage() {
     if (step === 1 && !form.full_name.trim()) {
       return { fieldId: "full_name", message: "Full name is required." };
     }
-    if (step === 2 && !form.community.trim()) {
-      return { fieldId: "community", message: "Community / village is required." };
-    }
     if (step === 4 && boundaryEnabled && boundaryPins.length > 0 && boundaryPins.length < 3) {
       return {
         fieldId: "farm-boundary",
@@ -223,6 +220,22 @@ export function EditPendingFarmerPage() {
         {EDIT_FORM_STEPS.map((s) => (
           <div
             key={s.id}
+            role="button"
+            tabIndex={0}
+            style={{ cursor: "pointer" }}
+            onClick={() => {
+              setFormError("");
+              setFieldErrors({});
+              setStep(s.id);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setFormError("");
+                setFieldErrors({});
+                setStep(s.id);
+              }
+            }}
             className={`step-progress__item ${step === s.id ? "step-progress__item--active" : ""} ${step > s.id ? "step-progress__item--done" : ""}`}
           >
             <span className="step-progress__number">{s.id}</span>

@@ -29,3 +29,8 @@ Thumbs.db
 # Uploaded farmer photos (local dev only)
 apps/api/uploads/*
 !apps/api/uploads/.gitkeep
+
+# Sheet import reports and raw data sheets (contain farmer PII)
+apps/api/scripts/out/
+apps/web/public/sheet/
+*.xlsx

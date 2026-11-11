@@ -146,11 +146,16 @@ export function FarmersPage() {
             {filteredPending.length > 0 && ` (${filteredPending.length} pending sync)`}
           </p>
         </div>
-        {canRegisterFarmers(user) && (
-          <Link to="/farmers/new" className="btn btn-primary" style={{ display: "none" }}>
-            + Register Farmer
+        <div className="reports-actions">
+          <Link to="/farmers/import" className="btn btn-secondary" style={{ display: "none" }}>
+            Upload Sheet
           </Link>
-        )}
+          {canRegisterFarmers(user) && (
+            <Link to="/farmers/new" className="btn btn-primary">
+              + Register Farmer
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="kpi-grid kpi-grid--5">

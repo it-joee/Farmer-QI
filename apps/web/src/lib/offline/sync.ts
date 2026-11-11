@@ -220,6 +220,103 @@ export async function submitFarmer(input: SubmitFarmerInput): Promise<SubmitResu
   }
 }
 
+export interface BulkSubmitFarmerResult {
+  status: SubmitResult;
+  count: number;
+  conflictsCount: number;
+}
+
+export async function submitFarmersBulk(
+  agentId: string,
+  forms: SubmitFarmerInput["form"][]
+): Promise<BulkSubmitFarmerResult> {
+  if (forms.length === 0) {
+    return { status: "synced", count: 0, conflictsCount: 0 };
+  }
+
+  const capturedAt = new Date().toISOString();
+  const deviceId = getDeviceId();
+  const localIds = forms.map((_, idx) => `${createFarmerLocalId()}-${idx}`);
+
+  async function queueAllOffline(): Promise<BulkSubmitFarmerResult> {
+    for (let i = 0; i < forms.length; i++) {
+      const record = buildPendingRecord(
+        {
+          agentId,
+          form: forms[i],
+          ghanaCardPhotos: [],
+          farmerPhoto: null,
+          boundaryEnabled: false,
+          boundaryPins: [],
+        },
+        { localId: localIds[i], createdAt: capturedAt }
+      );
+      await addPendingFarmer(record);
+    }
+    return { status: "queued", count: forms.length, conflictsCount: 0 };
+  }
+
+  if (!navigator.onLine) {
+    return queueAllOffline();
+  }
+
+  try {
+    const res = await apiFetch("/api/farmers/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        created_by: agentId,
+        device_id: deviceId,
+        captured_at: capturedAt,
+        farmers: forms.map((form, i) =>
+          formToPayload(form, agentId, {
+            capturedAt,
+            deviceId,
+            clientLocalId: localIds[i],
+          })
+        ),
+      }),
+    });
+
+    if (!res.ok) {
+      if (res.status >= 500) {
+        return queueAllOffline();
+      }
+      const errBody = (await res.json().catch(() => null)) as { error?: string } | null;
+      throw new SubmitError(
+        errBody?.error || "Could not import farmers. Please review the extracted rows.",
+        false
+      );
+    }
+
+    const data = (await res.json()) as {
+      farmers?: { id: string }[];
+      count?: number;
+      conflictsCount?: number;
+    };
+
+    if (Array.isArray(data.farmers)) {
+      for (let i = 0; i < data.farmers.length; i++) {
+        if (data.farmers[i]?.id && localIds[i]) {
+          await saveFarmerIdMapping(localIds[i], data.farmers[i].id);
+        }
+      }
+    }
+
+    window.dispatchEvent(new CustomEvent("farmeriq:farmers-synced"));
+    return {
+      status: "synced",
+      count: data.count ?? forms.length,
+      conflictsCount: data.conflictsCount ?? 0,
+    };
+  } catch (error) {
+    if (isFetchNetworkError(error)) {
+      return queueAllOffline();
+    }
+    throw error;
+  }
+}
+
 async function recoverStaleSyncingRecords(createdBy: string): Promise<void> {
   const pending = await listPendingFarmers(createdBy);
   for (const record of pending) {

@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
-import { useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { BackButton } from "../components/BackButton";
 
@@ -36,6 +36,11 @@ import { EMPTY_FORM, FORM_STEPS, type FarmerFormData } from "./farmer-form/types
 export function AddFarmerPage() {
 
   const navigate = useNavigate();
+  const location = useLocation();
+  const locationState = location.state as {
+    prefillForm?: Partial<FarmerFormData>;
+    fromSheetName?: string;
+  } | null;
 
   const user = useRequireAuth();
 
@@ -44,7 +49,11 @@ export function AddFarmerPage() {
 
   const [step, setStep] = useState(1);
 
-  const [form, setForm] = useState<FarmerFormData>(EMPTY_FORM);
+  const [form, setForm] = useState<FarmerFormData>(() =>
+    locationState?.prefillForm
+      ? { ...EMPTY_FORM, ...locationState.prefillForm }
+      : EMPTY_FORM
+  );
 
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
@@ -255,9 +264,28 @@ export function AddFarmerPage() {
 
       <BackButton />
 
-        <h2>Add Farmer</h2>
-
-        <p className="muted">An ID is generated automatically when you save.</p>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "1rem",
+          marginBottom: "1rem",
+        }}
+      >
+        <div>
+          <h2 style={{ margin: 0 }}>Add Farmer</h2>
+          <p className="muted" style={{ margin: "0.25rem 0 0" }}>
+            {locationState?.fromSheetName
+              ? `Pre-filled from sheet "${locationState.fromSheetName}". Complete or save any stage below.`
+              : "An ID is generated automatically when you save."}
+          </p>
+        </div>
+        <Link to="/farmers/import" className="btn btn-secondary" style={{ display: "none" }}>
+          Upload Sheet (Bulk Import)
+        </Link>
+      </div>
 
 
 

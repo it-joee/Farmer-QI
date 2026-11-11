@@ -220,6 +220,150 @@ farmerRoutes.post("/", async (c) => {
   return c.json({ farmer, conflicts }, 201);
 });
 
+farmerRoutes.post("/bulk", async (c) => {
+  const actorResult = requireActor(c);
+  if (actorResult instanceof Response) return actorResult;
+  const actor = actorResult;
+
+  if (!canRegisterFarmers(actor) && actor.role !== "team_lead" && actor.role !== "admin") {
+    return c.json({ error: "Not authorized to import farmers" }, 403);
+  }
+
+  const body = (await c.req.json().catch(() => null)) as {
+    farmers?: unknown[];
+    created_by?: string;
+    device_id?: string;
+    captured_at?: string;
+  } | null;
+
+  if (!body || !Array.isArray(body.farmers) || body.farmers.length === 0) {
+    return c.json({ error: "Provide a non-empty farmers array" }, 400);
+  }
+
+  if (body.farmers.length > 500) {
+    return c.json({ error: "Cannot import more than 500 farmers in a single batch" }, 400);
+  }
+
+  const createdBy = SKIP_AUTH ? actor.id : (body.created_by || actor.id);
+  if (!createdBy) {
+    return c.json({ error: "Authentication required" }, 401);
+  }
+
+  const userResult = await query<{ office_id: string | null }>(
+    "SELECT office_id FROM users WHERE id = $1",
+    [createdBy]
+  );
+  const officeId = userResult.rows[0]?.office_id ?? actor.office_id ?? null;
+
+  const usedRefIds = new Set<string>();
+  const createdFarmers: unknown[] = [];
+  let conflictsCount = 0;
+
+  for (let i = 0; i < body.farmers.length; i++) {
+    const parsed = CreateFarmerRequest.safeParse(body.farmers[i]);
+    if (!parsed.success) {
+      return c.json(
+        { error: `Invalid farmer data at row ${i + 1}`, details: parsed.error.flatten() },
+        400
+      );
+    }
+
+    const data = parsed.data;
+    const { captured_at, device_id, client_local_id, ...farmerFields } = data;
+    const clientLocalId = client_local_id?.trim() || null;
+
+    if (clientLocalId) {
+      const existingByClientId = await query(
+        `SELECT * FROM farmers WHERE created_by = $1 AND deleted_at IS NULL AND metadata->>'client_local_id' = $2`,
+        [createdBy, clientLocalId]
+      );
+      if (existingByClientId.rows[0]) {
+        createdFarmers.push(existingByClientId.rows[0]);
+        continue;
+      }
+    }
+
+    let referenceId = createFarmerReferenceId();
+    while (usedRefIds.has(referenceId)) {
+      referenceId = `jni-fm-${ `${Date.now()}${Math.floor(Math.random() * 10000)}`.slice(-10) }`;
+    }
+    usedRefIds.add(referenceId);
+
+    const metadata = JSON.stringify({
+      ...(clientLocalId ? { client_local_id: clientLocalId } : {}),
+      imported_from_sheet: true,
+    });
+
+    const result = await query(
+      `INSERT INTO farmers (
+        reference_id, full_name, community, ghana_card, gender, age, phone, email,
+        region, district, digital_address, farm_address,
+        household_size, farming_dependency, years_farming, primary_crops,
+        bank_name, bank_branch, bank_account, created_by, office_id, metadata
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22::jsonb)
+      RETURNING *`,
+      [
+        referenceId,
+        farmerFields.full_name ?? "",
+        farmerFields.community ?? "",
+        farmerFields.ghana_card ?? null,
+        farmerFields.gender ?? null,
+        farmerFields.age ?? null,
+        farmerFields.phone ?? null,
+        farmerFields.email || null,
+        farmerFields.region ?? null,
+        farmerFields.district ?? null,
+        farmerFields.digital_address ?? null,
+        farmerFields.farm_address ?? null,
+        farmerFields.household_size ?? null,
+        farmerFields.farming_dependency ?? null,
+        farmerFields.years_farming ?? null,
+        farmerFields.primary_crops ?? [],
+        farmerFields.bank_name ?? null,
+        farmerFields.bank_branch ?? null,
+        farmerFields.bank_account ?? null,
+        createdBy,
+        officeId,
+        metadata,
+      ]
+    );
+
+    const farmer = result.rows[0];
+    createdFarmers.push(farmer);
+
+    await query(
+      `INSERT INTO audit_log (actor_id, action, entity_type, entity_id, changes)
+       VALUES ($1, 'create', 'farmer', $2, $3)`,
+      [createdBy, farmer.id, JSON.stringify(farmer)]
+    );
+
+    await recordSubmission({
+      entityType: "farmer",
+      entityId: farmer.id,
+      agentId: createdBy,
+      capturedAt: captured_at ?? body.captured_at ?? new Date().toISOString(),
+      deviceId: device_id ?? body.device_id,
+    });
+
+    const conflicts = await checkFarmerConflicts(farmer.id, {
+      full_name: farmerFields.full_name ?? "",
+      community: farmerFields.community ?? "",
+      ghana_card: farmerFields.ghana_card,
+      phone: farmerFields.phone,
+    });
+    conflictsCount += conflicts.length;
+  }
+
+  return c.json(
+    {
+      farmers: createdFarmers,
+      count: createdFarmers.length,
+      conflictsCount,
+    },
+    201
+  );
+});
+
 farmerRoutes.post("/:id/plots", async (c) => {
   const actorResult = requireActor(c);
   if (actorResult instanceof Response) return actorResult;

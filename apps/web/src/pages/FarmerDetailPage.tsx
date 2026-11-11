@@ -93,9 +93,9 @@ export function FarmerDetailPage() {
           <div>
             <h2>{farmer.full_name}</h2>
             <p className="muted">
-              {farmer.community}
-              {farmer.district ? ` · ${farmer.district}` : ""}
-              {farmer.region ? ` · ${farmer.region}` : ""}
+              {[farmer.community, farmer.district, farmer.region]
+                .filter(Boolean)
+                .join(" · ") || "Location not specified"}
             </p>
             <p className="farmer-detail__id">
               <span className="muted">ID</span>{" "}
