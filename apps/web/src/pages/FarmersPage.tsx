@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { COMMODITIES } from "@farmeriq/shared";
-import { canRegisterFarmers, farmersScopeLabel, getCurrentUser } from "../auth";
+import { farmersScopeLabel, getCurrentUser } from "../auth";
 import { FarmerActionsMenu } from "../components/FarmerActionsMenu";
 import { FarmerListMobileCard } from "../components/FarmerListMobileCard";
 import { useOfflineSyncContext } from "../context/OfflineSyncContext";
@@ -214,11 +214,6 @@ export function FarmersPage() {
           <Link to="/farmers/import" className="btn btn-secondary" style={{ display: "none" }}>
             Upload Sheet
           </Link>
-          {canRegisterFarmers(user) && (
-            <Link to="/farmers/new" className="btn btn-primary">
-              + Register Farmer
-            </Link>
-          )}
         </div>
       </div>
 
