@@ -9,7 +9,7 @@ export function canManageUsers(actor: Actor): boolean {
 }
 
 export function canRegisterFarmers(actor: Actor): boolean {
-  return actor.role === "agent";
+  return actor.role === "agent" || actor.role === "team_lead";
 }
 
 export function canAccessOfftakers(actor: Actor): boolean {
@@ -29,7 +29,7 @@ export function canAccessReports(actor: Actor): boolean {
 }
 
 export function canRegisterAggregators(actor: Actor): boolean {
-  return actor.role === "agent";
+  return actor.role === "agent" || actor.role === "team_lead";
 }
 
 export interface ScopeClause {

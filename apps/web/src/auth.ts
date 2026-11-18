@@ -31,11 +31,11 @@ export function canManageUsers(user: User): boolean {
 }
 
 export function canRegisterFarmers(user: User): boolean {
-  return user.role === "agent";
+  return user.role === "agent" || user.role === "team_lead";
 }
 
 export function canRegisterAggregators(user: User): boolean {
-  return user.role === "agent";
+  return user.role === "agent" || user.role === "team_lead";
 }
 
 export function farmersScopeLabel(user: User): string {
