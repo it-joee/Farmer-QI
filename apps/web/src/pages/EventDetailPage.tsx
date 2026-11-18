@@ -521,7 +521,7 @@ export function EventDetailPage() {
                     {formatAttendeeMeta(person)}
                   </span>
                 </span>
-                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                <div className="attendance-row__actions">
                   {canRegisterFarmers(user) && (
                     <Link
                       to="/farmers/new"
