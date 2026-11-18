@@ -1,5 +1,3 @@
-import React from "react";
-
 export interface PaginationProps {
   page: number;
   totalPages: number;
@@ -11,37 +9,24 @@ export function Pagination({ page, totalPages, total, onPageChange }: Pagination
   if (totalPages <= 1) return null;
 
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "1rem",
-        borderTop: "1px solid var(--color-border)",
-      }}
-    >
-      <p className="muted" style={{ margin: 0, fontSize: "0.875rem" }}>
+    <div className="pagination">
+      <p className="muted pagination__total">
         Total: {total} item{total === 1 ? "" : "s"}
       </p>
-      <div style={{ display: "flex", gap: "0.25rem" }}>
+      <div className="pagination__controls">
         <button
+          type="button"
           className="btn btn-secondary btn-sm"
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
         >
           Previous
         </button>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            padding: "0 0.5rem",
-            fontSize: "0.875rem",
-          }}
-        >
+        <div className="pagination__page">
           Page {page} of {totalPages}
         </div>
         <button
+          type="button"
           className="btn btn-secondary btn-sm"
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}

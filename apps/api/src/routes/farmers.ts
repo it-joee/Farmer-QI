@@ -139,124 +139,139 @@ function toPct(count: number, total: number): number {
   return Math.round((count / total) * 1000) / 10;
 }
 
+function normalizeWhitespace(value: string): string {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+interface StatsRow {
+  gender: string | null;
+  region: string | null;
+  district: string | null;
+  primary_crops: string[] | null;
+}
+
+const statsCache = new Map<string, { expiresAt: number; payload: unknown }>();
+const STATS_CACHE_TTL_MS = 30_000;
+
 farmerRoutes.get("/stats", async (c) => {
   const actorResult = requireActor(c);
   if (actorResult instanceof Response) return actorResult;
 
   const commodity = c.req.query("commodity")?.trim() ?? "";
-  const scope = farmerScopeClause(actorResult, "f", 1);
+  const cacheKey = `${actorResult.id}:${actorResult.role}:${commodity.toLowerCase()}`;
+  const cached = statsCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return c.json(cached.payload);
+  }
 
-  let districtFilterSql = "";
-  const districtParams = [...scope.params];
-  if (commodity && commodity !== "all") {
-    if (commodity === "Not specified") {
-      districtFilterSql = ` AND (f.primary_crops IS NULL OR array_length(f.primary_crops, 1) IS NULL OR f.primary_crops = '{}')`;
+  const scope = farmerScopeClause(actorResult, "f", 1);
+  const result = await query<StatsRow>(
+    `SELECT f.gender, f.region, f.district, f.primary_crops
+     FROM farmers f
+     WHERE f.deleted_at IS NULL AND ${scope.sql}`,
+    scope.params
+  );
+
+  const rows = result.rows;
+  const total = rows.length;
+  let male = 0;
+  let female = 0;
+  let withCommodities = 0;
+
+  const districtKeys = new Set<string>();
+  const regionKeys = new Set<string>();
+  const commodityMap = new Map<string, { label: string; count: number }>();
+  const regionMap = new Map<string, { label: string; count: number }>();
+  const districtMap = new Map<string, { label: string; count: number }>();
+
+  const filterCommodity = commodity && commodity !== "all" ? commodity.toLowerCase() : null;
+  let districtTotal = 0;
+
+  for (const row of rows) {
+    const g = row.gender?.trim().toLowerCase();
+    if (g === "male" || g === "m") male++;
+    else if (g === "female" || g === "f") female++;
+
+    const rawRegion = row.region ? normalizeWhitespace(row.region) : "";
+    const regionKey = rawRegion ? rawRegion.toLowerCase() : "not specified";
+    if (rawRegion) regionKeys.add(regionKey);
+    const existingRegion = regionMap.get(regionKey);
+    if (existingRegion) {
+      existingRegion.count++;
     } else {
-      const idx = districtParams.length + 1;
-      districtFilterSql = ` AND EXISTS (SELECT 1 FROM unnest(f.primary_crops) AS crop WHERE LOWER(TRIM(crop)) = LOWER($${idx}))`;
-      districtParams.push(commodity);
+      regionMap.set(regionKey, { label: rawRegion || "Not specified", count: 1 });
+    }
+
+    const rawDistrict = row.district ? normalizeWhitespace(row.district) : "";
+    const districtKey = rawDistrict ? rawDistrict.toLowerCase() : "not specified";
+    if (rawDistrict) districtKeys.add(districtKey);
+
+    const crops = (row.primary_crops ?? []).map((crop) => crop.trim()).filter(Boolean);
+    if (crops.length > 0) {
+      withCommodities++;
+      for (const crop of crops) {
+        const cropKey = crop.toLowerCase();
+        const existing = commodityMap.get(cropKey);
+        if (existing) {
+          existing.count++;
+        } else {
+          commodityMap.set(cropKey, { label: crop, count: 1 });
+        }
+      }
+    } else {
+      const existing = commodityMap.get("not specified");
+      if (existing) {
+        existing.count++;
+      } else {
+        commodityMap.set("not specified", { label: "Not specified", count: 1 });
+      }
+    }
+
+    const matchesCommodity =
+      !filterCommodity ||
+      (filterCommodity === "not specified"
+        ? crops.length === 0
+        : crops.some((crop) => crop.toLowerCase() === filterCommodity));
+
+    if (matchesCommodity) {
+      districtTotal++;
+      const existingDistrict = districtMap.get(districtKey);
+      if (existingDistrict) {
+        existingDistrict.count++;
+      } else {
+        districtMap.set(districtKey, { label: rawDistrict || "Not specified", count: 1 });
+      }
     }
   }
 
-  const [summaryRes, commodityRes, regionRes, districtRes] = await Promise.all([
-    query<{
-      total: number;
-      districts: number;
-      regions: number;
-      male: number;
-      female: number;
-      with_commodities: number;
-    }>(
-      `SELECT
-        COUNT(*)::int AS total,
-        COUNT(DISTINCT NULLIF(LOWER(REGEXP_REPLACE(TRIM(f.district), '\\s+', ' ', 'g')), ''))::int AS districts,
-        COUNT(DISTINCT NULLIF(LOWER(REGEXP_REPLACE(TRIM(f.region), '\\s+', ' ', 'g')), ''))::int AS regions,
-        COUNT(*) FILTER (WHERE LOWER(TRIM(f.gender)) IN ('male', 'm'))::int AS male,
-        COUNT(*) FILTER (WHERE LOWER(TRIM(f.gender)) IN ('female', 'f'))::int AS female,
-        COUNT(*) FILTER (WHERE f.primary_crops IS NOT NULL AND array_length(f.primary_crops, 1) > 0)::int AS with_commodities
-      FROM farmers f
-      WHERE f.deleted_at IS NULL AND ${scope.sql}`,
-      scope.params
-    ),
-    query<{ label: string; count: number }>(
-      `WITH expanded AS (
-        SELECT
-          CASE
-            WHEN f.primary_crops IS NULL OR array_length(f.primary_crops, 1) IS NULL OR f.primary_crops = '{}' THEN 'Not specified'
-            ELSE TRIM(crop)
-          END AS raw_label
-        FROM farmers f
-        LEFT JOIN LATERAL unnest(
-          CASE
-            WHEN f.primary_crops IS NULL OR array_length(f.primary_crops, 1) IS NULL OR f.primary_crops = '{}' THEN ARRAY[NULL::text]
-            ELSE f.primary_crops
-          END
-        ) AS crop ON true
-        WHERE f.deleted_at IS NULL AND ${scope.sql}
-      )
-      SELECT MIN(raw_label) AS label, COUNT(*)::int AS count
-      FROM expanded
-      WHERE raw_label IS NOT NULL AND raw_label <> ''
-      GROUP BY LOWER(raw_label)
-      ORDER BY count DESC`,
-      scope.params
-    ),
-    query<{ label: string; count: number }>(
-      `SELECT
-        COALESCE(NULLIF(MIN(TRIM(f.region)), ''), 'Not specified') AS label,
-        COUNT(*)::int AS count
-      FROM farmers f
-      WHERE f.deleted_at IS NULL AND ${scope.sql}
-      GROUP BY COALESCE(NULLIF(LOWER(REGEXP_REPLACE(TRIM(f.region), '\\s+', ' ', 'g')), ''), 'not specified')
-      ORDER BY count DESC`,
-      scope.params
-    ),
-    query<{ label: string; count: number }>(
-      `SELECT
-        COALESCE(NULLIF(MIN(TRIM(f.district)), ''), 'Not specified') AS label,
-        COUNT(*)::int AS count
-      FROM farmers f
-      WHERE f.deleted_at IS NULL AND ${scope.sql} ${districtFilterSql}
-      GROUP BY COALESCE(NULLIF(LOWER(REGEXP_REPLACE(TRIM(f.district), '\\s+', ' ', 'g')), ''), 'not specified')
-      ORDER BY count DESC`,
-      districtParams
-    ),
-  ]);
+  const commodityDenom = withCommodities || total;
+  const sortDesc = <T extends { count: number }>(list: T[]) => list.sort((a, b) => b.count - a.count);
 
-  const summary = summaryRes.rows[0] ?? {
-    total: 0,
-    districts: 0,
-    regions: 0,
-    male: 0,
-    female: 0,
-    with_commodities: 0,
-  };
-
-  const commodityDenom = summary.with_commodities || summary.total;
-  const districtTotal = districtRes.rows.reduce((sum, r) => sum + r.count, 0);
-
-  return c.json({
-    totalRegistered: summary.total,
-    districts: summary.districts,
-    regions: summary.regions,
-    male: summary.male,
-    female: summary.female,
-    by_commodity: commodityRes.rows.map((r) => ({
+  const payload = {
+    totalRegistered: total,
+    districts: districtKeys.size,
+    regions: regionKeys.size,
+    male,
+    female,
+    by_commodity: sortDesc([...commodityMap.values()]).map((r) => ({
       label: r.label,
       count: r.count,
       percentage: toPct(r.count, commodityDenom),
     })),
-    by_region: regionRes.rows.map((r) => ({
+    by_region: sortDesc([...regionMap.values()]).map((r) => ({
       label: r.label,
       count: r.count,
-      percentage: toPct(r.count, summary.total),
+      percentage: toPct(r.count, total),
     })),
-    by_district: districtRes.rows.map((r) => ({
+    by_district: sortDesc([...districtMap.values()]).map((r) => ({
       label: r.label,
       count: r.count,
       percentage: toPct(r.count, districtTotal),
     })),
-  });
+  };
+
+  statsCache.set(cacheKey, { expiresAt: Date.now() + STATS_CACHE_TTL_MS, payload });
+  return c.json(payload);
 });
 
 farmerRoutes.post("/", async (c) => {

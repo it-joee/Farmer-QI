@@ -154,9 +154,26 @@ const EMPTY_STATS: FarmerStats = {
   by_district: [],
 };
 
+function statsCacheKey(userId: string, commodity?: string | null): string {
+  return `farmeriq_stats_${userId}_${commodity || "all"}`;
+}
+
+function readCachedStats(userId: string, commodity?: string | null): FarmerStats | null {
+  try {
+    const raw = sessionStorage.getItem(statsCacheKey(userId, commodity));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as FarmerStats;
+    return parsed && typeof parsed.totalRegistered === "number" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 export function useFarmerStats(commodity?: string | null) {
   const user = useAuthUser();
-  const [stats, setStats] = useState<FarmerStats>(EMPTY_STATS);
+  const [stats, setStats] = useState<FarmerStats>(() =>
+    user ? (readCachedStats(user.id, commodity) ?? EMPTY_STATS) : EMPTY_STATS
+  );
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -169,22 +186,53 @@ export function useFarmerStats(commodity?: string | null) {
       return;
     }
 
+    const cached = readCachedStats(user.id, commodity);
+    if (cached) {
+      setStats(cached);
+    }
+
     let cancelled = false;
+    let retryTimer: number | undefined;
     setLoading(true);
     const params = new URLSearchParams();
     if (commodity && commodity !== "all") {
       params.set("commodity", commodity);
     }
     const qs = params.toString();
-    apiFetch(`/api/farmers/stats${qs ? `?${qs}` : ""}`)
-      .then((r) => r.json())
-      .then((data: FarmerStats) => {
+    const url = `/api/farmers/stats${qs ? `?${qs}` : ""}`;
+
+    const fetchOnce = async () => {
+      const res = await apiFetch(url);
+      if (!res.ok) {
+        throw new Error(`Stats failed with ${res.status}`);
+      }
+      return (await res.json()) as FarmerStats;
+    };
+
+    fetchOnce()
+      .catch(() =>
+        new Promise<FarmerStats>((resolve, reject) => {
+          if (cancelled) {
+            reject(new Error("cancelled"));
+            return;
+          }
+          retryTimer = window.setTimeout(() => {
+            fetchOnce().then(resolve, reject);
+          }, 1200);
+        })
+      )
+      .then((data) => {
         if (!cancelled && data && typeof data.totalRegistered === "number") {
           setStats(data);
+          try {
+            sessionStorage.setItem(statsCacheKey(user.id, commodity), JSON.stringify(data));
+          } catch {
+            /* ignore storage quota errors */
+          }
         }
       })
       .catch(() => {
-        /* keep existing stats when offline */
+        /* keep existing/cached stats when offline or transient error */
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -192,6 +240,7 @@ export function useFarmerStats(commodity?: string | null) {
 
     return () => {
       cancelled = true;
+      if (retryTimer !== undefined) window.clearTimeout(retryTimer);
     };
   }, [user?.id, user?.role, commodity, refreshKey]);
 

@@ -270,8 +270,8 @@ export function AppNav({
             </li>
           ))}
 
-          {/* Hamburger — always shown on mobile bottom nav when there are overflow items OR to access profile */}
-          {isBottom && hiddenItems.length > 0 && (
+          {/* Hamburger — always shown on mobile bottom nav to access profile, logout, and any overflow items */}
+          {isBottom && (
             <li className="app-nav__item">
               <button
                 type="button"

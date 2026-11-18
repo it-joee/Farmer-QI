@@ -4653,3 +4653,57 @@ a {
     order: 2;
   }
 }
+
+/* ── Pagination ─────────────────────────────────────────────────────────── */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.pagination__total {
+  margin: 0;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.pagination__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.pagination__page {
+  display: flex;
+  align-items: center;
+  padding: 0 0.5rem;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .pagination {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .pagination__controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+.pagination__controls .btn {
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  min-width: auto;
+  height: auto;
+}
+
+.row-actions__trigger {
+  border-radius: 8px;
+}

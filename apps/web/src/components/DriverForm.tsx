@@ -12,7 +12,7 @@ export interface DriverFormValues {
   status: DriverStatus;
 }
 
-export const EMPTY_DRIVER_FORM: DriverFormValues = {
+const EMPTY_DRIVER_FORM: DriverFormValues = {
   full_name: "",
   phone: "",
   license_number: "",
