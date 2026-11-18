@@ -1,7 +1,7 @@
 import type { User, UserRole } from "@farmeriq/shared";
 import { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { canAccessOfftakers, canAccessReports, canManageUsers, offtakersScopeLabel } from "../../auth";
+import { canAccessDrivers, canAccessOfftakers, canAccessReports, canManageUsers, driversScopeLabel, offtakersScopeLabel } from "../../auth";
 import { NavIcon, type NavIconKey } from "./NavIcons";
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -63,6 +63,16 @@ function getNavItems(user: User) {
       tabLabel: "Offtakers",
       end: true,
       icon: "offtakers",
+    });
+  }
+
+  if (canAccessDrivers(user)) {
+    items.push({
+      to: "/drivers",
+      label: driversScopeLabel(user),
+      tabLabel: "Drivers",
+      end: true,
+      icon: "drivers",
     });
   }
 

@@ -6,11 +6,18 @@ import { FarmerActionsMenu } from "../components/FarmerActionsMenu";
 import { FarmerListMobileCard } from "../components/FarmerListMobileCard";
 import { useOfflineSyncContext } from "../context/OfflineSyncContext";
 import { SelectField } from "../components/fields/SelectField";
-import { useFarmers, useAllFarmers, useRequireAuth } from "../hooks/useFarmers";
+import { useFarmers, useFarmerStats, useRequireAuth } from "../hooks/useFarmers";
 import { useConfirmDialog } from "../context/ConfirmDialogContext";
 import { useToast } from "../context/ToastContext";
-import { getCommodityFilterOptions } from "../lib/dashboard-stats";
 import { Pagination } from "../components/Pagination";
+import { AnimatedNumber } from "../components/dashboard/AnimatedNumber";
+import {
+  FarmerTractorIcon,
+  FemaleIcon,
+  MaleIcon,
+  MapPinIcon,
+  RegionsMapIcon,
+} from "../components/dashboard/KpiIcons";
 import { deleteFarmer } from "../lib/farmers";
 import { removePendingFarmer } from "../lib/offline/store";
 import { syncPendingFarmer } from "../lib/offline/sync";
@@ -21,71 +28,128 @@ export function FarmersPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [commodityFilter, setCommodityFilter] = useState("all");
+  const [regionFilter, setRegionFilter] = useState("all");
+  const [districtFilter, setDistrictFilter] = useState("all");
+  const [genderFilter, setGenderFilter] = useState("all");
   const [page, setPage] = useState(1);
 
   useEffect(() => {
     setPage(1);
-  }, [search, commodityFilter]);
+  }, [search, commodityFilter, regionFilter, districtFilter, genderFilter]);
 
-  const { farmers, pagination, loading, refetch } = useFarmers(page, 20, search, commodityFilter === "all" ? "" : commodityFilter);
-  const { farmers: allFarmers } = useAllFarmers();
+  const { farmers, pagination, loading, refetch } = useFarmers(
+    page,
+    20,
+    search,
+    commodityFilter === "all" ? "" : commodityFilter,
+    regionFilter === "all" ? "" : regionFilter,
+    districtFilter === "all" ? "" : districtFilter,
+    genderFilter === "all" ? "" : genderFilter
+  );
+  const { stats } = useFarmerStats();
   const { pendingFarmers, refreshPending } = useOfflineSyncContext();
   const { confirm, alert } = useConfirmDialog();
   const { showSuccess } = useToast();
 
   const farmerStats = useMemo(() => {
-    const totalRegistered = allFarmers.length + pendingFarmers.length;
-    const districtSet = new Set(allFarmers.map((f) => f.district?.trim()).filter(Boolean));
-    const regionSet = new Set(allFarmers.map((f) => f.region?.trim()).filter(Boolean));
-    let male = 0;
-    let female = 0;
-
-    for (const f of allFarmers) {
-      const g = f.gender?.trim().toLowerCase();
-      if (g === "male" || g === "m") male++;
-      else if (g === "female" || g === "f") female++;
-    }
+    let male = stats.male;
+    let female = stats.female;
 
     for (const p of pendingFarmers) {
-      if (p.form.district?.trim()) districtSet.add(p.form.district.trim());
-      if (p.form.region?.trim()) regionSet.add(p.form.region.trim());
       const g = p.form.gender?.trim().toLowerCase();
       if (g === "male" || g === "m") male++;
       else if (g === "female" || g === "f") female++;
     }
 
     return {
-      totalRegistered,
-      districts: districtSet.size,
-      regions: regionSet.size,
+      totalRegistered: stats.totalRegistered + pendingFarmers.length,
+      districts: stats.districts,
+      regions: stats.regions,
       male,
       female,
     };
-  }, [allFarmers, pendingFarmers]);
+  }, [stats, pendingFarmers]);
 
-  const commodityOptions = useMemo(
-    () => getCommodityFilterOptions(farmers, COMMODITIES),
-    [farmers]
+  const commodityOptions = useMemo(() => {
+    const names = new Set<string>(COMMODITIES);
+    for (const b of stats.by_commodity) {
+      if (b.label && b.label !== "Not specified") names.add(b.label);
+    }
+    return [...names].sort((a, b) => a.localeCompare(b));
+  }, [stats.by_commodity]);
+
+  const regionOptions = useMemo(
+    () =>
+      stats.by_region
+        .map((r) => r.label)
+        .filter((l) => l && l !== "Not specified")
+        .sort((a, b) => a.localeCompare(b)),
+    [stats.by_region]
   );
 
-  // reset page to 1 when search or filter changes
-  useEffect(() => {
-    setPage(1);
-  }, [search, commodityFilter]);
+  const districtOptions = useMemo(
+    () =>
+      stats.by_district
+        .map((d) => d.label)
+        .filter((l) => l && l !== "Not specified")
+        .sort((a, b) => a.localeCompare(b)),
+    [stats.by_district]
+  );
+
+  const hasActiveFilters =
+    search.trim() !== "" ||
+    commodityFilter !== "all" ||
+    regionFilter !== "all" ||
+    districtFilter !== "all" ||
+    genderFilter !== "all";
+
+  function clearFilters() {
+    setSearch("");
+    setCommodityFilter("all");
+    setRegionFilter("all");
+    setDistrictFilter("all");
+    setGenderFilter("all");
+  }
 
   const filteredPending = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return pendingFarmers;
-
-    return pendingFarmers.filter(
-      (record) =>
-        record.form.full_name.toLowerCase().includes(q) ||
-        record.form.community.toLowerCase().includes(q) ||
-        (record.form.district?.toLowerCase().includes(q) ?? false) ||
-        (record.form.phone?.includes(q) ?? false) ||
-        (record.form.ghana_card?.includes(q) ?? false)
-    );
-  }, [pendingFarmers, search]);
+    return pendingFarmers.filter((record) => {
+      if (
+        q &&
+        !(
+          record.form.full_name.toLowerCase().includes(q) ||
+          record.form.community.toLowerCase().includes(q) ||
+          (record.form.district?.toLowerCase().includes(q) ?? false) ||
+          (record.form.phone?.includes(q) ?? false) ||
+          (record.form.ghana_card?.includes(q) ?? false)
+        )
+      ) {
+        return false;
+      }
+      if (regionFilter !== "all") {
+        const reg = record.form.region?.trim() || "Not specified";
+        if (reg.toLowerCase() !== regionFilter.toLowerCase()) return false;
+      }
+      if (districtFilter !== "all") {
+        const dist = record.form.district?.trim() || "Not specified";
+        if (dist.toLowerCase() !== districtFilter.toLowerCase()) return false;
+      }
+      if (genderFilter !== "all") {
+        const g = record.form.gender?.trim().toLowerCase();
+        if (genderFilter === "male" && g !== "male" && g !== "m") return false;
+        if (genderFilter === "female" && g !== "female" && g !== "f") return false;
+      }
+      if (commodityFilter !== "all") {
+        const crops = buildPrimaryCommodities(record.form);
+        if (commodityFilter === "Not specified") {
+          if (crops.length > 0) return false;
+        } else if (!crops.some((c) => c.toLowerCase() === commodityFilter.toLowerCase())) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [pendingFarmers, search, regionFilter, districtFilter, genderFilter, commodityFilter]);
 
   const totalCount = pagination.total + filteredPending.length;
 
@@ -160,42 +224,109 @@ export function FarmersPage() {
 
       <div className="kpi-grid kpi-grid--5">
         <div className="kpi-card">
-          <span className="kpi-card__value">{farmerStats.totalRegistered}</span>
+          <div className="kpi-card__top">
+            <span className="kpi-card__value">
+              <AnimatedNumber value={farmerStats.totalRegistered} />
+            </span>
+            <span className="kpi-card__icon" aria-hidden="true">
+              <FarmerTractorIcon />
+            </span>
+          </div>
           <span className="kpi-card__label">Total farmers registered</span>
         </div>
         <div className="kpi-card">
-          <span className="kpi-card__value">{farmerStats.districts}</span>
+          <div className="kpi-card__top">
+            <span className="kpi-card__value">
+              <AnimatedNumber value={farmerStats.districts} />
+            </span>
+            <span className="kpi-card__icon" aria-hidden="true">
+              <MapPinIcon />
+            </span>
+          </div>
           <span className="kpi-card__label">Districts covered</span>
         </div>
         <div className="kpi-card">
-          <span className="kpi-card__value">{farmerStats.regions}</span>
+          <div className="kpi-card__top">
+            <span className="kpi-card__value">
+              <AnimatedNumber value={farmerStats.regions} />
+            </span>
+            <span className="kpi-card__icon" aria-hidden="true">
+              <RegionsMapIcon />
+            </span>
+          </div>
           <span className="kpi-card__label">Regions covered</span>
         </div>
         <div className="kpi-card">
-          <span className="kpi-card__value">{farmerStats.male}</span>
+          <div className="kpi-card__top">
+            <span className="kpi-card__value">
+              <AnimatedNumber value={farmerStats.male} />
+            </span>
+            <span className="kpi-card__icon" aria-hidden="true">
+              <MaleIcon />
+            </span>
+          </div>
           <span className="kpi-card__label">Male</span>
         </div>
         <div className="kpi-card">
-          <span className="kpi-card__value">{farmerStats.female}</span>
+          <div className="kpi-card__top">
+            <span className="kpi-card__value">
+              <AnimatedNumber value={farmerStats.female} />
+            </span>
+            <span className="kpi-card__icon" aria-hidden="true">
+              <FemaleIcon />
+            </span>
+          </div>
           <span className="kpi-card__label">Female</span>
         </div>
       </div>
 
       <div className="card">
         <div className="farmers-filters">
-          <div className="form-group" style={{ margin: 0, flex: 1 }}>
+          <div className="form-group" style={{ margin: 0, flex: "1 1 220px", maxWidth: "280px" }}>
             <label htmlFor="farmer-search" className="sr-only">
               Search farmers
             </label>
             <input
               id="farmer-search"
               type="search"
-              placeholder="Search by name, community, district, phone…"
+              placeholder="Search name, community, phone…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div className="form-group" style={{ margin: 0, minWidth: "160px" }}>
+          <div className="form-group" style={{ margin: 0, minWidth: "150px" }}>
+            <label htmlFor="farmer-region-filter" className="sr-only">
+              Filter by region
+            </label>
+            <SelectField
+              id="farmer-region-filter"
+              variant="compact"
+              value={regionFilter}
+              onChange={setRegionFilter}
+              options={[
+                { value: "all", label: "All regions" },
+                ...regionOptions.map((r) => ({ value: r, label: r })),
+                { value: "Not specified", label: "Not specified" },
+              ]}
+            />
+          </div>
+          <div className="form-group" style={{ margin: 0, minWidth: "150px" }}>
+            <label htmlFor="farmer-district-filter" className="sr-only">
+              Filter by district
+            </label>
+            <SelectField
+              id="farmer-district-filter"
+              variant="compact"
+              value={districtFilter}
+              onChange={setDistrictFilter}
+              options={[
+                { value: "all", label: "All districts" },
+                ...districtOptions.map((d) => ({ value: d, label: d })),
+                { value: "Not specified", label: "Not specified" },
+              ]}
+            />
+          </div>
+          <div className="form-group" style={{ margin: 0, minWidth: "155px" }}>
             <label htmlFor="farmer-commodity-filter" className="sr-only">
               Filter by commodity
             </label>
@@ -206,11 +337,32 @@ export function FarmersPage() {
               onChange={setCommodityFilter}
               options={[
                 { value: "all", label: "All commodities" },
-                { value: "Not specified", label: "Not specified" },
                 ...commodityOptions.map((c) => ({ value: c, label: c })),
+                { value: "Not specified", label: "Not specified" },
               ]}
             />
           </div>
+          <div className="form-group" style={{ margin: 0, minWidth: "130px" }}>
+            <label htmlFor="farmer-gender-filter" className="sr-only">
+              Filter by gender
+            </label>
+            <SelectField
+              id="farmer-gender-filter"
+              variant="compact"
+              value={genderFilter}
+              onChange={setGenderFilter}
+              options={[
+                { value: "all", label: "All genders" },
+                { value: "male", label: "Male" },
+                { value: "female", label: "Female" },
+              ]}
+            />
+          </div>
+          {hasActiveFilters && (
+            <button type="button" className="link-btn" onClick={clearFilters}>
+              Clear filters
+            </button>
+          )}
         </div>
 
         {filteredPending.length > 0 && (
@@ -225,6 +377,7 @@ export function FarmersPage() {
                   <th>Region</th>
                   <th>Commodities</th>
                   <th>Mobile</th>
+                  <th>Added By</th>
                   <th>Status</th>
                   <th className="table__actions-col">More</th>
                 </tr>
@@ -241,6 +394,7 @@ export function FarmersPage() {
                       <td>{record.form.region || "—"}</td>
                       <td>{commodities.join(", ") || "—"}</td>
                       <td>{record.form.phone || "—"}</td>
+                      <td>{user.full_name}</td>
                       <td>
                         <span className={`sync-badge sync-badge--${record.status}`}>
                           {record.status === "failed"
@@ -338,6 +492,7 @@ export function FarmersPage() {
                   <th>Region</th>
                   <th>Commodities</th>
                   <th>Mobile</th>
+                  <th>Added By</th>
                   <th>Status</th>
                   <th className="table__actions-col">More</th>
                 </tr>
@@ -353,6 +508,7 @@ export function FarmersPage() {
                     <td>{f.region ?? "—"}</td>
                     <td>{(f.primary_crops ?? []).join(", ") || "—"}</td>
                     <td>{f.phone ?? "—"}</td>
+                    <td>{f.created_by_name || "—"}</td>
                     <td>
                       <span className="sync-badge sync-badge--synced">Synced</span>
                     </td>

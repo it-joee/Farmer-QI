@@ -35,7 +35,7 @@ export function OfftakerDetailPage() {
 
       <div className="page-header farmer-detail__header">
         <div className="farmer-detail__identity">
-          <FarmerProfileAvatar name={offtaker.company_name} />
+          <FarmerProfileAvatar name={offtaker.company_name} variant="offtaker" />
           <div>
             <h2>{offtaker.company_name}</h2>
             <p className="muted">{offtaker.delivery_location || "—"}</p>
@@ -84,6 +84,10 @@ export function OfftakerDetailPage() {
           <div className="detail-grid__item">
             <dt>Target Products</dt>
             <dd>{offtaker.target_products && offtaker.target_products.length > 0 ? offtaker.target_products.join(", ") : "—"}</dd>
+          </div>
+          <div className="detail-grid__item">
+            <dt>Added By</dt>
+            <dd>{display(offtaker.created_by_name)}</dd>
           </div>
         </dl>
       </section>

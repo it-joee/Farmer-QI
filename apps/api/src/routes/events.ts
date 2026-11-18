@@ -13,8 +13,10 @@ export const eventRoutes = new Hono();
 
 const eventListSelect = `
   SELECT e.*,
+    u.full_name AS created_by_name,
     (SELECT COUNT(*)::int FROM event_attendees ea WHERE ea.event_id = e.id) AS attendance_count
   FROM events e
+  LEFT JOIN users u ON u.id = e.created_by
   WHERE e.deleted_at IS NULL
 `;
 

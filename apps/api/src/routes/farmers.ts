@@ -28,6 +28,9 @@ farmerRoutes.get("/", async (c) => {
   const limit = parseInt(c.req.query("limit") ?? "20", 10) || 20;
   const search = c.req.query("search")?.trim() ?? "";
   const commodity = c.req.query("commodity")?.trim() ?? "";
+  const region = c.req.query("region")?.trim() ?? "";
+  const district = c.req.query("district")?.trim() ?? "";
+  const gender = c.req.query("gender")?.trim() ?? "";
 
   const offset = (page - 1) * limit;
 
@@ -59,6 +62,34 @@ farmerRoutes.get("/", async (c) => {
     }
   }
 
+  if (region && region !== "all") {
+    if (region === "Not specified") {
+      filterSql += ` AND (f.region IS NULL OR TRIM(f.region) = '')`;
+    } else {
+      filterSql += ` AND LOWER(REGEXP_REPLACE(TRIM(f.region), '\\s+', ' ', 'g')) = LOWER(REGEXP_REPLACE(TRIM($${paramIndex}), '\\s+', ' ', 'g'))`;
+      params.push(region);
+      paramIndex++;
+    }
+  }
+
+  if (district && district !== "all") {
+    if (district === "Not specified") {
+      filterSql += ` AND (f.district IS NULL OR TRIM(f.district) = '')`;
+    } else {
+      filterSql += ` AND LOWER(REGEXP_REPLACE(TRIM(f.district), '\\s+', ' ', 'g')) = LOWER(REGEXP_REPLACE(TRIM($${paramIndex}), '\\s+', ' ', 'g'))`;
+      params.push(district);
+      paramIndex++;
+    }
+  }
+
+  if (gender && gender !== "all") {
+    if (gender === "male") {
+      filterSql += ` AND LOWER(TRIM(f.gender)) IN ('male', 'm')`;
+    } else if (gender === "female") {
+      filterSql += ` AND LOWER(TRIM(f.gender)) IN ('female', 'f')`;
+    }
+  }
+
   const countResult = await query(
     `SELECT COUNT(*) FROM farmers f WHERE f.deleted_at IS NULL AND ${scope.sql} ${filterSql}`,
     params
@@ -69,7 +100,11 @@ farmerRoutes.get("/", async (c) => {
 
   const dataParams = [...params, limit, offset];
   const result = await query(
-    `SELECT * FROM farmers f WHERE f.deleted_at IS NULL AND ${scope.sql} ${filterSql} ORDER BY f.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+    `SELECT f.*, u.full_name AS created_by_name
+     FROM farmers f
+     LEFT JOIN users u ON u.id = f.created_by
+     WHERE f.deleted_at IS NULL AND ${scope.sql} ${filterSql}
+     ORDER BY f.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
     dataParams
   );
 
@@ -88,11 +123,140 @@ farmerRoutes.get("/all", async (c) => {
 
   const scope = farmerScopeClause(actorResult, "f", 1);
   const result = await query(
-    `SELECT * FROM farmers f WHERE f.deleted_at IS NULL AND ${scope.sql} ORDER BY f.created_at DESC`,
+    `SELECT f.*, u.full_name AS created_by_name
+     FROM farmers f
+     LEFT JOIN users u ON u.id = f.created_by
+     WHERE f.deleted_at IS NULL AND ${scope.sql}
+     ORDER BY f.created_at DESC`,
     scope.params
   );
 
   return c.json({ farmers: result.rows });
+});
+
+function toPct(count: number, total: number): number {
+  if (total === 0) return 0;
+  return Math.round((count / total) * 1000) / 10;
+}
+
+farmerRoutes.get("/stats", async (c) => {
+  const actorResult = requireActor(c);
+  if (actorResult instanceof Response) return actorResult;
+
+  const commodity = c.req.query("commodity")?.trim() ?? "";
+  const scope = farmerScopeClause(actorResult, "f", 1);
+
+  let districtFilterSql = "";
+  const districtParams = [...scope.params];
+  if (commodity && commodity !== "all") {
+    if (commodity === "Not specified") {
+      districtFilterSql = ` AND (f.primary_crops IS NULL OR array_length(f.primary_crops, 1) IS NULL OR f.primary_crops = '{}')`;
+    } else {
+      const idx = districtParams.length + 1;
+      districtFilterSql = ` AND EXISTS (SELECT 1 FROM unnest(f.primary_crops) AS crop WHERE LOWER(TRIM(crop)) = LOWER($${idx}))`;
+      districtParams.push(commodity);
+    }
+  }
+
+  const [summaryRes, commodityRes, regionRes, districtRes] = await Promise.all([
+    query<{
+      total: number;
+      districts: number;
+      regions: number;
+      male: number;
+      female: number;
+      with_commodities: number;
+    }>(
+      `SELECT
+        COUNT(*)::int AS total,
+        COUNT(DISTINCT NULLIF(LOWER(REGEXP_REPLACE(TRIM(f.district), '\\s+', ' ', 'g')), ''))::int AS districts,
+        COUNT(DISTINCT NULLIF(LOWER(REGEXP_REPLACE(TRIM(f.region), '\\s+', ' ', 'g')), ''))::int AS regions,
+        COUNT(*) FILTER (WHERE LOWER(TRIM(f.gender)) IN ('male', 'm'))::int AS male,
+        COUNT(*) FILTER (WHERE LOWER(TRIM(f.gender)) IN ('female', 'f'))::int AS female,
+        COUNT(*) FILTER (WHERE f.primary_crops IS NOT NULL AND array_length(f.primary_crops, 1) > 0)::int AS with_commodities
+      FROM farmers f
+      WHERE f.deleted_at IS NULL AND ${scope.sql}`,
+      scope.params
+    ),
+    query<{ label: string; count: number }>(
+      `WITH expanded AS (
+        SELECT
+          CASE
+            WHEN f.primary_crops IS NULL OR array_length(f.primary_crops, 1) IS NULL OR f.primary_crops = '{}' THEN 'Not specified'
+            ELSE TRIM(crop)
+          END AS raw_label
+        FROM farmers f
+        LEFT JOIN LATERAL unnest(
+          CASE
+            WHEN f.primary_crops IS NULL OR array_length(f.primary_crops, 1) IS NULL OR f.primary_crops = '{}' THEN ARRAY[NULL::text]
+            ELSE f.primary_crops
+          END
+        ) AS crop ON true
+        WHERE f.deleted_at IS NULL AND ${scope.sql}
+      )
+      SELECT MIN(raw_label) AS label, COUNT(*)::int AS count
+      FROM expanded
+      WHERE raw_label IS NOT NULL AND raw_label <> ''
+      GROUP BY LOWER(raw_label)
+      ORDER BY count DESC`,
+      scope.params
+    ),
+    query<{ label: string; count: number }>(
+      `SELECT
+        COALESCE(NULLIF(MIN(TRIM(f.region)), ''), 'Not specified') AS label,
+        COUNT(*)::int AS count
+      FROM farmers f
+      WHERE f.deleted_at IS NULL AND ${scope.sql}
+      GROUP BY COALESCE(NULLIF(LOWER(REGEXP_REPLACE(TRIM(f.region), '\\s+', ' ', 'g')), ''), 'not specified')
+      ORDER BY count DESC`,
+      scope.params
+    ),
+    query<{ label: string; count: number }>(
+      `SELECT
+        COALESCE(NULLIF(MIN(TRIM(f.district)), ''), 'Not specified') AS label,
+        COUNT(*)::int AS count
+      FROM farmers f
+      WHERE f.deleted_at IS NULL AND ${scope.sql} ${districtFilterSql}
+      GROUP BY COALESCE(NULLIF(LOWER(REGEXP_REPLACE(TRIM(f.district), '\\s+', ' ', 'g')), ''), 'not specified')
+      ORDER BY count DESC`,
+      districtParams
+    ),
+  ]);
+
+  const summary = summaryRes.rows[0] ?? {
+    total: 0,
+    districts: 0,
+    regions: 0,
+    male: 0,
+    female: 0,
+    with_commodities: 0,
+  };
+
+  const commodityDenom = summary.with_commodities || summary.total;
+  const districtTotal = districtRes.rows.reduce((sum, r) => sum + r.count, 0);
+
+  return c.json({
+    totalRegistered: summary.total,
+    districts: summary.districts,
+    regions: summary.regions,
+    male: summary.male,
+    female: summary.female,
+    by_commodity: commodityRes.rows.map((r) => ({
+      label: r.label,
+      count: r.count,
+      percentage: toPct(r.count, commodityDenom),
+    })),
+    by_region: regionRes.rows.map((r) => ({
+      label: r.label,
+      count: r.count,
+      percentage: toPct(r.count, summary.total),
+    })),
+    by_district: districtRes.rows.map((r) => ({
+      label: r.label,
+      count: r.count,
+      percentage: toPct(r.count, districtTotal),
+    })),
+  });
 });
 
 farmerRoutes.post("/", async (c) => {
@@ -531,10 +695,16 @@ farmerRoutes.get("/:id", async (c) => {
 
   const farmerId = c.req.param("id");
   const scope = farmerScopeClause(actorResult, "f", 2);
-  const result = await query(`SELECT * FROM farmers f WHERE f.id = $1 AND f.deleted_at IS NULL AND ${scope.sql}`, [
-    farmerId,
-    ...scope.params,
-  ]);
+  const result = await query(
+    `SELECT f.*, u.full_name AS created_by_name
+     FROM farmers f
+     LEFT JOIN users u ON u.id = f.created_by
+     WHERE f.id = $1 AND f.deleted_at IS NULL AND ${scope.sql}`,
+    [
+      farmerId,
+      ...scope.params,
+    ]
+  );
 
   if (result.rowCount === 0) {
     return c.json({ error: "Farmer not found" }, 404);

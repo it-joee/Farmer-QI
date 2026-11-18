@@ -79,6 +79,7 @@ export function AggregatorDetailPage() {
     { label: "Business Name", value: aggregator.business_name ?? "—" },
     { label: "Ghana Card No", value: aggregator.ghana_card ?? "—" },
     { label: "Commodities", value: (aggregator.commodities ?? []).join(", ") || "—" },
+    { label: "Added by", value: aggregator.created_by_name ?? "—" },
     {
       label: "Registered On",
       value: new Date(aggregator.created_at).toLocaleDateString("en-GB", {
@@ -95,7 +96,7 @@ export function AggregatorDetailPage() {
 
       <div className="page-header farmer-detail__header">
         <div className="farmer-detail__identity">
-          <FarmerProfileAvatar name={aggregator.full_name} portraitUrl={portraitUrl} />
+          <FarmerProfileAvatar name={aggregator.full_name} portraitUrl={portraitUrl} variant="aggregator" />
           <div>
             <h2>{aggregator.full_name}</h2>
             <p className="muted">

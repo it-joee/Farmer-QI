@@ -3,6 +3,13 @@ import { Link } from "react-router-dom";
 import type { ConflictFlag, FarmerExportRow, ReportSummary } from "@farmeriq/shared";
 import { GHANA_REGIONS } from "@farmeriq/shared";
 import { ConflictResolveActions } from "../components/ConflictResolveActions";
+import { AnimatedNumber } from "../components/dashboard/AnimatedNumber";
+import {
+  BoundaryIcon,
+  FarmerTractorIcon,
+  FlagAlertIcon,
+  IdCardIcon,
+} from "../components/dashboard/KpiIcons";
 import { DateField } from "../components/fields/DateField";
 import { SelectField } from "../components/fields/SelectField";
 import { useRequireAuth } from "../hooks/useFarmers";
@@ -213,19 +220,47 @@ export function ReportsPage() {
 
       <div className="reports-kpi-grid">
         <div className="card reports-kpi">
-          <span className="reports-kpi__value">{loading ? "—" : summary.total_farmers}</span>
+          <div className="kpi-card__top">
+            <span className="reports-kpi__value">
+              {loading ? "—" : <AnimatedNumber value={summary.total_farmers} />}
+            </span>
+            <span className="kpi-card__icon" aria-hidden="true">
+              <FarmerTractorIcon />
+            </span>
+          </div>
           <span className="reports-kpi__label">Farmers</span>
         </div>
         <div className="card reports-kpi">
-          <span className="reports-kpi__value">{loading ? "—" : summary.with_ghana_card}</span>
+          <div className="kpi-card__top">
+            <span className="reports-kpi__value">
+              {loading ? "—" : <AnimatedNumber value={summary.with_ghana_card} />}
+            </span>
+            <span className="kpi-card__icon" aria-hidden="true">
+              <IdCardIcon />
+            </span>
+          </div>
           <span className="reports-kpi__label">With Ghana Card</span>
         </div>
         <div className="card reports-kpi">
-          <span className="reports-kpi__value">{loading ? "—" : summary.with_boundary}</span>
+          <div className="kpi-card__top">
+            <span className="reports-kpi__value">
+              {loading ? "—" : <AnimatedNumber value={summary.with_boundary} />}
+            </span>
+            <span className="kpi-card__icon" aria-hidden="true">
+              <BoundaryIcon />
+            </span>
+          </div>
           <span className="reports-kpi__label">With boundary</span>
         </div>
         <div className="card reports-kpi">
-          <span className="reports-kpi__value">{loading ? "—" : summary.open_conflicts}</span>
+          <div className="kpi-card__top">
+            <span className="reports-kpi__value">
+              {loading ? "—" : <AnimatedNumber value={summary.open_conflicts} />}
+            </span>
+            <span className="kpi-card__icon" aria-hidden="true">
+              <FlagAlertIcon />
+            </span>
+          </div>
           <span className="reports-kpi__label">Open flags</span>
         </div>
       </div>

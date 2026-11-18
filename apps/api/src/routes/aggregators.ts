@@ -61,6 +61,7 @@ aggregatorRoutes.get("/", async (c) => {
     const limit = parseInt(c.req.query("limit") ?? "20", 10) || 20;
     const search = c.req.query("search")?.trim() ?? "";
     const commodity = c.req.query("commodity")?.trim() ?? "";
+    const town = c.req.query("town")?.trim() ?? "";
 
     const offset = (page - 1) * limit;
 
@@ -92,6 +93,24 @@ aggregatorRoutes.get("/", async (c) => {
       }
     }
 
+    if (town && town !== "all") {
+      if (town === "Not specified") {
+        filterSql += ` AND (a.town IS NULL OR TRIM(a.town) = '')`;
+      } else {
+        filterSql += ` AND LOWER(TRIM(a.town)) = LOWER($${paramIndex})`;
+        params.push(town);
+        paramIndex++;
+      }
+    }
+
+    const townsResult = await query<{ town: string }>(
+      `SELECT DISTINCT TRIM(a.town) AS town
+       FROM aggregators a
+       WHERE a.deleted_at IS NULL AND ${scope.sql} AND a.town IS NOT NULL AND TRIM(a.town) != ''
+       ORDER BY town ASC`,
+      scope.params
+    );
+
     const countResult = await query(
       `SELECT COUNT(*) FROM aggregators a WHERE a.deleted_at IS NULL AND ${scope.sql} ${filterSql}`,
       params
@@ -102,7 +121,11 @@ aggregatorRoutes.get("/", async (c) => {
 
     const dataParams = [...params, limit, offset];
     const result = await query(
-      `SELECT * FROM aggregators a WHERE a.deleted_at IS NULL AND ${scope.sql} ${filterSql} ORDER BY a.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+      `SELECT a.*, u.full_name AS created_by_name
+       FROM aggregators a
+       LEFT JOIN users u ON u.id = a.created_by
+       WHERE a.deleted_at IS NULL AND ${scope.sql} ${filterSql}
+       ORDER BY a.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
       dataParams
     );
 
@@ -112,6 +135,7 @@ aggregatorRoutes.get("/", async (c) => {
       page,
       limit,
       totalPages,
+      towns: townsResult.rows.map((r) => r.town),
     });
   } catch (err) {
     console.error("[GET /aggregators error]", err);
@@ -277,7 +301,10 @@ aggregatorRoutes.get("/:id", async (c) => {
   const aggregatorId = c.req.param("id");
   const scope = aggregatorScopeClause(actorResult, "a", 2);
   const result = await query(
-    `SELECT * FROM aggregators a WHERE a.id = $1 AND a.deleted_at IS NULL AND ${scope.sql}`,
+    `SELECT a.*, u.full_name AS created_by_name
+     FROM aggregators a
+     LEFT JOIN users u ON u.id = a.created_by
+     WHERE a.id = $1 AND a.deleted_at IS NULL AND ${scope.sql}`,
     [aggregatorId, ...scope.params]
   );
 

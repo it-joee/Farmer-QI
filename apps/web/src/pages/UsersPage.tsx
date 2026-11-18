@@ -84,6 +84,10 @@ export function UsersPage() {
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
+    if (!form.full_name.trim()) {
+      setError("Full name is required.");
+      return;
+    }
     setSaving(true);
     setError("");
 
@@ -220,7 +224,8 @@ export function UsersPage() {
 
       {error && <p className="error">{error}</p>}
 
-      <section className="card">
+      <div className="users-sections">
+      <section className="card users-sections__form">
         <h3 className="card-title">Add user</h3>
         <form className="form-grid form-grid--2" onSubmit={(e) => void handleCreate(e)}>
           <div className="form-group">
@@ -284,7 +289,7 @@ export function UsersPage() {
         </form>
       </section>
 
-      <section className="card">
+      <section className="card users-sections__list">
         <div className="card-title-row" style={{ marginBottom: "1rem" }}>
           <h3 className="card-title" style={{ margin: 0 }}>Users</h3>
           <div className="form-group" style={{ margin: 0, width: "300px", maxWidth: "100%" }}>
@@ -406,6 +411,7 @@ export function UsersPage() {
           </>
         )}
       </section>
+      </div>
 
       {editingUser && (
         <div

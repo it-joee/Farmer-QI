@@ -146,11 +146,11 @@ export function getCommodityFilterOptions(
  * so each bar and pie slice is distinct and visually clear.
  */
 export const CHART_COLORS = [
-  palette.green[500],  // #b0ec80 — Exact Brand Green (Primary)
+  "#00a067",           // Primary Brand Green
   "#facc15",           // Golden Yellow (Corn / Maize)
   palette.orange[600],  // #c9925a — Warm Harvest Ochre
   "#8b5a2b",           // Earth Soil Brown
-  palette.green[600],  // #8fd066 — Deeper Brand Green
+  "#10b981",           // Emerald Green
   "#f59e0b",           // Amber Gold
   "#deb781",           // Wheat Tan
   "#6c431b",           // Rich Cocoa Brown

@@ -142,6 +142,7 @@ export function EventsPage() {
                   <th>Title</th>
                   <th>Location</th>
                   <th>Attendance</th>
+                  <th>Added By</th>
                   <th className="table__actions-col">More</th>
                 </tr>
               </thead>
@@ -154,6 +155,7 @@ export function EventsPage() {
                     <td>
                       <span className="attendance-count">{event.attendance_count ?? 0} attendees</span>
                     </td>
+                    <td>{event.created_by_name || "—"}</td>
                     <td className="table__actions-col">
                       <div className="table__actions">
                         {canRegisterFarmers(user) && (

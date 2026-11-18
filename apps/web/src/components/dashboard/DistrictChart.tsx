@@ -3,20 +3,19 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
+  LabelList,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { getChartColor } from "../../lib/dashboard-stats";
 
 interface DistrictChartProps {
   data: StatBucket[];
 }
 
 export function DistrictChart({ data }: DistrictChartProps) {
-  const top = data.slice(0, 12);
+  const top = data.slice(0, 10);
 
   if (top.length === 0) {
     return <div className="chart-wrap chart-wrap--empty" />;
@@ -28,25 +27,50 @@ export function DistrictChart({ data }: DistrictChartProps) {
     percentage: d.percentage,
   }));
 
+  const chartHeight = Math.max(260, top.length * 30);
+
   return (
     <div className="chart-wrap">
-      <ResponsiveContainer width="100%" height={280}>
-        <BarChart data={chartData} layout="vertical" margin={{ left: 8, right: 16 }}>
+      <ResponsiveContainer width="100%" height={chartHeight}>
+        <BarChart data={chartData} layout="vertical" margin={{ top: 4, left: 4, right: 44, bottom: 4 }}>
           <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e8ebe8" />
-          <XAxis type="number" allowDecimals={false} tick={{ fill: "#757575", fontSize: 12 }} />
-          <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12, fill: "#757575" }} />
+          <XAxis
+            type="number"
+            allowDecimals={false}
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: "#374151", fontSize: 12, fontWeight: 500 }}
+          />
+          <YAxis
+            type="category"
+            dataKey="name"
+            width={124}
+            interval={0}
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 12, fontWeight: 500, fill: "#0d3b29" }}
+          />
           <Tooltip
-            cursor={false}
+            cursor={{ fill: "rgba(0, 160, 103, 0.06)" }}
+            contentStyle={{
+              borderRadius: 10,
+              border: "1px solid #e8ebe8",
+              boxShadow: "0 4px 12px rgba(6, 36, 25, 0.08)",
+              color: "#0d3b29",
+            }}
             formatter={(value, _name, item) => {
               const count = Number(value ?? 0);
               const pct = (item?.payload as { percentage?: number })?.percentage ?? 0;
-              return [`${count} farmers (${pct}%)`, "Registered"];
+              return [`${count.toLocaleString()} farmers (${pct}%)`, "Registered"];
             }}
           />
-          <Bar dataKey="farmers" radius={[0, 8, 8, 0]}>
-            {chartData.map((entry, i) => (
-              <Cell key={entry.name} fill={getChartColor(entry.name, i)} />
-            ))}
+          <Bar dataKey="farmers" fill="#00a067" barSize={16} radius={[0, 6, 6, 0]} minPointSize={3}>
+            <LabelList
+              dataKey="farmers"
+              position="right"
+              formatter={(v) => Number(v ?? 0).toLocaleString()}
+              style={{ fill: "#0d3b29", fontSize: 11, fontWeight: 600 }}
+            />
           </Bar>
         </BarChart>
       </ResponsiveContainer>

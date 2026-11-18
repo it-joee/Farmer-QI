@@ -34,6 +34,7 @@ export function profileFieldsFromFarmer(farmer: Farmer): ProfileField[] {
     { label: "Bank name", value: display(farmer.bank_name) },
     { label: "Bank branch", value: display(farmer.bank_branch) },
     { label: "Bank account", value: display(farmer.bank_account) },
+    { label: "Added by", value: display(farmer.created_by_name) },
     {
       label: "Registered",
       value: new Date(farmer.created_at).toLocaleString(),

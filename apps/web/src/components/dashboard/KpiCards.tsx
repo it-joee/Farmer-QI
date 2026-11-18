@@ -1,4 +1,13 @@
+import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
+import { AnimatedNumber } from "./AnimatedNumber";
+import {
+  DriverIcon,
+  FarmerTractorIcon,
+  NavIconAggregators,
+  NavIconEvents,
+  NavIconOfftakers,
+} from "./KpiIcons";
 
 interface KpiCardsProps {
   totalFarmers: number;
@@ -7,6 +16,7 @@ interface KpiCardsProps {
   totalOfftakers?: number;
   totalDrivers?: number;
   showOfftakers?: boolean;
+  showDrivers?: boolean;
 }
 
 export function KpiCards({
@@ -16,22 +26,32 @@ export function KpiCards({
   totalOfftakers = 0,
   totalDrivers = 0,
   showOfftakers = true,
+  showDrivers = true,
 }: KpiCardsProps) {
-  const cards = [
-    { label: "Total farmers", value: totalFarmers, to: "/farmers" },
-    { label: "Total aggregators", value: totalAggregators, to: "/aggregators" },
+  const cards: { label: string; value: number; to: string; icon: ReactNode }[] = [
+    { label: "Total farmers", value: totalFarmers, to: "/farmers", icon: <FarmerTractorIcon /> },
+    { label: "Total aggregators", value: totalAggregators, to: "/aggregators", icon: <NavIconAggregators /> },
     ...(showOfftakers
-      ? [{ label: "Total offtakers", value: totalOfftakers, to: "/offtakers" }]
+      ? [{ label: "Total offtakers", value: totalOfftakers, to: "/offtakers", icon: <NavIconOfftakers /> }]
       : []),
-    { label: "Total events", value: totalEvents, to: "/events" },
-    { label: "Total drivers", value: totalDrivers, to: "/drivers" },
+    { label: "Total events", value: totalEvents, to: "/events", icon: <NavIconEvents /> },
+    ...(showDrivers
+      ? [{ label: "Total drivers", value: totalDrivers, to: "/drivers", icon: <DriverIcon /> }]
+      : []),
   ];
 
   return (
-    <div className="kpi-grid">
+    <div className={`kpi-grid kpi-grid--${cards.length}`}>
       {cards.map((card) => (
         <Link key={card.label} to={card.to} className="kpi-card kpi-card--link">
-          <span className="kpi-card__value">{card.value}</span>
+          <div className="kpi-card__top">
+            <span className="kpi-card__value">
+              <AnimatedNumber value={card.value} />
+            </span>
+            <span className="kpi-card__icon" aria-hidden="true">
+              {card.icon}
+            </span>
+          </div>
           <span className="kpi-card__label">{card.label}</span>
         </Link>
       ))}

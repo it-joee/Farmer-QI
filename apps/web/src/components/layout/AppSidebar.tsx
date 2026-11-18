@@ -1,6 +1,6 @@
 import type { User } from "@farmeriq/shared";
 import { NavLink } from "react-router-dom";
-import { canAccessOfftakers, canAccessReports, canManageUsers } from "../../auth";
+import { canAccessDrivers, canAccessOfftakers, canAccessReports, canManageUsers } from "../../auth";
 import { NavIcon, type NavIconKey } from "./NavIcons";
 import { AppLogo } from "./AppLogo";
 import { UserProfileMenu } from "./UserProfileMenu";
@@ -12,6 +12,9 @@ export function AppSidebar({ user, onLogout }: { user: User; onLogout: () => voi
     { to: "/aggregators", label: "Aggregators", icon: "aggregators" as NavIconKey },
     ...(canAccessOfftakers(user)
       ? [{ to: "/offtakers", label: "Offtakers", icon: "offtakers" as NavIconKey }]
+      : []),
+    ...(canAccessDrivers(user)
+      ? [{ to: "/drivers", label: "Drivers", icon: "drivers" as NavIconKey }]
       : []),
   ];
 

@@ -22,17 +22,19 @@ export function OfftakersPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [commodityFilter, setCommodityFilter] = useState("all");
+  const [locationFilter, setLocationFilter] = useState("all");
   const [page, setPage] = useState(1);
 
   useEffect(() => {
     setPage(1);
-  }, [search, commodityFilter]);
+  }, [search, commodityFilter, locationFilter]);
 
-  const { offtakers, pagination, loading, refetch } = useOfftakers(
+  const { offtakers, locations, pagination, loading, refetch } = useOfftakers(
     page,
     20,
     search,
-    commodityFilter === "all" ? "" : commodityFilter
+    commodityFilter === "all" ? "" : commodityFilter,
+    locationFilter === "all" ? "" : locationFilter
   );
   const { pendingOfftakers, refreshPending } = useOfflineSyncContext();
   const { confirm, alert } = useConfirmDialog();
@@ -47,19 +49,45 @@ export function OfftakersPage() {
     [offtakers]
   );
 
+  const locationOptions = useMemo(() => {
+    const names = new Set<string>(locations);
+    for (const p of pendingOfftakers) {
+      const loc = p.form.delivery_location?.trim();
+      if (loc) names.add(loc);
+    }
+    return [...names].sort((a, b) => a.localeCompare(b));
+  }, [locations, pendingOfftakers]);
+
   const filteredPending = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return pendingOfftakers;
-
-    return pendingOfftakers.filter(
-      (record) =>
-        record.form.company_name.toLowerCase().includes(q) ||
-        record.form.contact_person.toLowerCase().includes(q) ||
-        (record.form.delivery_location?.toLowerCase().includes(q) ?? false) ||
-        (record.form.contact?.includes(q) ?? false) ||
-        (record.form.official_email?.includes(q) ?? false)
-    );
-  }, [pendingOfftakers, search]);
+    return pendingOfftakers.filter((record) => {
+      if (
+        q &&
+        !(
+          record.form.company_name.toLowerCase().includes(q) ||
+          record.form.contact_person.toLowerCase().includes(q) ||
+          (record.form.delivery_location?.toLowerCase().includes(q) ?? false) ||
+          (record.form.contact?.includes(q) ?? false) ||
+          (record.form.official_email?.includes(q) ?? false)
+        )
+      ) {
+        return false;
+      }
+      if (locationFilter !== "all") {
+        const loc = record.form.delivery_location?.trim() || "Not specified";
+        if (loc.toLowerCase() !== locationFilter.toLowerCase()) return false;
+      }
+      if (commodityFilter !== "all") {
+        const crops = buildOfftakerCommodities(record.form);
+        if (commodityFilter === "Not specified") {
+          if (crops.length > 0) return false;
+        } else if (!crops.some((c) => c.toLowerCase() === commodityFilter.toLowerCase())) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [pendingOfftakers, search, locationFilter, commodityFilter]);
 
   const totalCount = pagination.total + filteredPending.length;
 
@@ -132,16 +160,32 @@ export function OfftakersPage() {
 
       <div className="card">
         <div className="farmers-filters">
-          <div className="form-group" style={{ margin: 0, flex: 1 }}>
+          <div className="form-group" style={{ margin: 0, flex: "1 1 260px", maxWidth: "360px", marginRight: "auto" }}>
             <label htmlFor="offtaker-search" className="sr-only">
               Search offtakers
             </label>
             <input
               id="offtaker-search"
               type="search"
-              placeholder="Search by name, town, business name, phone…"
+              placeholder="Search by company, contact person, location, phone…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="form-group" style={{ margin: 0, minWidth: "150px" }}>
+            <label htmlFor="offtaker-location-filter" className="sr-only">
+              Filter by location
+            </label>
+            <SelectField
+              id="offtaker-location-filter"
+              variant="compact"
+              value={locationFilter}
+              onChange={setLocationFilter}
+              options={[
+                { value: "all", label: "All locations" },
+                ...locationOptions.map((loc) => ({ value: loc, label: loc })),
+                { value: "Not specified", label: "Not specified" },
+              ]}
             />
           </div>
           <div className="form-group" style={{ margin: 0, minWidth: "160px" }}>
@@ -155,8 +199,8 @@ export function OfftakersPage() {
               onChange={setCommodityFilter}
               options={[
                 { value: "all", label: "All commodities" },
-                { value: "Not specified", label: "Not specified" },
                 ...commodityOptions.map((c) => ({ value: c, label: c })),
+                { value: "Not specified", label: "Not specified" },
               ]}
             />
           </div>
@@ -173,6 +217,7 @@ export function OfftakersPage() {
                     <th>Delivery Location</th>
                     <th>Target Products</th>
                     <th>Contact</th>
+                    <th>Added By</th>
                     <th>Status</th>
                     <th className="table__actions-col">More</th>
                   </tr>
@@ -188,6 +233,7 @@ export function OfftakersPage() {
                         <td>{record.form.delivery_location || "—"}</td>
                         <td>{commodities.join(", ") || "—"}</td>
                         <td>{record.form.contact || "—"}</td>
+                        <td>{user.full_name}</td>
                         <td>
                           <span className={`sync-badge sync-badge--${record.status}`}>
                             {record.status === "failed"
@@ -285,6 +331,7 @@ export function OfftakersPage() {
                     <th>Delivery Location</th>
                     <th>Target Products</th>
                     <th>Contact</th>
+                    <th>Added By</th>
                     <th>Status</th>
                     <th className="table__actions-col">More</th>
                   </tr>
@@ -299,6 +346,7 @@ export function OfftakersPage() {
                         <td>{a.delivery_location || "—"}</td>
                         <td>{(a.target_products ?? []).join(", ") || "—"}</td>
                         <td>{a.contact ?? "—"}</td>
+                        <td>{a.created_by_name || "—"}</td>
                         <td>
                           <span className="sync-badge sync-badge--synced">Synced</span>
                         </td>

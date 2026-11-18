@@ -4,13 +4,12 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
+  LabelList,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { getChartColor } from "../../lib/dashboard-stats";
 
 interface RegionChartProps {
   data: StatBucket[];
@@ -43,26 +42,55 @@ export function RegionChart({ data }: RegionChartProps) {
   return (
     <div className="chart-wrap">
       <ResponsiveContainer width="100%" height={260}>
-        <BarChart data={chartData} margin={{ bottom: 48 }}>
+        <BarChart data={chartData} margin={{ top: 20, right: 12, bottom: 48, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8ebe8" />
-          <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#4b5563" }} angle={-35} textAnchor="end" interval={0} height={70} />
+          <XAxis
+            dataKey="name"
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 11, fontWeight: 500, fill: "#0d3b29" }}
+            angle={-35}
+            textAnchor="end"
+            interval={0}
+            height={70}
+          />
           <YAxis
             domain={[0, 100]}
+            axisLine={false}
+            tickLine={false}
             tickFormatter={(val) => `${val}%`}
-            tick={{ fill: "#757575", fontSize: 12 }}
+            tick={{ fill: "#374151", fontSize: 12, fontWeight: 500 }}
           />
           <Tooltip
-            cursor={false}
+            cursor={{ fill: "rgba(0, 160, 103, 0.06)" }}
+            contentStyle={{
+              borderRadius: 10,
+              border: "1px solid #e8ebe8",
+              boxShadow: "0 4px 12px rgba(6, 36, 25, 0.08)",
+              color: "#0d3b29",
+            }}
             formatter={(value, _name, item) => {
               const pct = Number(value ?? 0);
               const count = (item?.payload as { farmers?: number })?.farmers ?? 0;
-              return [`${count} farmers (${pct}%)`, "Registered"];
+              return [`${count.toLocaleString()} farmers (${pct}%)`, "Registered"];
             }}
           />
-          <Bar dataKey="percentage" radius={[8, 8, 0, 0]}>
-            {chartData.map((entry, i) => (
-              <Cell key={entry.name} fill={getChartColor(entry.name, i)} />
-            ))}
+          <Bar
+            dataKey="percentage"
+            fill="#00a067"
+            radius={[6, 6, 0, 0]}
+            barSize={22}
+            background={{ fill: "#f4f6f5", radius: 6 }}
+          >
+            <LabelList
+              dataKey="percentage"
+              position="top"
+              formatter={(v) => {
+                const n = Number(v ?? 0);
+                return n > 0 ? `${n}%` : "";
+              }}
+              style={{ fill: "#0d3b29", fontSize: 11, fontWeight: 600 }}
+            />
           </Bar>
         </BarChart>
       </ResponsiveContainer>

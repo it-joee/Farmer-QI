@@ -3,7 +3,7 @@ import { UserRole as UserRoleSchema, type UserRole } from "./roles.js";
 
 export const CreateUserRequest = z.object({
   email: z.string().email(),
-  full_name: z.string().min(1),
+  full_name: z.string().trim().min(1, "Full name is required"),
   role: UserRoleSchema,
   office_id: z.string().uuid().nullable().optional(),
   created_by: z.string().uuid().optional(),
@@ -11,7 +11,7 @@ export const CreateUserRequest = z.object({
 export type CreateUserRequest = z.infer<typeof CreateUserRequest>;
 
 export const UpdateUserRequest = z.object({
-  full_name: z.string().min(1).optional(),
+  full_name: z.string().trim().min(1, "Full name is required").optional(),
   role: UserRoleSchema.optional(),
   office_id: z.string().uuid().nullable().optional(),
   is_active: z.boolean().optional(),

@@ -135,6 +135,7 @@ export interface Farmer {
   bank_account: string | null;
   primary_crops: string[];
   created_by: string;
+  created_by_name?: string | null;
   office_id: string | null;
   created_at: string;
   updated_at: string;
@@ -167,3 +168,4 @@ export * from "./aggregators.js";
 
 
 export * from "./offtakers.js";
+export * from "./drivers.js";

@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import { canAccessOfftakers, canAccessReports } from "./auth";
+import { canAccessDrivers, canAccessOfftakers, canAccessReports } from "./auth";
 import { useRequireAuth } from "./hooks/useFarmers";
 import { AppLayout } from "./components/layout/AppLayout";
 import { AddFarmerPage } from "./pages/AddFarmerPage";
@@ -21,6 +21,9 @@ import { NewEventPage } from "./pages/NewEventPage";
 import { EditEventPage } from "./pages/EditEventPage";
 import { EventDetailPage } from "./pages/EventDetailPage";
 import { DriversPage } from "./pages/DriversPage";
+import { AddDriverPage } from "./pages/AddDriverPage";
+import { EditDriverPage } from "./pages/EditDriverPage";
+import { DriverDetailPage } from "./pages/DriverDetailPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { SetPasswordPage } from "./pages/SetPasswordPage";
@@ -46,6 +49,15 @@ function RequireReportsAccess({ children }: { children: React.ReactNode }) {
   const user = useRequireAuth();
   if (!user) return null;
   if (!canAccessReports(user)) {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+}
+
+function RequireDriversAccess({ children }: { children: React.ReactNode }) {
+  const user = useRequireAuth();
+  if (!user) return null;
+  if (!canAccessDrivers(user)) {
     return <Navigate to="/" replace />;
   }
   return <>{children}</>;
@@ -119,7 +131,38 @@ export function App() {
             </RequireOfftakersAccess>
           }
         />
-        <Route path="/drivers" element={<DriversPage />} />
+        <Route
+          path="/drivers"
+          element={
+            <RequireDriversAccess>
+              <DriversPage />
+            </RequireDriversAccess>
+          }
+        />
+        <Route
+          path="/drivers/new"
+          element={
+            <RequireDriversAccess>
+              <AddDriverPage />
+            </RequireDriversAccess>
+          }
+        />
+        <Route
+          path="/drivers/:id/edit"
+          element={
+            <RequireDriversAccess>
+              <EditDriverPage />
+            </RequireDriversAccess>
+          }
+        />
+        <Route
+          path="/drivers/:id"
+          element={
+            <RequireDriversAccess>
+              <DriverDetailPage />
+            </RequireDriversAccess>
+          }
+        />
         <Route
           path="/reports"
           element={

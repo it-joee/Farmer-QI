@@ -41,6 +41,7 @@ export interface EventRecord {
   district: string | null;
   mofa_officer: string | null;
   created_by: string;
+  created_by_name?: string | null;
   office_id: string | null;
   created_at: string;
   updated_at: string;

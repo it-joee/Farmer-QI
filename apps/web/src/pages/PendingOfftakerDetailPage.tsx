@@ -106,7 +106,7 @@ export function PendingOfftakerDetailPage() {
 
       <div className="page-header farmer-detail__header">
         <div className="farmer-detail__identity">
-          <FarmerProfileAvatar name={name} />
+          <FarmerProfileAvatar name={name} variant="offtaker" />
           <div>
             <h2>{name}</h2>
             <p className="muted">{form.delivery_location || "—"}</p>

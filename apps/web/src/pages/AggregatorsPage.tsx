@@ -22,17 +22,19 @@ export function AggregatorsPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [commodityFilter, setCommodityFilter] = useState("all");
+  const [townFilter, setTownFilter] = useState("all");
   const [page, setPage] = useState(1);
 
   useEffect(() => {
     setPage(1);
-  }, [search, commodityFilter]);
+  }, [search, commodityFilter, townFilter]);
 
-  const { aggregators, pagination, loading, refetch } = useAggregators(
+  const { aggregators, towns, pagination, loading, refetch } = useAggregators(
     page,
     20,
     search,
-    commodityFilter === "all" ? "" : commodityFilter
+    commodityFilter === "all" ? "" : commodityFilter,
+    townFilter === "all" ? "" : townFilter
   );
   const { pendingAggregators, refreshPending } = useOfflineSyncContext();
   const { confirm, alert } = useConfirmDialog();
@@ -47,19 +49,45 @@ export function AggregatorsPage() {
     [aggregators]
   );
 
+  const townOptions = useMemo(() => {
+    const names = new Set<string>(towns);
+    for (const p of pendingAggregators) {
+      const t = p.form.town?.trim();
+      if (t) names.add(t);
+    }
+    return [...names].sort((a, b) => a.localeCompare(b));
+  }, [towns, pendingAggregators]);
+
   const filteredPending = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return pendingAggregators;
-
-    return pendingAggregators.filter(
-      (record) =>
-        record.form.full_name.toLowerCase().includes(q) ||
-        (record.form.town?.toLowerCase().includes(q) ?? false) ||
-        (record.form.business_name?.toLowerCase().includes(q) ?? false) ||
-        (record.form.phone?.includes(q) ?? false) ||
-        (record.form.ghana_card?.includes(q) ?? false)
-    );
-  }, [pendingAggregators, search]);
+    return pendingAggregators.filter((record) => {
+      if (
+        q &&
+        !(
+          record.form.full_name.toLowerCase().includes(q) ||
+          (record.form.town?.toLowerCase().includes(q) ?? false) ||
+          (record.form.business_name?.toLowerCase().includes(q) ?? false) ||
+          (record.form.phone?.includes(q) ?? false) ||
+          (record.form.ghana_card?.includes(q) ?? false)
+        )
+      ) {
+        return false;
+      }
+      if (townFilter !== "all") {
+        const t = record.form.town?.trim() || "Not specified";
+        if (t.toLowerCase() !== townFilter.toLowerCase()) return false;
+      }
+      if (commodityFilter !== "all") {
+        const crops = buildAggregatorCommodities(record.form);
+        if (commodityFilter === "Not specified") {
+          if (crops.length > 0) return false;
+        } else if (!crops.some((c) => c.toLowerCase() === commodityFilter.toLowerCase())) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [pendingAggregators, search, townFilter, commodityFilter]);
 
   const totalCount = pagination.total + filteredPending.length;
 
@@ -132,7 +160,7 @@ export function AggregatorsPage() {
 
       <div className="card">
         <div className="farmers-filters">
-          <div className="form-group" style={{ margin: 0, flex: 1 }}>
+          <div className="form-group" style={{ margin: 0, flex: "1 1 260px", maxWidth: "360px", marginRight: "auto" }}>
             <label htmlFor="aggregator-search" className="sr-only">
               Search aggregators
             </label>
@@ -142,6 +170,22 @@ export function AggregatorsPage() {
               placeholder="Search by name, town, business name, phone…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="form-group" style={{ margin: 0, minWidth: "150px" }}>
+            <label htmlFor="aggregator-town-filter" className="sr-only">
+              Filter by town
+            </label>
+            <SelectField
+              id="aggregator-town-filter"
+              variant="compact"
+              value={townFilter}
+              onChange={setTownFilter}
+              options={[
+                { value: "all", label: "All towns" },
+                ...townOptions.map((t) => ({ value: t, label: t })),
+                { value: "Not specified", label: "Not specified" },
+              ]}
             />
           </div>
           <div className="form-group" style={{ margin: 0, minWidth: "160px" }}>
@@ -155,8 +199,8 @@ export function AggregatorsPage() {
               onChange={setCommodityFilter}
               options={[
                 { value: "all", label: "All commodities" },
-                { value: "Not specified", label: "Not specified" },
                 ...commodityOptions.map((c) => ({ value: c, label: c })),
+                { value: "Not specified", label: "Not specified" },
               ]}
             />
           </div>
@@ -173,6 +217,7 @@ export function AggregatorsPage() {
                     <th>Town</th>
                     <th>Commodities</th>
                     <th>Contact</th>
+                    <th>Added By</th>
                     <th>Status</th>
                     <th className="table__actions-col">More</th>
                   </tr>
@@ -188,6 +233,7 @@ export function AggregatorsPage() {
                         <td>{record.form.town || "—"}</td>
                         <td>{commodities.join(", ") || "—"}</td>
                         <td>{record.form.phone || "—"}</td>
+                        <td>{user.full_name}</td>
                         <td>
                           <span className={`sync-badge sync-badge--${record.status}`}>
                             {record.status === "failed"
@@ -285,6 +331,7 @@ export function AggregatorsPage() {
                     <th>Town</th>
                     <th>Commodities</th>
                     <th>Contact</th>
+                    <th>Added By</th>
                     <th>Status</th>
                     <th className="table__actions-col">More</th>
                   </tr>
@@ -299,6 +346,7 @@ export function AggregatorsPage() {
                         <td>{a.town || "—"}</td>
                         <td>{(a.commodities ?? []).join(", ") || "—"}</td>
                         <td>{a.phone ?? "—"}</td>
+                        <td>{a.created_by_name || "—"}</td>
                         <td>
                           <span className="sync-badge sync-badge--synced">Synced</span>
                         </td>

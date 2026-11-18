@@ -14,9 +14,10 @@ export function normalizeAggregator(raw: Aggregator): Aggregator {
   };
 }
 
-export function useAggregators(page = 1, limit = 20, search = "", commodity = "") {
+export function useAggregators(page = 1, limit = 20, search = "", commodity = "", town = "") {
   const user = useAuthUser();
   const [aggregators, setAggregators] = useState<Aggregator[]>([]);
+  const [towns, setTowns] = useState<string[]>([]);
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 20, totalPages: 0 });
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -36,6 +37,7 @@ export function useAggregators(page = 1, limit = 20, search = "", commodity = ""
       limit: limit.toString(),
       ...(search && { search }),
       ...(commodity && { commodity }),
+      ...(town && { town }),
     });
 
     apiFetch(`/api/aggregators?${params.toString()}`)
@@ -43,8 +45,11 @@ export function useAggregators(page = 1, limit = 20, search = "", commodity = ""
         if (!r.ok) return null;
         return r.json();
       })
-      .then((data: PaginatedResponse<Aggregator> | { aggregators: Aggregator[] } | null) => {
+      .then((data: (PaginatedResponse<Aggregator> & { towns?: string[] }) | { aggregators: Aggregator[]; towns?: string[] } | null) => {
         if (!data) return;
+        if ("towns" in data && Array.isArray(data.towns)) {
+          setTowns(data.towns);
+        }
         if ("data" in data && Array.isArray(data.data)) {
           setAggregators(data.data.map(normalizeAggregator));
           setPagination({
@@ -61,7 +66,7 @@ export function useAggregators(page = 1, limit = 20, search = "", commodity = ""
         /* keep cached list when offline */
       })
       .finally(() => setLoading(false));
-  }, [user?.id, user?.role, refreshKey, page, limit, search, commodity]);
+  }, [user?.id, user?.role, refreshKey, page, limit, search, commodity, town]);
 
   useEffect(() => {
     function handleSynced() {
@@ -76,7 +81,7 @@ export function useAggregators(page = 1, limit = 20, search = "", commodity = ""
     };
   }, [refetch]);
 
-  return { aggregators, pagination, loading, refetch };
+  return { aggregators, towns, pagination, loading, refetch };
 }
 
 export function useAllAggregators() {

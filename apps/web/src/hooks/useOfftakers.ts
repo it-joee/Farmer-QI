@@ -14,9 +14,10 @@ export function normalizeOfftaker(raw: Offtaker): Offtaker {
   };
 }
 
-export function useOfftakers(page = 1, limit = 20, search = "", commodity = "") {
+export function useOfftakers(page = 1, limit = 20, search = "", commodity = "", location = "") {
   const user = useAuthUser();
   const [offtakers, setOfftakers] = useState<Offtaker[]>([]);
+  const [locations, setLocations] = useState<string[]>([]);
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 20, totalPages: 0 });
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -36,6 +37,7 @@ export function useOfftakers(page = 1, limit = 20, search = "", commodity = "") 
       limit: limit.toString(),
       ...(search && { search }),
       ...(commodity && { commodity }),
+      ...(location && { location }),
     });
 
     apiFetch(`/api/offtakers?${params.toString()}`)
@@ -43,8 +45,11 @@ export function useOfftakers(page = 1, limit = 20, search = "", commodity = "") 
         if (!r.ok) return null;
         return r.json();
       })
-      .then((data: PaginatedResponse<Offtaker> | { offtakers: Offtaker[] } | null) => {
+      .then((data: (PaginatedResponse<Offtaker> & { locations?: string[] }) | { offtakers: Offtaker[]; locations?: string[] } | null) => {
         if (!data) return;
+        if ("locations" in data && Array.isArray(data.locations)) {
+          setLocations(data.locations);
+        }
         if ("data" in data && Array.isArray(data.data)) {
           setOfftakers(data.data.map(normalizeOfftaker));
           setPagination({
@@ -61,7 +66,7 @@ export function useOfftakers(page = 1, limit = 20, search = "", commodity = "") 
         /* keep cached list when offline */
       })
       .finally(() => setLoading(false));
-  }, [user?.id, user?.role, refreshKey, page, limit, search, commodity]);
+  }, [user?.id, user?.role, refreshKey, page, limit, search, commodity, location]);
 
   useEffect(() => {
     function handleSynced() {
@@ -76,7 +81,7 @@ export function useOfftakers(page = 1, limit = 20, search = "", commodity = "") 
     };
   }, [refetch]);
 
-  return { offtakers, pagination, loading, refetch };
+  return { offtakers, locations, pagination, loading, refetch };
 }
 
 export function useAllOfftakers() {

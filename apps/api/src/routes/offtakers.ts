@@ -70,6 +70,7 @@ offtakerRoutes.get("/", async (c) => {
     const limit = parseInt(c.req.query("limit") ?? "20", 10) || 20;
     const search = c.req.query("search")?.trim() ?? "";
     const commodity = c.req.query("commodity")?.trim() ?? "";
+    const location = c.req.query("location")?.trim() ?? "";
 
     const offset = (page - 1) * limit;
 
@@ -101,6 +102,24 @@ offtakerRoutes.get("/", async (c) => {
       }
     }
 
+    if (location && location !== "all") {
+      if (location === "Not specified") {
+        filterSql += ` AND (a.delivery_location IS NULL OR TRIM(a.delivery_location) = '')`;
+      } else {
+        filterSql += ` AND LOWER(TRIM(a.delivery_location)) = LOWER($${paramIndex})`;
+        params.push(location);
+        paramIndex++;
+      }
+    }
+
+    const locationsResult = await query<{ location: string }>(
+      `SELECT DISTINCT TRIM(a.delivery_location) AS location
+       FROM offtakers a
+       WHERE a.deleted_at IS NULL AND ${scope.sql} AND a.delivery_location IS NOT NULL AND TRIM(a.delivery_location) != ''
+       ORDER BY location ASC`,
+      scope.params
+    );
+
     const countResult = await query(
       `SELECT COUNT(*) FROM offtakers a WHERE a.deleted_at IS NULL AND ${scope.sql} ${filterSql}`,
       params
@@ -111,7 +130,7 @@ offtakerRoutes.get("/", async (c) => {
 
     const dataParams = [...params, limit, offset];
     const result = await query(
-      `SELECT * FROM offtakers a WHERE a.deleted_at IS NULL AND ${scope.sql} ${filterSql} ORDER BY a.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+      `SELECT a.*, u.full_name AS created_by_name FROM offtakers a LEFT JOIN users u ON u.id = a.created_by WHERE a.deleted_at IS NULL AND ${scope.sql} ${filterSql} ORDER BY a.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
       dataParams
     );
 
@@ -121,6 +140,7 @@ offtakerRoutes.get("/", async (c) => {
       page,
       limit,
       totalPages,
+      locations: locationsResult.rows.map((r) => r.location),
     });
   } catch (err) {
     console.error("[GET /offtakers error]", err);
@@ -287,7 +307,7 @@ offtakerRoutes.get("/:id", async (c) => {
   const offtakerId = c.req.param("id");
   const scope = offtakerScopeClause(actorResult, "a", 2);
   const result = await query(
-    `SELECT * FROM offtakers a WHERE (a.id::text = $1 OR a.reference_id = $1) AND a.deleted_at IS NULL AND ${scope.sql}`,
+    `SELECT a.*, u.full_name AS created_by_name FROM offtakers a LEFT JOIN users u ON u.id = a.created_by WHERE (a.id::text = $1 OR a.reference_id = $1) AND a.deleted_at IS NULL AND ${scope.sql}`,
     [offtakerId, ...scope.params]
   );
 

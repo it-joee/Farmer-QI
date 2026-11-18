@@ -58,6 +58,20 @@ export function canAccessOfftakers(user: User | null | undefined): boolean {
   return user?.role === "team_lead" || user?.role === "admin";
 }
 
+export function canAccessDrivers(user: User | null | undefined): boolean {
+  return user?.role === "team_lead" || user?.role === "admin";
+}
+
+export function canRegisterDrivers(user: User | null | undefined): boolean {
+  return user?.role === "team_lead" || user?.role === "admin";
+}
+
+export function driversScopeLabel(user: User) {
+  if (user.role === "admin") return "Drivers";
+  if (user.role === "team_lead") return "Office drivers";
+  return "Drivers";
+}
+
 export function canAccessReports(user: User | null | undefined): boolean {
   return user?.role === "team_lead" || user?.role === "admin";
 }

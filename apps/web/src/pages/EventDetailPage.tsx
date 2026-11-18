@@ -3,6 +3,8 @@ import { Link, useLocation, useMatch, useParams } from "react-router-dom";
 import type { EventAttendee, EventDetail, EventAttendeeGender } from "@farmeriq/shared";
 import { GENDER_OPTIONS } from "@farmeriq/shared";
 import { BackButton } from "../components/BackButton";
+import { AnimatedNumber } from "../components/dashboard/AnimatedNumber";
+import { FemaleIcon, MaleIcon, NavIconUsers } from "../components/dashboard/KpiIcons";
 import { FormGroup } from "../components/FormGroup";
 import { SelectField } from "../components/fields/SelectField";
 import { Pagination } from "../components/Pagination";
@@ -311,11 +313,11 @@ export function EventDetailPage() {
             setPaginationData((prev) =>
               prev
                 ? {
-                    ...prev,
-                    total: prev.total + 1,
-                    male_count: prev.male_count + (input.gender === "male" ? 1 : 0),
-                    female_count: prev.female_count + (input.gender === "female" ? 1 : 0),
-                  }
+                  ...prev,
+                  total: prev.total + 1,
+                  male_count: prev.male_count + (input.gender === "male" ? 1 : 0),
+                  female_count: prev.female_count + (input.gender === "female" ? 1 : 0),
+                }
                 : prev
             );
           }
@@ -442,6 +444,7 @@ export function EventDetailPage() {
           <p className="muted">
             {eventDate ? formatEventDate(eventDate) : ""}
             {eventMeta ? ` · ${eventMeta}` : eventLocation ? ` · ${eventLocation}` : ""}
+            {!isPendingEvent && event?.created_by_name ? ` · Added by ${event.created_by_name}` : ""}
           </p>
           {eventDescription && <p className="event-detail__description">{eventDescription}</p>}
         </div>
@@ -458,15 +461,36 @@ export function EventDetailPage() {
 
       <div className="kpi-grid">
         <div className="kpi-card">
-          <span className="kpi-card__value">{totalAttendees}</span>
+          <div className="kpi-card__top">
+            <span className="kpi-card__value">
+              <AnimatedNumber value={totalAttendees} />
+            </span>
+            <span className="kpi-card__icon" aria-hidden="true">
+              <NavIconUsers />
+            </span>
+          </div>
           <span className="kpi-card__label">Total attendees</span>
         </div>
         <div className="kpi-card">
-          <span className="kpi-card__value">{genderCounts.male}</span>
+          <div className="kpi-card__top">
+            <span className="kpi-card__value">
+              <AnimatedNumber value={genderCounts.male} />
+            </span>
+            <span className="kpi-card__icon" aria-hidden="true">
+              <MaleIcon />
+            </span>
+          </div>
           <span className="kpi-card__label">Male</span>
         </div>
         <div className="kpi-card">
-          <span className="kpi-card__value">{genderCounts.female}</span>
+          <div className="kpi-card__top">
+            <span className="kpi-card__value">
+              <AnimatedNumber value={genderCounts.female} />
+            </span>
+            <span className="kpi-card__icon" aria-hidden="true">
+              <FemaleIcon />
+            </span>
+          </div>
           <span className="kpi-card__label">Female</span>
         </div>
       </div>
@@ -497,7 +521,24 @@ export function EventDetailPage() {
                     {formatAttendeeMeta(person)}
                   </span>
                 </span>
-                <div style={{ display: "flex", gap: "0.5rem" }}>
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                  {canRegisterFarmers(user) && (
+                    <Link
+                      to="/farmers/new"
+                      state={{
+                        prefillForm: {
+                          full_name: person.full_name,
+                          gender: person.gender ?? "",
+                          age: person.age != null ? String(person.age) : "",
+                          phone: person.phone ?? "",
+                          community: person.community ?? "",
+                        },
+                      }}
+                      className="btn btn-secondary btn--sm"
+                    >
+                      Add to farmers
+                    </Link>
+                  )}
                   <button
                     type="button"
                     className="btn btn-secondary btn--sm"

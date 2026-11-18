@@ -139,6 +139,7 @@ export function PendingAggregatorDetailPage() {
           <FarmerProfileAvatar
             name={record.form.full_name || "Aggregator"}
             portraitUrl={photoUrls.portrait ?? undefined}
+            variant="aggregator"
           />
           <div>
             <h2>{record.form.full_name || "Draft (Unnamed)"}</h2>

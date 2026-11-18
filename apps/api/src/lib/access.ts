@@ -16,6 +16,10 @@ export function canAccessOfftakers(actor: Actor): boolean {
   return actor.role === "team_lead" || actor.role === "admin";
 }
 
+export function canAccessDrivers(actor: Actor): boolean {
+  return actor.role === "team_lead" || actor.role === "admin";
+}
+
 export function canRegisterOfftakers(actor: Actor): boolean {
   return actor.role === "team_lead" || actor.role === "admin";
 }

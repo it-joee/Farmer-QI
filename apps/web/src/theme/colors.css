@@ -12,19 +12,19 @@
   --palette-border-strong: #d8dcd8;
 
   /* ── Text ── */
-  --palette-text: #181818;
+  --palette-text: #0d3b29;
   --palette-text-secondary: #757575;
   --palette-text-muted: #bdbdbd;
   --palette-text-inverse: #ffffff;
 
   /* ── Green (primary accent) ── */
-  --palette-green-50: #f4fbf0;
-  --palette-green-100: #e8f8d8;
-  --palette-green-200: #daf0cb;
-  --palette-green-300: #c8f0a8;
-  --palette-green-400: #b8e890;
-  --palette-green-500: #b0ec80;
-  --palette-green-600: #8fd066;
+  --palette-green-50: #effaf5;
+  --palette-green-100: #d9f3e7;
+  --palette-green-200: #b5e7d0;
+  --palette-green-300: #80d4b0;
+  --palette-green-400: #40bc8b;
+  --palette-green-500: #00a067;
+  --palette-green-600: #018858;
 
   /* ── Orange / tan (secondary accent) ── */
   --palette-orange-50: #fff8ef;
@@ -50,8 +50,8 @@
   --palette-corn-500: #deb781;
 
   /* ── Semantic aliases ── */
-  --palette-primary: var(--palette-green-300);
-  --palette-primary-hover: var(--palette-green-400);
+  --palette-primary: #00a067;
+  --palette-primary-hover: #019165;
   --palette-primary-soft: var(--palette-green-100);
   --palette-primary-track: var(--palette-green-100);
 
@@ -63,8 +63,8 @@
   --palette-warning-bg: var(--palette-orange-100);
   --palette-warning-text: var(--palette-orange-600);
 
-  --palette-button-primary-bg: #181818;
-  --palette-button-primary-hover: #000000;
+  --palette-button-primary-bg: #00a067;
+  --palette-button-primary-hover: #019165;
   --palette-button-primary-text: #ffffff;
 
   --palette-card-green: var(--palette-green-100);

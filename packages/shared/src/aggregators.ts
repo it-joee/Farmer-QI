@@ -39,6 +39,7 @@ export interface Aggregator {
   business_name: string | null;
   commodities: string[];
   created_by: string;
+  created_by_name?: string | null;
   office_id: string | null;
   created_at: string;
   updated_at: string;
