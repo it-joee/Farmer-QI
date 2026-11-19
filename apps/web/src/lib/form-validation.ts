@@ -47,3 +47,30 @@ export function applyFieldValidation(
   focusFormField(validation.fieldId);
   return false;
 }
+
+export function sanitizePhoneInput(value: string): string {
+  return value.replace(/[^\d+\-\s()]/g, "");
+}
+
+export function stripNumericCommas(value: string): string {
+  return value.replace(/,/g, "");
+}
+
+export function formatNumericInput(raw: string, allowDecimal = true): string {
+  if (!raw) return "";
+  let cleaned = allowDecimal ? raw.replace(/[^0-9.]/g, "") : raw.replace(/[^0-9]/g, "");
+  if (!cleaned) return "";
+
+  if (allowDecimal) {
+    const firstDot = cleaned.indexOf(".");
+    if (firstDot !== -1) {
+      cleaned =
+        cleaned.slice(0, firstDot + 1) +
+        cleaned.slice(firstDot + 1).replace(/\./g, "");
+    }
+  }
+
+  const [intPart = "", decPart] = cleaned.split(".");
+  const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return decPart !== undefined ? `${formattedInt}.${decPart}` : formattedInt;
+}

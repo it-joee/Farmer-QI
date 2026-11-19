@@ -3,7 +3,7 @@ import type { CapturedPhoto } from "../../lib/photos";
 import { FormGroup } from "../../components/FormGroup";
 import { PhotoCaptureField } from "../../components/PhotoCaptureField";
 import { CommodityChipSelect } from "../../components/fields/CommodityChipSelect";
-import type { FieldErrors } from "../../lib/form-validation";
+import { sanitizePhoneInput, type FieldErrors } from "../../lib/form-validation";
 
 interface StepProps {
   form: AggregatorFormData;
@@ -71,7 +71,7 @@ export function StepAggregatorDetails({
           type="tel"
           placeholder="e.g. 0244123456"
           value={form.phone}
-          onChange={(e) => onChange("phone", e.target.value)}
+          onChange={(e) => onChange("phone", sanitizePhoneInput(e.target.value))}
         />
       </FormGroup>
 

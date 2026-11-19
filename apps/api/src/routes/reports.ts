@@ -4,6 +4,7 @@ import type { Actor } from "../lib/actor.js";
 import { requireActor } from "../lib/actor.js";
 import { canAccessReports, farmerScopeClause } from "../lib/access.js";
 import { query } from "../db.js";
+import { pruneStaleGhanaCardFlags } from "../lib/conflicts.js";
 
 export const reportRoutes = new Hono();
 
@@ -105,6 +106,7 @@ reportRoutes.get("/farmers", async (c) => {
 
   const { where, params } = buildWhereClause(parsed.filters!, actorResult);
 
+  await pruneStaleGhanaCardFlags();
   const result = await query(
     `SELECT
       f.*,
@@ -138,6 +140,7 @@ reportRoutes.get("/farmers", async (c) => {
 
   let openConflicts = 0;
   if (farmers.length > 0) {
+    await pruneStaleGhanaCardFlags();
     const farmerIds = farmers.map((f) => f.id);
     const conflictResult = await query<{ count: string }>(
       `SELECT COUNT(DISTINCT cf.id)::text AS count
@@ -190,6 +193,7 @@ reportRoutes.get("/conflicts", async (c) => {
     return c.json({ conflicts: [] });
   }
 
+  await pruneStaleGhanaCardFlags();
   const result = await query(
     `SELECT cf.*,
        COALESCE(fe.full_name, pf.full_name) AS farmer_name,

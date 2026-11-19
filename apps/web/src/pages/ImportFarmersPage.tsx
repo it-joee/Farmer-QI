@@ -25,6 +25,7 @@ import {
 } from "../lib/sheet-import";
 import { buildPrimaryCommodities } from "./farmer-form/commodities";
 import type { FarmerFormData } from "./farmer-form/types";
+import { sanitizePhoneInput } from "../lib/form-validation";
 
 export function ImportFarmersPage() {
   const user = useRequireAuth();
@@ -805,7 +806,7 @@ export function ImportFarmersPage() {
                               placeholder="Optional"
                               value={row.form.phone}
                               onChange={(e) =>
-                                updateRowFormField(row.id, "phone", e.target.value)
+                                updateRowFormField(row.id, "phone", sanitizePhoneInput(e.target.value))
                               }
                             />
                           </td>

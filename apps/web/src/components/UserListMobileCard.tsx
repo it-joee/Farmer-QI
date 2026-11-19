@@ -39,7 +39,15 @@ export function UserListMobileCard({
           </span>
         </div>
         <div className="farmer-list-card__content">
-          <h3 className="farmer-list-card__name">{name}</h3>
+          <h3 className="farmer-list-card__name">
+            {name}
+            <span
+              className={`sync-badge ${isActive ? "sync-badge--synced" : "sync-badge--failed"}`}
+              style={{ marginLeft: "0.4rem" }}
+            >
+              {isActive ? "Active" : "Inactive"}
+            </span>
+          </h3>
           <p className="farmer-list-card__community">{roleLabel}</p>
           <p className="farmer-list-card__meta">
             {email}
@@ -52,9 +60,6 @@ export function UserListMobileCard({
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
       >
-        <span className={`sync-badge ${isActive ? "sync-badge--synced" : "sync-badge--failed"}`}>
-          {isActive ? "Active" : "Inactive"}
-        </span>
         <div className="farmer-list-card__menu">
           <FarmerActionsMenu label={`Actions for ${name}`} items={menuItems} />
         </div>

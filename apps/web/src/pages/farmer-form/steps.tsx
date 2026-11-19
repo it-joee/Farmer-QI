@@ -11,7 +11,7 @@ import { FarmBoundaryCapture } from "../../components/FarmBoundaryCapture";
 import { SelectField } from "../../components/fields/SelectField";
 import { PhotoCaptureField } from "../../components/PhotoCaptureField";
 import { CommodityChipSelect } from "../../components/fields/CommodityChipSelect";
-import type { FieldErrors } from "../../lib/form-validation";
+import { sanitizePhoneInput, type FieldErrors } from "../../lib/form-validation";
 
 interface StepProps {
   form: FarmerFormData;
@@ -257,7 +257,7 @@ export function StepIdentity({
           id="phone"
           type="tel"
           value={form.phone}
-          onChange={(e) => onChange("phone", e.target.value)}
+          onChange={(e) => onChange("phone", sanitizePhoneInput(e.target.value))}
         />
       </FormGroup>
 

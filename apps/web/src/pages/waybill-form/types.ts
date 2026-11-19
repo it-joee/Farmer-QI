@@ -6,7 +6,11 @@ import type {
   Waybill,
   WaybillStatus,
 } from "@farmeriq/shared";
-import type { FieldValidation } from "../../lib/form-validation";
+import {
+  formatNumericInput,
+  stripNumericCommas,
+  type FieldValidation,
+} from "../../lib/form-validation";
 
 export interface WaybillFormData {
   waybill_number: string;
@@ -81,10 +85,11 @@ export const WAYBILL_FORM_STEPS = [
 ] as const;
 
 export function waybillToFormData(waybill: Waybill): WaybillFormData {
-  const weightKg = waybill.weight_kg != null ? String(Number(waybill.weight_kg)) : "";
+  const weightKg =
+    waybill.weight_kg != null ? formatNumericInput(String(Number(waybill.weight_kg)), true) : "";
   const weightTons =
     waybill.weight_kg != null
-      ? String(Number((Number(waybill.weight_kg) / 1000).toFixed(4)))
+      ? formatNumericInput(String(Number((Number(waybill.weight_kg) / 1000).toFixed(4))), true)
       : "";
 
   const buyerSelection = waybill.offtaker_id
@@ -116,12 +121,14 @@ export function waybillToFormData(waybill: Waybill): WaybillFormData {
     discharge_location: waybill.discharge_location ?? "",
     product_name: waybill.product_name ?? "",
     product_description: waybill.product_description ?? "",
-    bag_count: waybill.bag_count != null ? String(waybill.bag_count) : "",
+    bag_count: waybill.bag_count != null ? formatNumericInput(String(waybill.bag_count), false) : "",
     bag_unit: waybill.bag_unit || "Bags",
     weight_kg: weightKg,
     weight_tons: weightTons,
     received_weight_kg:
-      waybill.received_weight_kg != null ? String(Number(waybill.received_weight_kg)) : "",
+      waybill.received_weight_kg != null
+        ? formatNumericInput(String(Number(waybill.received_weight_kg)), true)
+        : "",
     driver_selection: waybill.driver_id ?? "",
     driver_id: waybill.driver_id ?? "",
     driver_name: waybill.driver_name ?? "",
@@ -132,14 +139,14 @@ export function waybillToFormData(waybill: Waybill): WaybillFormData {
 }
 
 function parseOptionalInt(value: string): number | null {
-  const trimmed = value.trim();
+  const trimmed = stripNumericCommas(value).trim();
   if (!trimmed) return null;
   const n = parseInt(trimmed, 10);
   return Number.isNaN(n) || n < 0 ? null : n;
 }
 
 function parseOptionalFloat(value: string): number | null {
-  const trimmed = value.trim();
+  const trimmed = stripNumericCommas(value).trim();
   if (!trimmed) return null;
   const n = Number(trimmed);
   return Number.isNaN(n) || n < 0 ? null : n;
@@ -181,14 +188,26 @@ export function validateWaybillKeyFields(
   if ((step === undefined || step === 1) && !form.issued_date.trim()) {
     return { fieldId: "issued_date", message: "Date of waybill issuance is required." };
   }
+  if ((step === undefined || step === 1) && !form.buyer_selection) {
+    return { fieldId: "buyer_selection", message: "Buyer / company is required." };
+  }
+  if (
+    (step === undefined || step === 1) &&
+    form.buyer_selection === "__custom__" &&
+    !form.buyer_name.trim()
+  ) {
+    return { fieldId: "buyer_name", message: "Enter buyer / company name." };
+  }
   if (step === 2) {
-    if (form.bag_count.trim() && (Number.isNaN(Number(form.bag_count)) || Number(form.bag_count) < 0)) {
+    const rawBagCount = stripNumericCommas(form.bag_count).trim();
+    if (rawBagCount && (Number.isNaN(Number(rawBagCount)) || Number(rawBagCount) < 0)) {
       return { fieldId: "bag_count", message: "Quantity must be a valid non-negative number." };
     }
-    if (!form.weight_kg.trim()) {
+    const rawWeightKg = stripNumericCommas(form.weight_kg).trim();
+    if (!rawWeightKg) {
       return { fieldId: "weight_kg", message: "Weight (kg) is required." };
     }
-    if (Number.isNaN(Number(form.weight_kg)) || Number(form.weight_kg) < 0) {
+    if (Number.isNaN(Number(rawWeightKg)) || Number(rawWeightKg) < 0) {
       return { fieldId: "weight_kg", message: "Weight must be a valid non-negative number." };
     }
   }
@@ -302,32 +321,36 @@ export function applyDriverSelection(
 }
 
 export function applyWeightKgChange(prev: WaybillFormData, kg: string): WaybillFormData {
-  if (!kg.trim()) {
-    return { ...prev, weight_kg: kg, weight_tons: "" };
+  const formattedKg = formatNumericInput(kg, true);
+  const rawKg = stripNumericCommas(formattedKg).trim();
+  if (!rawKg) {
+    return { ...prev, weight_kg: formattedKg, weight_tons: "" };
   }
-  const num = Number(kg);
+  const num = Number(rawKg);
   if (Number.isNaN(num) || num < 0) {
-    return { ...prev, weight_kg: kg };
+    return { ...prev, weight_kg: formattedKg };
   }
   return {
     ...prev,
-    weight_kg: kg,
-    weight_tons: String(Number((num / 1000).toFixed(4))),
+    weight_kg: formattedKg,
+    weight_tons: formatNumericInput(String(Number((num / 1000).toFixed(4))), true),
   };
 }
 
 export function applyWeightTonsChange(prev: WaybillFormData, tons: string): WaybillFormData {
-  if (!tons.trim()) {
-    return { ...prev, weight_tons: tons, weight_kg: "" };
+  const formattedTons = formatNumericInput(tons, true);
+  const rawTons = stripNumericCommas(formattedTons).trim();
+  if (!rawTons) {
+    return { ...prev, weight_tons: formattedTons, weight_kg: "" };
   }
-  const num = Number(tons);
+  const num = Number(rawTons);
   if (Number.isNaN(num) || num < 0) {
-    return { ...prev, weight_tons: tons };
+    return { ...prev, weight_tons: formattedTons };
   }
   return {
     ...prev,
-    weight_tons: tons,
-    weight_kg: String(Number((num * 1000).toFixed(2))),
+    weight_tons: formattedTons,
+    weight_kg: formatNumericInput(String(Number((num * 1000).toFixed(2))), true),
   };
 }
 

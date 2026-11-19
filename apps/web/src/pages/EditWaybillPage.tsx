@@ -304,9 +304,10 @@ export function EditWaybillPage() {
             offtakers={offtakers}
             aggregators={aggregators}
             onChange={updateField}
-            onSelectOfftaker={(val) =>
-              setForm((prev) => (prev ? applyOfftakerSelection(prev, val, offtakers) : prev))
-            }
+            onSelectOfftaker={(val) => {
+              setForm((prev) => (prev ? applyOfftakerSelection(prev, val, offtakers) : prev));
+              setFieldErrors((prev) => clearFieldError(clearFieldError(prev, "buyer_selection"), "buyer_name"));
+            }}
             onSelectAggregator={(val) =>
               setForm((prev) => (prev ? applyAggregatorSelection(prev, val, aggregators) : prev))
             }

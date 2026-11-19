@@ -171,24 +171,27 @@ export function WaybillsPage() {
             trading records
           </p>
         </div>
-        <div className="reports-actions">
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => void handleExport("csv")}
-            disabled={pagination.total === 0 || exporting}
-          >
-            Export CSV
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => void handleExport("pdf")}
-            disabled={pagination.total === 0 || exporting}
-          >
-            Export PDF
-          </button>
-        </div>
+        {/* Hidden for now; re-enable when bulk waybill exports are ready */}
+        {false && (
+          <div className="reports-actions">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => void handleExport("csv")}
+              disabled={pagination.total === 0 || exporting}
+            >
+              Export CSV
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => void handleExport("pdf")}
+              disabled={pagination.total === 0 || exporting}
+            >
+              Export PDF
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="kpi-grid kpi-grid--4">
@@ -463,6 +466,12 @@ export function WaybillsPage() {
                         <h3 className="farmer-list-card__name">
                           {w.waybill_number}
                           {w.product_name ? ` · ${w.product_name}` : ""}
+                          <span
+                            className={waybillStatusBadgeClass(w.status)}
+                            style={{ marginLeft: "0.4rem" }}
+                          >
+                            {formatWaybillStatus(w.status)}
+                          </span>
                           {(w.open_conflict_count ?? 0) > 0 && (
                             <span
                               className="conflict-alerts__badge"
@@ -472,10 +481,9 @@ export function WaybillsPage() {
                             </span>
                           )}
                         </h3>
-                        <p className="farmer-list-card__community">
-                          {[w.buyer_name, routeText].filter(Boolean).join(" · ") ||
-                            formatWaybillDate(w.issued_date)}
-                        </p>
+                        {w.buyer_name && (
+                          <p className="farmer-list-card__community">{w.buyer_name}</p>
+                        )}
                         <p className="farmer-list-card__meta">
                           {[
                             formatWaybillDate(w.issued_date),
@@ -495,9 +503,6 @@ export function WaybillsPage() {
                       onClick={(e) => e.stopPropagation()}
                       onKeyDown={(e) => e.stopPropagation()}
                     >
-                      <span className={waybillStatusBadgeClass(w.status)}>
-                        {formatWaybillStatus(w.status)}
-                      </span>
                       <div className="farmer-list-card__menu">
                         <FarmerActionsMenu
                           label={`Actions for Waybill ${w.waybill_number}`}

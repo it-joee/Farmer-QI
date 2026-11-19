@@ -8,14 +8,31 @@ interface OverlapMatch {
   farmer_name: string;
 }
 
+const GHANA_CARD_PLACEHOLDERS = new Set(["NA", "NONE", "NIL", "NULL", "UNKNOWN", "NONEGIVEN"]);
+
+export function normalizeGhanaCardKey(ghanaCard: string | null | undefined): string {
+  if (!ghanaCard) return "";
+  const cleaned = ghanaCard.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (cleaned.length < 6 || GHANA_CARD_PLACEHOLDERS.has(cleaned) || /^0+$/.test(cleaned)) {
+    return "";
+  }
+  return cleaned;
+}
+
 export async function findGhanaCardDuplicates(
   ghanaCard: string,
   excludeFarmerId?: string
 ): Promise<{ id: string; full_name: string }[]> {
+  const key = normalizeGhanaCardKey(ghanaCard);
+  if (!key) return [];
+
   const result = await query<{ id: string; full_name: string }>(
     `SELECT id, full_name FROM farmers
-     WHERE ghana_card = $1 AND ghana_card IS NOT NULL AND ($2::uuid IS NULL OR id != $2)`,
-    [ghanaCard, excludeFarmerId ?? null]
+     WHERE deleted_at IS NULL
+       AND ghana_card IS NOT NULL
+       AND REGEXP_REPLACE(UPPER(TRIM(ghana_card)), '[^A-Z0-9]', '', 'g') = $1
+       AND ($2::uuid IS NULL OR id != $2)`,
+    [key, excludeFarmerId ?? null]
   );
   return result.rows;
 }
@@ -70,9 +87,19 @@ export async function createConflictFlag(input: {
 }
 
 export async function checkGhanaCardConflicts(farmerId: string, ghanaCard: string | null | undefined) {
-  if (!ghanaCard?.trim()) return [];
+  const key = normalizeGhanaCardKey(ghanaCard);
+  const matches = key ? await findGhanaCardDuplicates(ghanaCard!.trim(), farmerId) : [];
 
-  const matches = await findGhanaCardDuplicates(ghanaCard.trim(), farmerId);
+  if (matches.length === 0) {
+    await query(
+      `UPDATE conflict_flags
+       SET status = 'resolved', resolved_at = now(), reason = 'Cleared automatically after update'
+       WHERE entity_type = 'farmer' AND entity_id = $1 AND flag_type = 'duplicate_ghana_card' AND status = 'open'`,
+      [farmerId]
+    );
+    return [];
+  }
+
   const flags = [];
 
   for (const match of matches) {
@@ -81,7 +108,7 @@ export async function checkGhanaCardConflicts(farmerId: string, ghanaCard: strin
       entityId: farmerId,
       flagType: "duplicate_ghana_card",
       details: {
-        ghana_card: ghanaCard.trim(),
+        ghana_card: ghanaCard!.trim(),
         matching_farmer_id: match.id,
         matching_farmer_name: match.full_name,
       },
@@ -111,7 +138,8 @@ export async function findProfileDuplicates(
 
   const result = await query<{ id: string; full_name: string; phone: string }>(
     `SELECT id, full_name, phone FROM farmers
-     WHERE lower(trim(regexp_replace(full_name, '\\s+', ' ', 'g'))) = $1
+     WHERE deleted_at IS NULL
+       AND lower(trim(regexp_replace(full_name, '\\s+', ' ', 'g'))) = $1
        AND lower(trim(regexp_replace(community, '\\s+', ' ', 'g'))) = $2
        AND phone IS NOT NULL AND trim(phone) != ''
        AND ($3::uuid IS NULL OR id != $3)`,
@@ -137,6 +165,16 @@ export async function checkProfileConflicts(
     profile.phone,
     farmerId
   );
+  if (matches.length === 0) {
+    await query(
+      `UPDATE conflict_flags
+       SET status = 'resolved', resolved_at = now(), reason = 'Cleared automatically after update'
+       WHERE entity_type = 'farmer' AND entity_id = $1 AND flag_type = 'duplicate_profile' AND status = 'open'`,
+      [farmerId]
+    );
+    return [];
+  }
+
   const flags = [];
 
   for (const match of matches) {
@@ -263,4 +301,33 @@ export async function resolveConflictFlag(input: {
   );
 
   return result.rows[0] ?? null;
+}
+
+export async function pruneStaleGhanaCardFlags() {
+  await query(
+    `UPDATE conflict_flags cf
+     SET status = 'resolved',
+         resolved_at = now(),
+         reason = 'Cleared automatically (Ghana Cards no longer match)'
+     WHERE cf.status = 'open'
+       AND cf.flag_type = 'duplicate_ghana_card'
+       AND cf.entity_type = 'farmer'
+       AND NOT EXISTS (
+         SELECT 1
+         FROM farmers f1
+         JOIN farmers f2
+           ON f2.id != f1.id
+          AND f2.deleted_at IS NULL
+          AND f2.ghana_card IS NOT NULL
+          AND REGEXP_REPLACE(UPPER(TRIM(f2.ghana_card)), '[^A-Z0-9]', '', 'g')
+            = REGEXP_REPLACE(UPPER(TRIM(f1.ghana_card)), '[^A-Z0-9]', '', 'g')
+         WHERE f1.id = cf.entity_id
+           AND f1.deleted_at IS NULL
+           AND f1.ghana_card IS NOT NULL
+           AND LENGTH(REGEXP_REPLACE(UPPER(TRIM(f1.ghana_card)), '[^A-Z0-9]', '', 'g')) >= 6
+           AND REGEXP_REPLACE(UPPER(TRIM(f1.ghana_card)), '[^A-Z0-9]', '', 'g')
+               NOT IN ('NA', 'NONE', 'NIL', 'NULL', 'UNKNOWN', 'NONEGIVEN')
+           AND REGEXP_REPLACE(UPPER(TRIM(f1.ghana_card)), '[^A-Z0-9]', '', 'g') !~ '^0+$'
+       )`
+  );
 }

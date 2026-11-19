@@ -1,7 +1,7 @@
 import type { OfftakerFormData } from "./types";
 import { FormGroup } from "../../components/FormGroup";
 import { CommodityChipSelect } from "../../components/fields/CommodityChipSelect";
-import type { FieldErrors } from "../../lib/form-validation";
+import { sanitizePhoneInput, type FieldErrors } from "../../lib/form-validation";
 
 interface StepProps {
   form: OfftakerFormData;
@@ -44,7 +44,7 @@ export function StepOfftakerDetails({
           type="tel"
           placeholder="e.g. 0244123456"
           value={form.contact}
-          onChange={(e) => onChange("contact", e.target.value)}
+          onChange={(e) => onChange("contact", sanitizePhoneInput(e.target.value))}
         />
       </FormGroup>
 

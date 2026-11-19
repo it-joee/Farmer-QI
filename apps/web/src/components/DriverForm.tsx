@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { VEHICLE_TYPES, type CreateDriverRequest, type DriverStatus } from "@farmeriq/shared";
 import { SelectField } from "./fields/SelectField";
+import { sanitizePhoneInput } from "../lib/form-validation";
 
 export interface DriverFormValues {
   full_name: string;
@@ -82,7 +83,9 @@ export function DriverForm({ initialValues = EMPTY_DRIVER_FORM, submitLabel, onS
             id="driver-phone"
             type="tel"
             value={form.phone}
-            onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, phone: sanitizePhoneInput(e.target.value) }))
+            }
             placeholder="e.g. 0240000000"
           />
         </div>

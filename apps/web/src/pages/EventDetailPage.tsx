@@ -16,6 +16,7 @@ import { useRequireAuth } from "../hooks/useFarmers";
 import {
   applyFieldValidation,
   clearFieldError,
+  sanitizePhoneInput,
   type FieldErrors,
   type FieldValidation,
 } from "../lib/form-validation";
@@ -627,7 +628,7 @@ export function EventDetailPage() {
               type="tel"
               value={phone}
               onChange={(e) => {
-                setPhone(e.target.value);
+                setPhone(sanitizePhoneInput(e.target.value));
                 setFieldErrors((prev) => clearFieldError(prev, "attendee-phone"));
               }}
               placeholder="e.g. 0241234567"

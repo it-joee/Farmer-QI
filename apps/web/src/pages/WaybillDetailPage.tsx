@@ -187,7 +187,7 @@ export function WaybillDetailPage() {
       ]
       : []),
     {
-      label: "Items / Product Description",
+      label: "Product Description",
       value: waybill.product_description || "—",
       fullWidth: true,
     },

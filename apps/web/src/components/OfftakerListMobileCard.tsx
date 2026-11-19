@@ -47,7 +47,12 @@ export function OfftakerListMobileCard({
     <article className="farmer-list-card">
       <button type="button" className="farmer-list-card__main" onClick={onOpen}>
         <div className="farmer-list-card__content">
-          <h3 className="farmer-list-card__name">{name}</h3>
+          <h3 className="farmer-list-card__name">
+            {name}
+            <span className={`sync-badge ${badgeClass}`} style={{ marginLeft: "0.4rem" }}>
+              {statusLabel ?? STATUS_LABEL[status]}
+            </span>
+          </h3>
           {showContactPerson && (
             <p className="muted" style={{ fontSize: "0.85rem", fontWeight: 500, margin: "0.125rem 0 0" }}>
               {contactPerson}
@@ -62,7 +67,6 @@ export function OfftakerListMobileCard({
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
       >
-        <span className={`sync-badge ${badgeClass}`}>{statusLabel ?? STATUS_LABEL[status]}</span>
         <div className="farmer-list-card__menu">
           <FarmerActionsMenu label={`Actions for ${name}`} items={menuItems} />
         </div>

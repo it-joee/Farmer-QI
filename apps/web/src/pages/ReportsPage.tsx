@@ -166,6 +166,7 @@ export function ReportsPage() {
             <label htmlFor="report-region">Region</label>
             <SelectField
               id="report-region"
+              variant="compact"
               value={region}
               onChange={setRegion}
               placeholder="All regions"
@@ -179,6 +180,7 @@ export function ReportsPage() {
             <label htmlFor="report-district">District</label>
             <SelectField
               id="report-district"
+              variant="compact"
               value={district}
               onChange={setDistrict}
               placeholder="All districts"
@@ -188,10 +190,11 @@ export function ReportsPage() {
               ]}
             />
           </div>
-          <div className="form-group">
+          <div className="form-group reports-filters__commodity">
             <label htmlFor="report-commodity">Commodity</label>
             <SelectField
               id="report-commodity"
+              variant="compact"
               value={commodity}
               onChange={setCommodity}
               placeholder="All commodities"
@@ -204,11 +207,21 @@ export function ReportsPage() {
           </div>
           <div className="form-group">
             <label htmlFor="report-date-from">Registered from</label>
-            <DateField id="report-date-from" value={dateFrom} onChange={setDateFrom} />
+            <DateField
+              id="report-date-from"
+              value={dateFrom}
+              onChange={setDateFrom}
+              placeholder="From date"
+            />
           </div>
           <div className="form-group">
             <label htmlFor="report-date-to">Registered to</label>
-            <DateField id="report-date-to" value={dateTo} onChange={setDateTo} />
+            <DateField
+              id="report-date-to"
+              value={dateTo}
+              onChange={setDateTo}
+              placeholder="To date"
+            />
           </div>
         </div>
         <button type="button" className="btn btn-secondary" onClick={() => void loadReport()}>

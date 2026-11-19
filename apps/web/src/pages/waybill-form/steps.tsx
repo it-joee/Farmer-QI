@@ -12,7 +12,12 @@ import { FormGroup } from "../../components/FormGroup";
 import { PhotoCaptureField } from "../../components/PhotoCaptureField";
 import { DateField } from "../../components/fields/DateField";
 import { SelectField } from "../../components/fields/SelectField";
-import type { FieldErrors } from "../../lib/form-validation";
+import {
+  formatNumericInput,
+  sanitizePhoneInput,
+  stripNumericCommas,
+  type FieldErrors,
+} from "../../lib/form-validation";
 import type { CapturedPhoto } from "../../lib/photos";
 import type { WaybillFormData } from "./types";
 
@@ -36,7 +41,7 @@ export function StepWaybillRoute({
   onSelectAggregator,
 }: StepWaybillRouteProps) {
   const offtakerOptions = [
-    { value: "", label: "Select buyer (optional)" },
+    { value: "", label: "Select buyer" },
     { value: "__custom__", label: "Add new buyer" },
     ...offtakers.map((o) => ({
       value: o.id,
@@ -50,7 +55,7 @@ export function StepWaybillRoute({
   const aggregatorOptions = [
     { value: "", label: "Select aggregator (optional)" },
     { value: "__direct__", label: "Direct Company Sourcing" },
-    { value: "__custom__", label: "Other / Enter aggregator name manually" },
+    { value: "__custom__", label: "Add new aggregator" },
     ...aggregators.map((a) => ({
       value: a.id,
       label: a.business_name ? `${a.full_name} (${a.business_name})` : a.full_name,
@@ -100,17 +105,14 @@ export function StepWaybillRoute({
 
       <FormGroup
         fieldId="buyer_selection"
-        label={
-          <>
-            Waybill to (Buyer) <span className="optional">(optional)</span>
-          </>
-        }
+        label="Waybill to (Buyer)"
+        error={errors?.buyer_selection || errors?.buyer_name}
       >
         <SelectField
           id="buyer_selection"
           value={form.buyer_selection}
           onChange={onSelectOfftaker}
-          placeholder="Select buyer (optional)"
+          placeholder="Select buyer"
           options={offtakerOptions}
         />
         {showCustomBuyerInput && (
@@ -241,8 +243,10 @@ export function StepWaybillCommodity({
       : []),
   ];
 
-  const loadingKgNum = form.weight_kg.trim() ? Number(form.weight_kg) : NaN;
-  const receivedKgNum = form.received_weight_kg.trim() ? Number(form.received_weight_kg) : NaN;
+  const rawLoadingKg = stripNumericCommas(form.weight_kg).trim();
+  const rawReceivedKg = stripNumericCommas(form.received_weight_kg).trim();
+  const loadingKgNum = rawLoadingKg ? Number(rawLoadingKg) : NaN;
+  const receivedKgNum = rawReceivedKg ? Number(rawReceivedKg) : NaN;
 
   let receivedHint: string | undefined =
     "Optional discharge weight recorded at the buyer's weighbridge.";
@@ -328,23 +332,6 @@ export function StepWaybillCommodity({
       </FormGroup>
 
       <FormGroup
-        fieldId="product_description"
-        label={
-          <>
-            Items / Product description <span className="optional">(optional)</span>
-          </>
-        }
-        className="form-group--full"
-      >
-        <input
-          id="product_description"
-          placeholder="e.g. Dried Raw Shea Nuts in 80kg Jute Bags"
-          value={form.product_description}
-          onChange={(e) => onChange("product_description", e.target.value)}
-        />
-      </FormGroup>
-
-      <FormGroup
         fieldId="bag_count"
         label={
           <>
@@ -355,12 +342,11 @@ export function StepWaybillCommodity({
       >
         <input
           id="bag_count"
-          type="number"
-          min="0"
-          step="1"
-          placeholder="e.g. 625"
+          type="text"
+          inputMode="numeric"
+          placeholder="e.g. 1,000"
           value={form.bag_count}
-          onChange={(e) => onChange("bag_count", e.target.value)}
+          onChange={(e) => onChange("bag_count", formatNumericInput(e.target.value, false))}
         />
       </FormGroup>
 
@@ -395,10 +381,9 @@ export function StepWaybillCommodity({
       >
         <input
           id="weight_kg"
-          type="number"
-          min="0"
-          step="0.01"
-          placeholder="e.g. 50000"
+          type="text"
+          inputMode="decimal"
+          placeholder="e.g. 50,000"
           value={form.weight_kg}
           onChange={(e) => onWeightKgChange(e.target.value)}
         />
@@ -415,12 +400,29 @@ export function StepWaybillCommodity({
       >
         <input
           id="weight_tons"
-          type="number"
+          type="text"
           value={form.weight_tons}
           disabled
           readOnly
           placeholder="0.00"
           style={{ opacity: 0.75, cursor: "not-allowed" }}
+        />
+      </FormGroup>
+
+      <FormGroup
+        fieldId="product_description"
+        label={
+          <>
+            Product description <span className="optional">(optional)</span>
+          </>
+        }
+        className="form-group--full"
+      >
+        <input
+          id="product_description"
+          placeholder="e.g. Dried Raw Shea Nuts in 80kg Jute Bags"
+          value={form.product_description}
+          onChange={(e) => onChange("product_description", e.target.value)}
         />
       </FormGroup>
 
@@ -436,12 +438,13 @@ export function StepWaybillCommodity({
       >
         <input
           id="received_weight_kg"
-          type="number"
-          min="0"
-          step="0.01"
-          placeholder="e.g. 49850"
+          type="text"
+          inputMode="decimal"
+          placeholder="e.g. 49,850"
           value={form.received_weight_kg}
-          onChange={(e) => onChange("received_weight_kg", e.target.value)}
+          onChange={(e) =>
+            onChange("received_weight_kg", formatNumericInput(e.target.value, true))
+          }
         />
       </FormGroup>
     </div>
@@ -529,9 +532,10 @@ export function StepWaybillTransport({
         <input
           id="driver_phone"
           type="tel"
+          inputMode="tel"
           placeholder="e.g. 0240000000"
           value={form.driver_phone}
-          onChange={(e) => onChange("driver_phone", e.target.value)}
+          onChange={(e) => onChange("driver_phone", sanitizePhoneInput(e.target.value))}
         />
       </FormGroup>
 

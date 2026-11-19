@@ -229,7 +229,17 @@ export function DriversPage() {
                     onClick={() => navigate(`/drivers/${d.id}`)}
                   >
                     <div className="farmer-list-card__content">
-                      <h3 className="farmer-list-card__name">{d.full_name}</h3>
+                      <h3 className="farmer-list-card__name">
+                        {d.full_name}
+                        <span
+                          className={`sync-badge ${
+                            d.status === "active" ? "sync-badge--synced" : "sync-badge--pending"
+                          }`}
+                          style={{ marginLeft: "0.4rem" }}
+                        >
+                          {d.status === "active" ? "Active" : "Inactive"}
+                        </span>
+                      </h3>
                       <p className="farmer-list-card__community">
                         {[d.vehicle_type, d.vehicle_plate, d.assigned_location]
                           .filter(Boolean)
@@ -243,13 +253,6 @@ export function DriversPage() {
                     onClick={(e) => e.stopPropagation()}
                     onKeyDown={(e) => e.stopPropagation()}
                   >
-                    <span
-                      className={`sync-badge ${
-                        d.status === "active" ? "sync-badge--synced" : "sync-badge--pending"
-                      }`}
-                    >
-                      {d.status === "active" ? "Active" : "Inactive"}
-                    </span>
                     <div className="farmer-list-card__menu">
                       <FarmerActionsMenu
                         label={`Actions for ${d.full_name}`}
