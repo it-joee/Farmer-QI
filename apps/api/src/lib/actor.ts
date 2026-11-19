@@ -6,9 +6,10 @@ export interface Actor {
   id: string;
   role: UserRole;
   office_id: string | null;
+  can_access_operations?: boolean;
 }
 
-const VALID_ROLES: UserRole[] = ["agent", "team_lead", "admin"];
+const VALID_ROLES: UserRole[] = ["agent", "team_lead", "operations", "admin"];
 
 function parseRole(value: string | undefined): UserRole {
   if (value && VALID_ROLES.includes(value as UserRole)) {
@@ -31,6 +32,7 @@ export function parseActor(c: Context): Actor | null {
       id: payload.id,
       role: parseRole(payload.role),
       office_id: payload.office_id || null,
+      can_access_operations: Boolean(payload.can_access_operations),
     };
   } catch (err) {
     return null;

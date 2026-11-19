@@ -4,6 +4,11 @@ export const CONFLICT_FLAG_TYPES = [
   "duplicate_ghana_card",
   "duplicate_profile",
   "boundary_overlap",
+  "duplicate_waybill_number",
+  "duplicate_waybill_dispatch",
+  "duplicate_waybill_load",
+  "waybill_weight_discrepancy",
+  "ai_data_check",
 ] as const;
 export type ConflictFlagType = (typeof CONFLICT_FLAG_TYPES)[number];
 

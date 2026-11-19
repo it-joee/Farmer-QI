@@ -4,6 +4,7 @@ import { query } from "../db.js";
 import * as argon2 from "argon2";
 import jwt from "jsonwebtoken";
 import { requireActor } from "../lib/actor.js";
+import { ensureUsersOperationsSupport } from "../lib/users-schema.js";
 import { z } from "zod";
 import { sendWelcomeEmail } from "../lib/email.js";
 import { clearFailedAttempts, getLockoutMinutes, recordFailedAttempt } from "../lib/rate-limiter.js";
@@ -15,14 +16,17 @@ authRoutes.get("/me", async (c) => {
   if (actorResult instanceof Response) return actorResult;
   const actor = actorResult;
 
+  await ensureUsersOperationsSupport();
+
   const result = await query<{
     id: string;
     email: string;
     full_name: string;
     role: string;
     office_id: string | null;
+    can_access_operations: boolean;
   }>(
-    "SELECT id, email, full_name, role, office_id FROM users WHERE id = $1 AND is_active = true AND deleted_at IS NULL AND must_set_password = false",
+    "SELECT id, email, full_name, role, office_id, can_access_operations FROM users WHERE id = $1 AND is_active = true AND deleted_at IS NULL AND must_set_password = false",
     [actor.id]
   );
 
@@ -34,6 +38,7 @@ authRoutes.get("/me", async (c) => {
 });
 
 authRoutes.post("/login", async (c) => {
+  await ensureUsersOperationsSupport();
   const body = await c.req.json();
   const parsed = LoginRequest.safeParse(body);
 
@@ -62,10 +67,11 @@ authRoutes.post("/login", async (c) => {
     full_name: string;
     role: string;
     office_id: string | null;
+    can_access_operations: boolean;
     password_hash: string;
     must_set_password: boolean;
   }>(
-    "SELECT id, email, full_name, role, office_id, password_hash, must_set_password FROM users WHERE LOWER(email) = $1 AND is_active = true AND deleted_at IS NULL",
+    "SELECT id, email, full_name, role, office_id, can_access_operations, password_hash, must_set_password FROM users WHERE LOWER(email) = $1 AND is_active = true AND deleted_at IS NULL",
     [cleanEmail]
   );
 
@@ -101,6 +107,7 @@ authRoutes.post("/login", async (c) => {
       id: user.id,
       role: user.role,
       office_id: user.office_id,
+      can_access_operations: Boolean(user.can_access_operations),
     },
     secret,
     { expiresIn: "14d" }
@@ -115,6 +122,7 @@ authRoutes.post("/login", async (c) => {
       full_name: user.full_name,
       role: user.role,
       office_id: user.office_id,
+      can_access_operations: Boolean(user.can_access_operations),
     },
   });
 });

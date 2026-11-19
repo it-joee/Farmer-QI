@@ -1,12 +1,21 @@
 import type { User, UserRole } from "@farmeriq/shared";
 import { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { canAccessDrivers, canAccessOfftakers, canAccessReports, canManageUsers, driversScopeLabel, offtakersScopeLabel } from "../../auth";
+import {
+  canAccessDrivers,
+  canAccessOfftakers,
+  canAccessOperations,
+  canAccessReports,
+  canManageUsers,
+  driversScopeLabel,
+  offtakersScopeLabel,
+} from "../../auth";
 import { NavIcon, type NavIconKey } from "./NavIcons";
 
 const ROLE_LABELS: Record<UserRole, string> = {
   agent: "Field Agent",
   team_lead: "Team Lead",
+  operations: "Operations",
   admin: "Administrator",
 };
 
@@ -73,6 +82,16 @@ function getNavItems(user: User) {
       tabLabel: "Drivers",
       end: true,
       icon: "drivers",
+    });
+  }
+
+  if (canAccessOperations(user)) {
+    items.push({
+      to: "/waybills",
+      label: "Waybills",
+      tabLabel: "Waybills",
+      end: false,
+      icon: "waybills",
     });
   }
 

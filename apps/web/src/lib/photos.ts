@@ -8,6 +8,8 @@ export interface CapturedPhoto {
   previewUrl: string;
   /** Set when the photo was loaded from the server and not yet replaced. */
   serverPhotoId?: string;
+  fileName?: string;
+  mimeType?: string;
 }
 
 export function createCapturedPhoto(file: File): CapturedPhoto {
@@ -15,6 +17,8 @@ export function createCapturedPhoto(file: File): CapturedPhoto {
     id: crypto.randomUUID(),
     file,
     previewUrl: URL.createObjectURL(file),
+    fileName: file.name,
+    mimeType: file.type,
   };
 }
 

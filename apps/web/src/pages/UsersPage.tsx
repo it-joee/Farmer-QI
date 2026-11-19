@@ -16,6 +16,7 @@ const EMPTY_FORM = {
   full_name: "",
   role: "agent" as UserRole,
   office_id: "",
+  can_access_operations: false,
 };
 
 function formatOffice(name: string | null, region?: string | null): string {
@@ -39,6 +40,7 @@ export function UsersPage() {
     full_name: "",
     role: "agent" as UserRole,
     office_id: "",
+    can_access_operations: false,
   });
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState("");
@@ -92,12 +94,18 @@ export function UsersPage() {
     setError("");
 
     try {
+      const requiresOffice = form.role === "agent" || form.role === "team_lead";
+      const includesOperations =
+        form.role === "admin" || form.role === "operations"
+          ? true
+          : form.can_access_operations;
       const result = await createUser(
         {
           email: form.email.trim(),
           full_name: form.full_name.trim(),
           role: form.role,
-          office_id: form.role === "admin" ? null : form.office_id || null,
+          office_id: requiresOffice ? form.office_id || null : null,
+          can_access_operations: includesOperations,
         },
         user.id
       );
@@ -128,6 +136,7 @@ export function UsersPage() {
       full_name: target.full_name,
       role: target.role,
       office_id: target.office_id ?? "",
+      can_access_operations: Boolean(target.can_access_operations),
     });
     setEditError("");
   }
@@ -183,12 +192,18 @@ export function UsersPage() {
     setEditError("");
 
     try {
+      const requiresOffice = editForm.role === "agent" || editForm.role === "team_lead";
+      const includesOperations =
+        editForm.role === "admin" || editForm.role === "operations"
+          ? true
+          : editForm.can_access_operations;
       await updateUser(
         editingUser.id,
         {
           full_name: editForm.full_name.trim(),
           role: editForm.role,
-          office_id: editForm.role === "admin" ? null : editForm.office_id || null,
+          office_id: requiresOffice ? editForm.office_id || null : null,
+          can_access_operations: includesOperations,
         },
         user.id
       );
@@ -198,7 +213,8 @@ export function UsersPage() {
           ...user,
           full_name: editForm.full_name.trim(),
           role: editForm.role,
-          office_id: editForm.role === "admin" ? null : editForm.office_id || null,
+          office_id: requiresOffice ? editForm.office_id || null : null,
+          can_access_operations: includesOperations,
         };
         localStorage.setItem("farmeriq_user", JSON.stringify(updatedUser));
         window.dispatchEvent(new Event(USER_CHANGED_EVENT));
@@ -253,16 +269,26 @@ export function UsersPage() {
               id="user-role"
               value={form.role}
               onChange={(value) =>
-                setForm((prev) => ({ ...prev, role: value as UserRole }))
+                setForm((prev) => ({
+                  ...prev,
+                  role: value as UserRole,
+                  can_access_operations:
+                    value === "operations" || value === "admin"
+                      ? true
+                      : prev.role === "operations" || prev.role === "admin"
+                        ? false
+                        : prev.can_access_operations,
+                }))
               }
               options={[
                 { value: "agent", label: "Field Agent" },
                 { value: "team_lead", label: "Team Lead" },
+                { value: "operations", label: "Operations" },
                 { value: "admin", label: "Administrator" },
               ]}
             />
           </div>
-          {form.role !== "admin" && (
+          {(form.role === "agent" || form.role === "team_lead") && (
             <div className="form-group">
               <label htmlFor="user-office">Office</label>
               <SelectField
@@ -281,6 +307,34 @@ export function UsersPage() {
               />
             </div>
           )}
+          <div className="form-group form-group--full">
+            {form.role === "admin" || form.role === "operations" ? (
+              <p className="field-hint" style={{ margin: 0 }}>
+                Includes Operations (Waybills) access automatically.
+              </p>
+            ) : (
+              <label
+                htmlFor="user-can-access-operations"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  margin: 0,
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  id="user-can-access-operations"
+                  type="checkbox"
+                  checked={form.can_access_operations}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, can_access_operations: e.target.checked }))
+                  }
+                />
+                <span>Grant Operations (Waybills) access</span>
+              </label>
+            )}
+          </div>
           <div className="form-group" style={{ alignSelf: "end" }}>
             <button type="submit" className="btn btn-primary" disabled={saving}>
               {saving ? "Saving…" : "Create user"}
@@ -327,7 +381,18 @@ export function UsersPage() {
                     <tr key={row.id}>
                       <td>{row.full_name}</td>
                       <td>{row.email}</td>
-                      <td>{ROLE_LABELS[row.role]}</td>
+                      <td>
+                        {ROLE_LABELS[row.role]}
+                        {(row.role === "agent" || row.role === "team_lead") &&
+                          row.can_access_operations && (
+                            <span
+                              className="sync-badge sync-badge--synced"
+                              style={{ marginLeft: "0.4rem" }}
+                            >
+                              Operations
+                            </span>
+                          )}
+                      </td>
                       <td>{formatOffice(row.office_name, row.office_region)}</td>
                       <td>{row.is_active ? "Active" : "Inactive"}</td>
                       <td>
@@ -376,7 +441,7 @@ export function UsersPage() {
                   key={row.id}
                   name={row.full_name}
                   email={row.email}
-                  roleLabel={ROLE_LABELS[row.role]}
+                  roleLabel={`${ROLE_LABELS[row.role]}${(row.role === "agent" || row.role === "team_lead") && row.can_access_operations ? " · Operations" : ""}`}
                   officeName={formatOffice(row.office_name, row.office_region)}
                   isActive={row.is_active}
                   onOpen={() => startEdit(row)}
@@ -490,17 +555,27 @@ export function UsersPage() {
                   id="edit-user-role"
                   value={editForm.role}
                   onChange={(value) =>
-                    setEditForm((prev) => ({ ...prev, role: value as UserRole }))
+                    setEditForm((prev) => ({
+                      ...prev,
+                      role: value as UserRole,
+                      can_access_operations:
+                        value === "operations" || value === "admin"
+                          ? true
+                          : prev.role === "operations" || prev.role === "admin"
+                            ? false
+                            : prev.can_access_operations,
+                    }))
                   }
                   options={[
                     { value: "agent", label: "Field Agent" },
                     { value: "team_lead", label: "Team Lead" },
+                    { value: "operations", label: "Operations" },
                     { value: "admin", label: "Administrator" },
                   ]}
                 />
               </div>
 
-              {editForm.role !== "admin" && (
+              {(editForm.role === "agent" || editForm.role === "team_lead") && (
                 <div className="form-group">
                   <label htmlFor="edit-user-office">Office</label>
                   <SelectField
@@ -521,6 +596,38 @@ export function UsersPage() {
                   />
                 </div>
               )}
+
+              <div className="form-group">
+                {editForm.role === "admin" || editForm.role === "operations" ? (
+                  <p className="field-hint" style={{ margin: 0 }}>
+                    Includes Operations (Waybills) access automatically.
+                  </p>
+                ) : (
+                  <label
+                    htmlFor="edit-user-can-access-operations"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      margin: 0,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <input
+                      id="edit-user-can-access-operations"
+                      type="checkbox"
+                      checked={editForm.can_access_operations}
+                      onChange={(e) =>
+                        setEditForm((prev) => ({
+                          ...prev,
+                          can_access_operations: e.target.checked,
+                        }))
+                      }
+                    />
+                    <span>Grant Operations (Waybills) access</span>
+                  </label>
+                )}
+              </div>
 
               <div
                 style={{

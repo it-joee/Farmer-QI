@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { User } from "@farmeriq/shared";
-import { canAccessDrivers, canAccessOfftakers } from "../../auth";
+import { canAccessDrivers, canAccessOfftakers, canAccessOperations } from "../../auth";
 import { useOfflineSyncContext } from "../../context/OfflineSyncContext";
 import {
   fetchNotifications,
@@ -207,6 +207,16 @@ export function AppHeader({ user }: AppHeaderProps) {
             desc: "Register a transport driver",
             path: "/drivers/new",
             icon: "drivers" as NavIconKey,
+          },
+        ]
+      : []),
+    ...(canAccessOperations(user)
+      ? [
+          {
+            label: "Add Waybill",
+            desc: "Record a commodity waybill",
+            path: "/waybills/new",
+            icon: "waybills" as NavIconKey,
           },
         ]
       : []),

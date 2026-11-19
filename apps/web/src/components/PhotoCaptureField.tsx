@@ -9,6 +9,15 @@ interface PhotoCaptureFieldProps {
   onChange: (photos: CapturedPhoto[]) => void;
   multiple?: boolean;
   maxPhotos?: number;
+  allowPdf?: boolean;
+}
+
+function isPdfAttachment(photo: CapturedPhoto): boolean {
+  if (photo.mimeType === "application/pdf" || photo.file?.type === "application/pdf") {
+    return true;
+  }
+  const nameOrUrl = (photo.fileName || photo.previewUrl || "").split("?")[0].toLowerCase();
+  return nameOrUrl.endsWith(".pdf");
 }
 
 export function PhotoCaptureField({
@@ -18,6 +27,7 @@ export function PhotoCaptureField({
   onChange,
   multiple = false,
   maxPhotos = 4,
+  allowPdf = false,
 }: PhotoCaptureFieldProps) {
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -167,7 +177,7 @@ export function PhotoCaptureField({
       <input
         ref={uploadInputRef}
         type="file"
-        accept="image/*"
+        accept={allowPdf ? "image/*,application/pdf,.pdf" : "image/*"}
         className="sr-only"
         onChange={(e) => {
           handleUpload(e.target.files);
@@ -179,48 +189,97 @@ export function PhotoCaptureField({
 
       {photos.length > 0 && (
         <div className={`photo-grid${multiple ? " photo-grid--gallery" : ""}`}>
-          {photos.map((photo) => (
-            <div key={photo.id} className="photo-card">
-              <button
-                type="button"
-                className="photo-card__image-btn"
-                onClick={() => setViewingPhoto(photo)}
-                aria-label="View photo full size"
-              >
-                <img src={photo.previewUrl} alt="" className="photo-card__image" />
-              </button>
-              <div className="photo-card__actions">
+          {photos.map((photo) => {
+            const isPdf = isPdfAttachment(photo);
+            return (
+              <div key={photo.id} className="photo-card">
                 <button
                   type="button"
-                  className="btn btn-secondary photo-card__action"
+                  className="photo-card__image-btn"
                   onClick={() => setViewingPhoto(photo)}
+                  aria-label={isPdf ? "View PDF document" : "View photo full size"}
                 >
-                  View
+                  {isPdf ? (
+                    <div
+                      className="photo-card__image"
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "0.4rem",
+                        padding: "0.75rem",
+                        color: "var(--color-text)",
+                      }}
+                    >
+                      <svg
+                        width="32"
+                        height="32"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="9" y1="15" x2="15" y2="15" />
+                      </svg>
+                      <span style={{ fontSize: "0.75rem", fontWeight: 600 }}>PDF Document</span>
+                      {photo.fileName && (
+                        <span
+                          className="muted"
+                          style={{
+                            fontSize: "0.7rem",
+                            maxWidth: "100%",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {photo.fileName}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <img src={photo.previewUrl} alt="" className="photo-card__image" />
+                  )}
                 </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary photo-card__action"
-                  onClick={() => openCamera(photo.id)}
-                >
-                  Retake
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary photo-card__action"
-                  onClick={() => openUploadPicker(photo.id)}
-                >
-                  Replace
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary photo-card__action photo-card__action--danger"
-                  onClick={() => removePhoto(photo.id)}
-                >
-                  Delete
-                </button>
+                <div className="photo-card__actions">
+                  <button
+                    type="button"
+                    className="btn btn-secondary photo-card__action"
+                    onClick={() => setViewingPhoto(photo)}
+                  >
+                    View
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary photo-card__action"
+                    onClick={() => openCamera(photo.id)}
+                  >
+                    Retake
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary photo-card__action"
+                    onClick={() => openUploadPicker(photo.id)}
+                  >
+                    Replace
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary photo-card__action photo-card__action--danger"
+                    onClick={() => removePhoto(photo.id)}
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -230,7 +289,13 @@ export function PhotoCaptureField({
             {photos.length > 0 && multiple ? "Add photo" : "Use camera"}
           </button>
           <button type="button" className="btn btn-secondary" onClick={() => openUploadPicker(null)}>
-            {photos.length > 0 && multiple ? "Upload another" : "Upload photo"}
+            {allowPdf
+              ? photos.length > 0 && multiple
+                ? "Upload another"
+                : "Upload photo / PDF"
+              : photos.length > 0 && multiple
+                ? "Upload another"
+                : "Upload photo"}
           </button>
         </div>
       )}
@@ -269,7 +334,21 @@ export function PhotoCaptureField({
       {viewingPhoto && (
         <div className="photo-modal" role="dialog" aria-modal="true" onClick={() => setViewingPhoto(null)}>
           <div className="photo-modal__content" onClick={(e) => e.stopPropagation()}>
-            <img src={viewingPhoto.previewUrl} alt="" className="photo-modal__image" />
+            {isPdfAttachment(viewingPhoto) ? (
+              <iframe
+                src={viewingPhoto.previewUrl}
+                title="PDF preview"
+                style={{
+                  width: "min(820px, 85vw)",
+                  height: "75vh",
+                  border: "none",
+                  borderRadius: "var(--radius)",
+                  background: "#ffffff",
+                }}
+              />
+            ) : (
+              <img src={viewingPhoto.previewUrl} alt="" className="photo-modal__image" />
+            )}
             <button type="button" className="btn btn-secondary" onClick={() => setViewingPhoto(null)}>
               Close
             </button>

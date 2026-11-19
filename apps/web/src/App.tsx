@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import { canAccessDrivers, canAccessOfftakers, canAccessReports } from "./auth";
+import { canAccessDrivers, canAccessOfftakers, canAccessOperations, canAccessReports } from "./auth";
 import { useRequireAuth } from "./hooks/useFarmers";
 import { AppLayout } from "./components/layout/AppLayout";
 import { AddFarmerPage } from "./pages/AddFarmerPage";
@@ -35,6 +35,10 @@ import { EditPendingOfftakerPage } from "./pages/EditPendingOfftakerPage";
 import { PendingOfftakerDetailPage } from "./pages/PendingOfftakerDetailPage";
 import { OfftakerDetailPage } from "./pages/OfftakerDetailPage";
 import { TrashPage } from "./pages/TrashPage";
+import { WaybillsPage } from "./pages/WaybillsPage";
+import { AddWaybillPage } from "./pages/AddWaybillPage";
+import { EditWaybillPage } from "./pages/EditWaybillPage";
+import { WaybillDetailPage } from "./pages/WaybillDetailPage";
 
 function RequireOfftakersAccess({ children }: { children: React.ReactNode }) {
   const user = useRequireAuth();
@@ -58,6 +62,15 @@ function RequireDriversAccess({ children }: { children: React.ReactNode }) {
   const user = useRequireAuth();
   if (!user) return null;
   if (!canAccessDrivers(user)) {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+}
+
+function RequireOperationsAccess({ children }: { children: React.ReactNode }) {
+  const user = useRequireAuth();
+  if (!user) return null;
+  if (!canAccessOperations(user)) {
     return <Navigate to="/" replace />;
   }
   return <>{children}</>;
@@ -161,6 +174,38 @@ export function App() {
             <RequireDriversAccess>
               <DriverDetailPage />
             </RequireDriversAccess>
+          }
+        />
+        <Route
+          path="/waybills"
+          element={
+            <RequireOperationsAccess>
+              <WaybillsPage />
+            </RequireOperationsAccess>
+          }
+        />
+        <Route
+          path="/waybills/new"
+          element={
+            <RequireOperationsAccess>
+              <AddWaybillPage />
+            </RequireOperationsAccess>
+          }
+        />
+        <Route
+          path="/waybills/:id/edit"
+          element={
+            <RequireOperationsAccess>
+              <EditWaybillPage />
+            </RequireOperationsAccess>
+          }
+        />
+        <Route
+          path="/waybills/:id"
+          element={
+            <RequireOperationsAccess>
+              <WaybillDetailPage />
+            </RequireOperationsAccess>
           }
         />
         <Route

@@ -13,6 +13,7 @@ import { offtakerRoutes } from "./routes/offtakers.js";
 import { trashRoutes } from "./routes/trash.js";
 import { notificationRoutes } from "./routes/notifications.js";
 import { driverRoutes } from "./routes/drivers.js";
+import { waybillRoutes } from "./routes/waybills.js";
 
 const app = new Hono();
 
@@ -64,6 +65,7 @@ app.route("/uploads", uploadFileRoute);
 app.route("/trash", trashRoutes);
 app.route("/notifications", notificationRoutes);
 app.route("/drivers", driverRoutes);
+app.route("/waybills", waybillRoutes);
 
 app.onError((err, c) => {
   console.error("[api error]", err);

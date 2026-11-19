@@ -3,7 +3,7 @@ import type { Offtaker, PaginatedResponse } from "@farmeriq/shared";
 import { formatOfftakerReferenceId } from "@farmeriq/shared";
 import { apiFetch } from "../lib/api-client";
 import { useAuthUser } from "./useAuth";
-import { USER_CHANGED_EVENT } from "../auth";
+import { canAccessOfftakers, USER_CHANGED_EVENT } from "../auth";
 import { OFFTAKERS_SYNCED_EVENT } from "../lib/offline/offtaker-sync";
 
 export function normalizeOfftaker(raw: Offtaker): Offtaker {
@@ -25,7 +25,7 @@ export function useOfftakers(page = 1, limit = 20, search = "", commodity = "", 
   const refetch = useCallback(() => setRefreshKey((key) => key + 1), []);
 
   useEffect(() => {
-    if (!user || user.role === "agent") {
+    if (!user || !canAccessOfftakers(user)) {
       setOfftakers([]);
       setLoading(false);
       return;
@@ -66,7 +66,7 @@ export function useOfftakers(page = 1, limit = 20, search = "", commodity = "", 
         /* keep cached list when offline */
       })
       .finally(() => setLoading(false));
-  }, [user?.id, user?.role, refreshKey, page, limit, search, commodity, location]);
+  }, [user?.id, user?.role, user?.can_access_operations, refreshKey, page, limit, search, commodity, location]);
 
   useEffect(() => {
     function handleSynced() {
@@ -93,7 +93,7 @@ export function useAllOfftakers() {
   const refetch = useCallback(() => setRefreshKey((key) => key + 1), []);
 
   useEffect(() => {
-    if (!user || user.role === "agent") {
+    if (!user || !canAccessOfftakers(user)) {
       setOfftakers([]);
       setLoading(false);
       return;
@@ -113,7 +113,7 @@ export function useAllOfftakers() {
         /* keep cached list when offline */
       })
       .finally(() => setLoading(false));
-  }, [user?.id, user?.role, refreshKey]);
+  }, [user?.id, user?.role, user?.can_access_operations, refreshKey]);
 
   useEffect(() => {
     function handleSynced() {

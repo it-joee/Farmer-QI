@@ -110,6 +110,7 @@ export interface User {
   full_name: string;
   role: UserRole;
   office_id: string | null;
+  can_access_operations?: boolean;
 }
 
 export interface Farmer {
@@ -169,3 +170,4 @@ export * from "./aggregators.js";
 
 export * from "./offtakers.js";
 export * from "./drivers.js";
+export * from "./waybills.js";

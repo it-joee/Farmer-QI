@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { CreateUserRequest, UpdateUserRequest } from "@farmeriq/shared";
 import { requireActor } from "../lib/actor.js";
 import { canManageUsers } from "../lib/access.js";
+import { ensureUsersOperationsSupport } from "../lib/users-schema.js";
 import { query } from "../db.js";
 import * as argon2 from "argon2";
 import crypto from "crypto";
@@ -22,6 +23,8 @@ userRoutes.get("/", async (c) => {
   if (!canManageUsers(actor)) {
     return c.json({ error: "Only admins can manage users" }, 403);
   }
+
+  await ensureUsersOperationsSupport();
 
   const page = parseInt(c.req.query("page") ?? "1", 10) || 1;
   const limit = parseInt(c.req.query("limit") ?? "20", 10) || 20;
@@ -49,7 +52,7 @@ userRoutes.get("/", async (c) => {
   const paramIndex = params.length + 1;
 
   const result = await query(
-    `SELECT u.id, u.email, u.full_name, u.role, u.office_id, u.is_active, u.must_set_password, u.created_at,
+    `SELECT u.id, u.email, u.full_name, u.role, u.office_id, u.can_access_operations, u.is_active, u.must_set_password, u.created_at,
             o.name AS office_name, o.region AS office_region
      FROM users u
      LEFT JOIN offices o ON o.id = u.office_id
@@ -77,6 +80,8 @@ userRoutes.post("/", async (c) => {
     return c.json({ error: "Only admins can manage users" }, 403);
   }
 
+  await ensureUsersOperationsSupport();
+
   const body = await c.req.json();
   const parsed = CreateUserRequest.safeParse(body);
   if (!parsed.success) {
@@ -90,24 +95,28 @@ userRoutes.post("/", async (c) => {
     return c.json({ error: "Only @jniagri.ag email addresses can be registered." }, 400);
   }
 
-  if (role !== "admin" && !data.office_id) {
+  if ((role === "agent" || role === "team_lead") && !data.office_id) {
     return c.json({ error: "Agents and team leads require an office" }, 400);
   }
+
+  const canAccessOperations =
+    role === "admin" || role === "operations" ? true : Boolean(data.can_access_operations);
 
   // Use a random placeholder hash — the real password must be set via the invite link before signing in
   const tempHash = await argon2.hash(crypto.randomBytes(32).toString("hex"));
 
   try {
     const result = await query(
-      `INSERT INTO users (email, password_hash, full_name, role, office_id, must_set_password)
-       VALUES ($1, $2, $3, $4, $5, true)
-       RETURNING id, email, full_name, role, office_id, is_active, must_set_password, created_at`,
+      `INSERT INTO users (email, password_hash, full_name, role, office_id, can_access_operations, must_set_password)
+       VALUES ($1, $2, $3, $4, $5, $6, true)
+       RETURNING id, email, full_name, role, office_id, can_access_operations, is_active, must_set_password, created_at`,
       [
         data.email.toLowerCase(),
         tempHash,
         data.full_name,
         role,
         data.office_id ?? null,
+        canAccessOperations,
       ]
     );
 
@@ -151,6 +160,8 @@ userRoutes.patch("/:id", async (c) => {
     return c.json({ error: "Only admins can manage users" }, 403);
   }
 
+  await ensureUsersOperationsSupport();
+
   const userId = c.req.param("id");
   const body = await c.req.json();
   const parsed = UpdateUserRequest.safeParse(body);
@@ -169,24 +180,33 @@ userRoutes.patch("/:id", async (c) => {
   const nextOfficeId =
     data.office_id !== undefined ? data.office_id : current.office_id;
 
-  if (nextRole !== "admin" && !nextOfficeId) {
+  if ((nextRole === "agent" || nextRole === "team_lead") && !nextOfficeId) {
     return c.json({ error: "Agents and team leads require an office" }, 400);
   }
+
+  const nextCanAccessOperations =
+    nextRole === "admin" || nextRole === "operations"
+      ? true
+      : data.can_access_operations !== undefined
+        ? Boolean(data.can_access_operations)
+        : Boolean(current.can_access_operations);
 
   const result = await query(
     `UPDATE users SET
       full_name = COALESCE($2, full_name),
       role = COALESCE($3, role),
       office_id = $4,
-      is_active = COALESCE($5, is_active),
+      can_access_operations = $5,
+      is_active = COALESCE($6, is_active),
       updated_at = now()
      WHERE id = $1
-     RETURNING id, email, full_name, role, office_id, is_active, must_set_password, created_at`,
+     RETURNING id, email, full_name, role, office_id, can_access_operations, is_active, must_set_password, created_at`,
     [
       userId,
       data.full_name ?? null,
       data.role ?? null,
       nextOfficeId,
+      nextCanAccessOperations,
       data.is_active ?? null,
     ]
   );

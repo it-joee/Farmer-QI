@@ -50,20 +50,29 @@ export function aggregatorsScopeLabel(user: User): string {
   return "My aggregators";
 }
 
+export function canAccessOperations(user: User | null | undefined): boolean {
+  if (!user) return false;
+  return (
+    user.role === "admin" ||
+    user.role === "operations" ||
+    Boolean(user.can_access_operations)
+  );
+}
+
 export function canRegisterOfftakers(user: User | null | undefined): boolean {
-  return user?.role === "team_lead" || user?.role === "admin";
+  return user?.role === "team_lead" || canAccessOperations(user);
 }
 
 export function canAccessOfftakers(user: User | null | undefined): boolean {
-  return user?.role === "team_lead" || user?.role === "admin";
+  return user?.role === "team_lead" || canAccessOperations(user);
 }
 
 export function canAccessDrivers(user: User | null | undefined): boolean {
-  return user?.role === "team_lead" || user?.role === "admin";
+  return user?.role === "team_lead" || canAccessOperations(user);
 }
 
 export function canRegisterDrivers(user: User | null | undefined): boolean {
-  return user?.role === "team_lead" || user?.role === "admin";
+  return user?.role === "team_lead" || canAccessOperations(user);
 }
 
 export function driversScopeLabel(user: User) {

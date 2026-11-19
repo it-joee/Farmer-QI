@@ -19,19 +19,21 @@ CREATE TABLE offices (
 -- Users (agents, team leads, admins)
 -- ---------------------------------------------------------------------------
 
-CREATE TYPE user_role AS ENUM ('agent', 'team_lead', 'admin');
+CREATE TYPE user_role AS ENUM ('agent', 'team_lead', 'operations', 'admin');
 
 CREATE TABLE users (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email         TEXT NOT NULL UNIQUE,
-  password_hash TEXT NOT NULL,
-  full_name     TEXT NOT NULL,
-  role          user_role NOT NULL DEFAULT 'agent',
-  office_id     UUID REFERENCES offices(id),
-  is_active     BOOLEAN NOT NULL DEFAULT true,
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
-  deleted_at    TIMESTAMPTZ DEFAULT NULL
+  id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email                 TEXT NOT NULL UNIQUE,
+  password_hash         TEXT NOT NULL,
+  full_name             TEXT NOT NULL,
+  role                  user_role NOT NULL DEFAULT 'agent',
+  office_id             UUID REFERENCES offices(id),
+  can_access_operations BOOLEAN NOT NULL DEFAULT false,
+  is_active             BOOLEAN NOT NULL DEFAULT true,
+  must_set_password     BOOLEAN NOT NULL DEFAULT true,
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at            TIMESTAMPTZ DEFAULT NULL
 );
 
 CREATE INDEX idx_users_office ON users(office_id);
@@ -280,3 +282,122 @@ CREATE TABLE aggregator_photos (
 
 CREATE INDEX idx_aggregator_photos_aggregator ON aggregator_photos(aggregator_id);
 CREATE INDEX idx_aggregator_photos_type ON aggregator_photos(aggregator_id, photo_type);
+
+-- ---------------------------------------------------------------------------
+-- Offtakers & Offtaker photos
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE offtakers (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  reference_id      TEXT NOT NULL UNIQUE,
+  company_name      TEXT NOT NULL,
+  contact_person    TEXT,
+  contact           TEXT,
+  designation       TEXT,
+  official_email    TEXT,
+  target_products   TEXT[] NOT NULL DEFAULT '{}',
+  payment_terms     TEXT,
+  delivery_location TEXT,
+  metadata          JSONB NOT NULL DEFAULT '{}',
+  created_by        UUID NOT NULL,
+  office_id         UUID,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at        TIMESTAMPTZ DEFAULT NULL
+);
+
+CREATE INDEX idx_offtakers_reference_id ON offtakers(reference_id);
+CREATE INDEX idx_offtakers_official_email ON offtakers(official_email) WHERE official_email IS NOT NULL;
+CREATE INDEX idx_offtakers_delivery_location ON offtakers(delivery_location);
+CREATE INDEX idx_offtakers_created_by ON offtakers(created_by);
+CREATE INDEX idx_offtakers_office ON offtakers(office_id);
+CREATE INDEX idx_offtakers_deleted_at ON offtakers(deleted_at);
+
+CREATE TABLE offtaker_photos (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  offtaker_id UUID NOT NULL REFERENCES offtakers(id) ON DELETE CASCADE,
+  photo_type  TEXT NOT NULL CHECK (photo_type IN ('ghana_card', 'portrait')),
+  file_name   TEXT NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_offtaker_photos_offtaker ON offtaker_photos(offtaker_id);
+CREATE INDEX idx_offtaker_photos_type ON offtaker_photos(offtaker_id, photo_type);
+
+-- ---------------------------------------------------------------------------
+-- Drivers
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE drivers (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  reference_id      TEXT,
+  full_name         TEXT NOT NULL,
+  phone             TEXT,
+  license_number    TEXT,
+  vehicle_type      TEXT,
+  vehicle_plate     TEXT,
+  assigned_location TEXT,
+  status            TEXT NOT NULL DEFAULT 'active',
+  created_by        UUID REFERENCES users(id) ON DELETE SET NULL,
+  office_id         UUID REFERENCES offices(id) ON DELETE SET NULL,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at        TIMESTAMPTZ DEFAULT NULL
+);
+
+-- ---------------------------------------------------------------------------
+-- Waybills & Waybill photos (Operations)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE waybills (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  reference_id        TEXT,
+  waybill_number      TEXT NOT NULL,
+  issued_date         DATE NOT NULL DEFAULT CURRENT_DATE,
+  status              TEXT NOT NULL DEFAULT 'in_transit' CHECK (status IN ('in_transit', 'delivered', 'cancelled')),
+  offtaker_id         UUID REFERENCES offtakers(id) ON DELETE SET NULL,
+  buyer_name          TEXT,
+  aggregator_id       UUID REFERENCES aggregators(id) ON DELETE SET NULL,
+  aggregator_name     TEXT,
+  loading_location    TEXT,
+  loading_region      TEXT,
+  discharge_location  TEXT,
+  product_name        TEXT,
+  product_description TEXT,
+  bag_count           INTEGER,
+  bag_unit            TEXT DEFAULT 'Bags',
+  weight_kg           NUMERIC(12, 2),
+  received_weight_kg  NUMERIC(12, 2),
+  driver_id           UUID,
+  driver_name         TEXT,
+  driver_phone        TEXT,
+  truck_number        TEXT,
+  notes               TEXT,
+  created_by          UUID REFERENCES users(id) ON DELETE SET NULL,
+  office_id           UUID REFERENCES offices(id) ON DELETE SET NULL,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at          TIMESTAMPTZ DEFAULT NULL
+);
+
+CREATE INDEX idx_waybills_number ON waybills(waybill_number) WHERE deleted_at IS NULL;
+CREATE INDEX idx_waybills_reference_id ON waybills(reference_id);
+CREATE INDEX idx_waybills_issued_date ON waybills(issued_date DESC);
+CREATE INDEX idx_waybills_status ON waybills(status);
+CREATE INDEX idx_waybills_offtaker ON waybills(offtaker_id);
+CREATE INDEX idx_waybills_aggregator ON waybills(aggregator_id);
+CREATE INDEX idx_waybills_deleted_at ON waybills(deleted_at);
+
+CREATE TABLE waybill_photos (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  waybill_id  UUID NOT NULL REFERENCES waybills(id) ON DELETE CASCADE,
+  photo_type  TEXT NOT NULL CHECK (photo_type IN ('truck', 'waybill_doc')),
+  file_name   TEXT NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_waybill_photos_waybill ON waybill_photos(waybill_id);
+CREATE INDEX idx_waybill_photos_type ON waybill_photos(waybill_id, photo_type);
+
+ALTER TABLE waybills ENABLE ROW LEVEL SECURITY;
+ALTER TABLE waybill_photos ENABLE ROW LEVEL SECURITY;

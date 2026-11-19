@@ -10,6 +10,7 @@ import { SKIP_AUTH } from "../config.js";
 import { requireActor, type Actor } from "../lib/actor.js";
 import { canRegisterAggregators, aggregatorScopeClause } from "../lib/access.js";
 import { recordSubmission } from "../lib/submissions.js";
+import { runAiAggregatorCheck } from "../lib/ai-data-check.js";
 import {
   deletePhotoFile,
   photoPublicUrl,
@@ -284,6 +285,8 @@ aggregatorRoutes.post("/", async (c) => {
     console.warn("Submission record failed:", err);
   }
 
+  void runAiAggregatorCheck(aggregator);
+
   return c.json({ aggregator }, 201);
 } catch (err) {
   console.error("[POST /aggregators error]", err);
@@ -373,6 +376,8 @@ aggregatorRoutes.put("/:id", async (c) => {
      VALUES ($1, 'update', 'aggregator', $2, $3)`,
     [actorId, aggregator.id, JSON.stringify(aggregator)]
   );
+
+  void runAiAggregatorCheck(aggregator);
 
   return c.json({ aggregator });
 });

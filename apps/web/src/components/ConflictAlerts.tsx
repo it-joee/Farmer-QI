@@ -37,6 +37,14 @@ function conflictMessage(flag: ConflictFlag): string {
       : "Farm boundary overlaps with another registered plot.";
   }
 
+  if (flag.flag_type === "ai_data_check") {
+    const msg = details.message as string | undefined;
+    const title = details.title as string | undefined;
+    if (title && msg) return `${title}: ${msg}`;
+    if (msg) return msg;
+    return "AI accuracy check flagged a potential issue with this record.";
+  }
+
   return "This record needs review.";
 }
 
@@ -55,7 +63,9 @@ export function ConflictAlerts({ conflicts, onResolved }: ConflictAlertsProps) {
       <ul className="conflict-alerts__list">
         {openConflicts.map((flag) => {
           const matchId =
-            flag.flag_type === "duplicate_ghana_card" || flag.flag_type === "duplicate_profile"
+            flag.flag_type === "duplicate_ghana_card" ||
+            flag.flag_type === "duplicate_profile" ||
+            flag.flag_type === "ai_data_check"
               ? (flag.details.matching_farmer_id as string | undefined)
               : (flag.details.overlapping_farmer_id as string | undefined);
 

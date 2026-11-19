@@ -17,6 +17,7 @@ export interface NotificationItem {
 const ROLE_LABELS: Record<UserRole, string> = {
   agent: "Field Agent",
   team_lead: "Team Lead",
+  operations: "Operations",
   admin: "Administrator",
 };
 
@@ -24,6 +25,10 @@ const FLAG_TYPE_LABELS: Record<string, string> = {
   duplicate_ghana_card: "Duplicate Ghana Card",
   duplicate_profile: "Possible duplicate profile",
   boundary_overlap: "Farm boundary overlap",
+  duplicate_waybill_dispatch: "Duplicate waybill dispatch",
+  duplicate_waybill_load: "Duplicate waybill load",
+  waybill_weight_discrepancy: "Waybill weight discrepancy",
+  ai_data_check: "AI accuracy check",
 };
 
 function formatFlagType(flagType: string): string {

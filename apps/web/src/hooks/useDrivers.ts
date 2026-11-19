@@ -81,7 +81,7 @@ export function useDrivers(
         /* keep cached list */
       })
       .finally(() => setLoading(false));
-  }, [user?.id, user?.role, refreshKey, page, limit, search, vehicleType, status]);
+  }, [user?.id, user?.role, user?.can_access_operations, refreshKey, page, limit, search, vehicleType, status]);
 
   useEffect(() => {
     function handleChanged() {

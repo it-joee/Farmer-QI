@@ -1,6 +1,12 @@
 import type { User } from "@farmeriq/shared";
 import { NavLink } from "react-router-dom";
-import { canAccessDrivers, canAccessOfftakers, canAccessReports, canManageUsers } from "../../auth";
+import {
+  canAccessDrivers,
+  canAccessOfftakers,
+  canAccessOperations,
+  canAccessReports,
+  canManageUsers,
+} from "../../auth";
 import { NavIcon, type NavIconKey } from "./NavIcons";
 import { AppLogo } from "./AppLogo";
 import { UserProfileMenu } from "./UserProfileMenu";
@@ -17,6 +23,10 @@ export function AppSidebar({ user, onLogout }: { user: User; onLogout: () => voi
       ? [{ to: "/drivers", label: "Drivers", icon: "drivers" as NavIconKey }]
       : []),
   ];
+
+  const operationsItems = canAccessOperations(user)
+    ? [{ to: "/waybills", label: "Waybills", icon: "waybills" as NavIconKey }]
+    : [];
 
   const activitiesItems = [
     { to: "/events", label: "Events", icon: "events" as NavIconKey },
@@ -65,6 +75,7 @@ export function AppSidebar({ user, onLogout }: { user: User; onLogout: () => voi
 
       <nav className="sidebar-nav">
         {renderNavList("REGISTRY", registryItems)}
+        {renderNavList("OPERATIONS", operationsItems)}
         {renderNavList("ACTIVITIES", activitiesItems)}
         {renderNavList("ADMINISTRATION", adminItems)}
       </nav>

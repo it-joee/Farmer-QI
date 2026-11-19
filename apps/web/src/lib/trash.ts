@@ -1,7 +1,7 @@
 import { apiFetch } from "./api-client";
 
 export type TrashedEntity = {
-  type: "farmer" | "aggregator" | "offtaker" | "event" | "user";
+  type: "farmer" | "aggregator" | "offtaker" | "event" | "user" | "waybill";
   id: string;
   name: string;
   deleted_at: string;

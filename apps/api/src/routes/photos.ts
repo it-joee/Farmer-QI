@@ -18,6 +18,7 @@ function contentTypeForFileName(fileName: string): string {
   const ext = path.extname(fileName).toLowerCase();
   if (ext === ".png") return "image/png";
   if (ext === ".webp") return "image/webp";
+  if (ext === ".pdf") return "application/pdf";
   return "image/jpeg";
 }
 

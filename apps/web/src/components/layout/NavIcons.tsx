@@ -204,7 +204,28 @@ export function NavIconDrivers() {
   );
 }
 
-export type NavIconKey = "overview" | "farmers" | "aggregators" | "offtakers" | "drivers" | "events" | "reports" | "users" | "trash";
+export function NavIconWaybills() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width={20}
+      height={20}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+      <rect x="9" y="3" width="6" height="4" rx="1" />
+      <path d="M9 12h6" />
+      <path d="M9 16h4" />
+    </svg>
+  );
+}
+
+export type NavIconKey = "overview" | "farmers" | "aggregators" | "offtakers" | "drivers" | "waybills" | "events" | "reports" | "users" | "trash";
 
 const NAV_ICONS: Record<NavIconKey, ComponentType> = {
   overview: NavIconOverview,
@@ -212,6 +233,7 @@ const NAV_ICONS: Record<NavIconKey, ComponentType> = {
   aggregators: NavIconAggregators,
   offtakers: NavIconOfftakers,
   drivers: NavIconDrivers,
+  waybills: NavIconWaybills,
   events: NavIconEvents,
   reports: NavIconReports,
   users: NavIconUsers,

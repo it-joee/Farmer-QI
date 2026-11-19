@@ -1,6 +1,7 @@
 import type { ConflictFlagType } from "@farmeriq/shared";
 import { normalizePhone, normalizeText, phonesMatch } from "@farmeriq/shared";
 import { query } from "../db.js";
+import { runAiFarmerCheck } from "./ai-data-check.js";
 interface OverlapMatch {
   plot_id: string;
   farmer_id: string;
@@ -170,6 +171,8 @@ export async function checkFarmerConflicts(
     checkGhanaCardConflicts(farmerId, profile.ghana_card),
     checkProfileConflicts(farmerId, profile),
   ]);
+
+  void runAiFarmerCheck(farmerId, profile);
 
   return [...ghanaCardFlags, ...profileFlags];
 }
