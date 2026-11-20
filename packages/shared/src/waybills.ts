@@ -82,6 +82,7 @@ export interface WaybillConflictWarning {
   type:
     | "duplicate_waybill_number"
     | "duplicate_waybill_dispatch"
+    | "duplicate_waybill_driver"
     | "duplicate_waybill_load"
     | "waybill_weight_discrepancy"
     | "ai_data_check";
@@ -91,6 +92,8 @@ export interface WaybillConflictWarning {
   matching_date?: string;
   matching_buyer?: string | null;
   matching_truck?: string | null;
+  matching_driver?: string | null;
+  matching_driver_phone?: string | null;
   matching_weight_kg?: number | null;
 }
 

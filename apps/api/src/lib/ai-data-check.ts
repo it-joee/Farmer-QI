@@ -43,13 +43,28 @@ function buildPrompt(
   record: Record<string, unknown>,
   candidates: Record<string, unknown>[]
 ): string {
+  const waybillRules =
+    entityType === "waybill"
+      ? [
+          `Domain rules for commodity waybills:`,
+          `- NORMAL (do NOT flag): Multiple trucks on the same day sharing the same aggregator/supplier, buyer, loading/discharge location, product, bag count, and weight (e.g., 3+ trucks of 50,000 kg from one supplier in a day is standard).`,
+          `- NORMAL (do NOT flag): The same truck_number appearing on DIFFERENT issued_date values (trucks make repeat trips over days/weeks).`,
+          `- NORMAL (do NOT flag): Different trucks on the same day having drivers with the same or similar common names (e.g. "Mohammed" vs "Mohammed Ali") when truck_number and driver_phone are different.`,
+          `- FLAG: Duplicate or lookalike waybill_number across any date (e.g. O/0, I/1, formatting variants).`,
+          `- FLAG: Same or lookalike truck_number on the SAME issued_date (a long-haul truck cannot make two trips on the same day).`,
+          `- FLAG: Same or slightly mistyped driver_phone on the SAME issued_date across different waybills (one driver cannot drive two trucks on the same day).`,
+          `- FLAG: Obvious weight discrepancies or impossible values.`,
+        ]
+      : [];
+
   return [
     `You are a data-quality and duplicate-detection auditor for an agricultural supply-chain system (FarmerIQ).`,
     `Inspect the target ${entityType} record against existing ${entityType} records in the database.`,
     `Flag ONLY high-confidence issues such as:`,
     `- Fuzzy duplicates or formatting variants (e.g., truck plate "GW-213-GH" vs "GW 213 GH" or lookalike O/0, I/1, S/5, B/8 characters)`,
-    `- Swapped or slightly misspelled names, phone numbers, Ghana Card IDs, or waybill numbers`,
+    `- Swapped or slightly misspelled phone numbers, Ghana Card IDs, or waybill numbers`,
     `- Obvious data anomalies (e.g., impossible weights, mismatched units, or identical dispatch details under a slightly altered waybill number)`,
+    ...waybillRules,
     `Do NOT flag normal, distinct records or minor harmless differences.`,
     `Return strict JSON with shape: { "issues": [ { "severity": "warning" | "error", "title": string, "message": string, "matching_id": string | null, "field": string | null } ] }.`,
     `If no issues are found, return { "issues": [] }.`,
@@ -196,7 +211,7 @@ export async function runAiWaybillCheck(
   const { rows: candidates } = await query<Record<string, unknown>>(
     `SELECT id, waybill_number, issued_date, buyer_name, aggregator_name,
             loading_location, discharge_location, product_name,
-            weight_kg, received_weight_kg, quantity_bags, truck_number, driver_name
+            weight_kg, received_weight_kg, bag_count, truck_number, driver_name, driver_phone
      FROM waybills
      WHERE deleted_at IS NULL
        ${excludeClause}
@@ -216,11 +231,16 @@ export async function runAiWaybillCheck(
       waybill_number: waybill.waybill_number,
       issued_date: waybill.issued_date,
       buyer_name: waybill.buyer_name,
+      aggregator_name: waybill.aggregator_name,
       loading_location: waybill.loading_location,
+      discharge_location: waybill.discharge_location,
       product_name: waybill.product_name,
+      bag_count: waybill.bag_count,
       weight_kg: waybill.weight_kg,
       received_weight_kg: waybill.received_weight_kg,
       truck_number: waybill.truck_number,
+      driver_name: waybill.driver_name,
+      driver_phone: waybill.driver_phone,
     },
     candidates
   );

@@ -1,7 +1,9 @@
-import type {
-  Waybill,
-  WaybillConflictCheckResponse,
-  WaybillConflictWarning,
+import {
+  normalizePhone,
+  phonesMatch,
+  type Waybill,
+  type WaybillConflictCheckResponse,
+  type WaybillConflictWarning,
 } from "@farmeriq/shared";
 import { query } from "../db.js";
 import { createConflictFlag } from "./conflicts.js";
@@ -12,11 +14,6 @@ export function normalizeWaybillKey(value: string | null | undefined): string {
   return value.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
-function normalizeLabel(value: string | null | undefined): string {
-  if (!value) return "";
-  return value.trim().toLowerCase().replace(/\s+/g, " ");
-}
-
 interface WaybillMatchRow {
   id: string;
   waybill_number: string;
@@ -25,6 +22,8 @@ interface WaybillMatchRow {
   loading_location: string | null;
   product_name: string | null;
   truck_number: string | null;
+  driver_name: string | null;
+  driver_phone: string | null;
   weight_kg: number | null;
 }
 
@@ -46,6 +45,8 @@ export async function findDuplicateWaybillNumber(
        loading_location,
        product_name,
        truck_number,
+       driver_name,
+       driver_phone,
        weight_kg::float8 AS weight_kg
      FROM waybills
      WHERE deleted_at IS NULL
@@ -65,11 +66,16 @@ export interface WaybillConflictInput {
   waybill_number?: string | null;
   issued_date?: string | null;
   buyer_name?: string | null;
+  aggregator_name?: string | null;
   loading_location?: string | null;
+  discharge_location?: string | null;
   product_name?: string | null;
+  bag_count?: number | null;
   weight_kg?: number | null;
   received_weight_kg?: number | null;
   truck_number?: string | null;
+  driver_name?: string | null;
+  driver_phone?: string | null;
 }
 
 export async function checkWaybillInputConflicts(
@@ -90,6 +96,8 @@ export async function checkWaybillInputConflicts(
         matching_date: dup.issued_date,
         matching_buyer: dup.buyer_name,
         matching_truck: dup.truck_number,
+        matching_driver: dup.driver_name,
+        matching_driver_phone: dup.driver_phone,
         matching_weight_kg: dup.weight_kg,
       };
     }
@@ -98,7 +106,7 @@ export async function checkWaybillInputConflicts(
   const issuedDate = input.issued_date?.trim().slice(0, 10) || "";
   const truckKey = normalizeWaybillKey(input.truck_number);
 
-  // Check same truck + same date (possible duplicate dispatch)
+  // Check same truck + same date (a long-haul truck cannot do two dispatches on the same day)
   if (issuedDate && truckKey.length >= 3) {
     const truckMatches = await query<WaybillMatchRow>(
       `SELECT
@@ -109,6 +117,8 @@ export async function checkWaybillInputConflicts(
          loading_location,
          product_name,
          truck_number,
+         driver_name,
+         driver_phone,
          weight_kg::float8 AS weight_kg
        FROM waybills
        WHERE deleted_at IS NULL
@@ -121,44 +131,29 @@ export async function checkWaybillInputConflicts(
       [excludeWaybillId ?? null, issuedDate, truckKey]
     );
 
-    for (const match of truckMatches.rows) {
-      const sameProduct =
-        !input.product_name ||
-        !match.product_name ||
-        normalizeLabel(input.product_name) === normalizeLabel(match.product_name);
-      const sameWeight =
-        input.weight_kg == null ||
-        match.weight_kg == null ||
-        Math.abs(Number(input.weight_kg) - Number(match.weight_kg)) <=
-          Math.max(10, Number(match.weight_kg) * 0.02);
-
-      if (sameProduct || sameWeight) {
-        warnings.push({
-          type: "duplicate_waybill_dispatch",
-          message: `Truck ${match.truck_number || input.truck_number} already has Waybill #${match.waybill_number} on ${match.issued_date}${match.weight_kg != null ? ` (${Number(match.weight_kg).toLocaleString("en-US")} kg)` : ""}.`,
-          matching_waybill_id: match.id,
-          matching_waybill_number: match.waybill_number,
-          matching_date: match.issued_date,
-          matching_buyer: match.buyer_name,
-          matching_truck: match.truck_number,
-          matching_weight_kg: match.weight_kg,
-        });
-        break;
-      }
+    const match = truckMatches.rows[0];
+    if (match) {
+      warnings.push({
+        type: "duplicate_waybill_dispatch",
+        message: `Truck ${match.truck_number || input.truck_number} already has Waybill #${match.waybill_number} on ${match.issued_date}${match.buyer_name ? ` (${match.buyer_name})` : ""}${match.weight_kg != null ? `, ${Number(match.weight_kg).toLocaleString("en-US")} kg` : ""}. A truck cannot make multiple dispatches on the same day.`,
+        matching_waybill_id: match.id,
+        matching_waybill_number: match.waybill_number,
+        matching_date: match.issued_date,
+        matching_buyer: match.buyer_name,
+        matching_truck: match.truck_number,
+        matching_driver: match.driver_name,
+        matching_driver_phone: match.driver_phone,
+        matching_weight_kg: match.weight_kg,
+      });
     }
   }
 
-  // Check same date + buyer + loading location + weight (possible duplicate load under different truck/waybill)
-  const buyerNorm = normalizeLabel(input.buyer_name);
-  const loadingNorm = normalizeLabel(input.loading_location);
-  if (
-    issuedDate &&
-    buyerNorm &&
-    loadingNorm &&
-    input.weight_kg != null &&
-    Number(input.weight_kg) > 0
-  ) {
-    const loadMatches = await query<WaybillMatchRow>(
+  // Check same driver contact + same date (a driver cannot drive two dispatches on the same day).
+  // Note: we intentionally match by driver_phone, NOT driver_name alone, because two different
+  // drivers on different trucks on the same day can share common names (e.g. "Mohammed").
+  const driverPhoneInput = input.driver_phone?.trim() || "";
+  if (issuedDate && normalizePhone(driverPhoneInput).length >= 9) {
+    const driverMatches = await query<WaybillMatchRow>(
       `SELECT
          id,
          waybill_number,
@@ -167,35 +162,39 @@ export async function checkWaybillInputConflicts(
          loading_location,
          product_name,
          truck_number,
+         driver_name,
+         driver_phone,
          weight_kg::float8 AS weight_kg
        FROM waybills
        WHERE deleted_at IS NULL
          AND status != 'cancelled'
          AND ($1::uuid IS NULL OR id != $1)
          AND issued_date = $2::date
-         AND LOWER(REGEXP_REPLACE(TRIM(COALESCE(buyer_name, '')), '\\s+', ' ', 'g')) = $3
-         AND LOWER(REGEXP_REPLACE(TRIM(COALESCE(loading_location, '')), '\\s+', ' ', 'g')) = $4
-         AND weight_kg IS NOT NULL
-         AND ABS(weight_kg - $5) <= 1
+         AND driver_phone IS NOT NULL
+         AND TRIM(driver_phone) != ''
        ORDER BY created_at DESC
-       LIMIT 3`,
-      [excludeWaybillId ?? null, issuedDate, buyerNorm, loadingNorm, Number(input.weight_kg)]
+       LIMIT 100`,
+      [excludeWaybillId ?? null, issuedDate]
     );
 
-    for (const match of loadMatches.rows) {
-      const alreadyFlagged = warnings.some((w) => w.matching_waybill_id === match.id);
-      if (!alreadyFlagged) {
+    const match = driverMatches.rows.find(
+      (row) => row.driver_phone && phonesMatch(row.driver_phone, driverPhoneInput)
+    );
+    if (match) {
+      const alreadyFlaggedSameWaybill = warnings.some((w) => w.matching_waybill_id === match.id);
+      if (!alreadyFlaggedSameWaybill) {
         warnings.push({
-          type: "duplicate_waybill_load",
-          message: `Same date, buyer (${match.buyer_name}), loading location (${match.loading_location}), and weight (${Number(match.weight_kg).toLocaleString("en-US")} kg) match Waybill #${match.waybill_number}.`,
+          type: "duplicate_waybill_driver",
+          message: `Driver contact ${driverPhoneInput} is already assigned to Waybill #${match.waybill_number} on ${match.issued_date}${match.truck_number ? ` (Truck ${match.truck_number})` : ""}${match.driver_name ? ` — ${match.driver_name}` : ""}.`,
           matching_waybill_id: match.id,
           matching_waybill_number: match.waybill_number,
           matching_date: match.issued_date,
           matching_buyer: match.buyer_name,
           matching_truck: match.truck_number,
+          matching_driver: match.driver_name,
+          matching_driver_phone: match.driver_phone,
           matching_weight_kg: match.weight_kg,
         });
-        break;
       }
     }
   }
@@ -238,11 +237,16 @@ export async function syncWaybillConflictFlags(waybill: Waybill) {
       waybill_number: waybill.waybill_number,
       issued_date: waybill.issued_date,
       buyer_name: waybill.buyer_name,
+      aggregator_name: waybill.aggregator_name,
       loading_location: waybill.loading_location,
+      discharge_location: waybill.discharge_location,
       product_name: waybill.product_name,
+      bag_count: waybill.bag_count,
       weight_kg: waybill.weight_kg,
       received_weight_kg: waybill.received_weight_kg,
       truck_number: waybill.truck_number,
+      driver_name: waybill.driver_name,
+      driver_phone: waybill.driver_phone,
     },
     waybill.id
   );
@@ -252,6 +256,7 @@ export async function syncWaybillConflictFlags(waybill: Waybill) {
   // Auto-resolve any stale open flags on this waybill that no longer apply
   const managedTypes = [
     "duplicate_waybill_dispatch",
+    "duplicate_waybill_driver",
     "duplicate_waybill_load",
     "waybill_weight_discrepancy",
     "ai_data_check",
@@ -279,6 +284,8 @@ export async function syncWaybillConflictFlags(waybill: Waybill) {
         matching_date: w.matching_date ?? null,
         matching_buyer: w.matching_buyer ?? null,
         matching_truck: w.matching_truck ?? null,
+        matching_driver: w.matching_driver ?? null,
+        matching_driver_phone: w.matching_driver_phone ?? null,
         matching_weight_kg: w.matching_weight_kg ?? null,
       },
     });

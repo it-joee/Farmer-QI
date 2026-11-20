@@ -473,11 +473,16 @@ waybillRoutes.post("/check-conflicts", async (c) => {
       waybill_number: typeof body.waybill_number === "string" ? body.waybill_number : null,
       issued_date: typeof body.issued_date === "string" ? body.issued_date : null,
       buyer_name: typeof body.buyer_name === "string" ? body.buyer_name : null,
+      aggregator_name: typeof body.aggregator_name === "string" ? body.aggregator_name : null,
       loading_location: typeof body.loading_location === "string" ? body.loading_location : null,
+      discharge_location: typeof body.discharge_location === "string" ? body.discharge_location : null,
       product_name: typeof body.product_name === "string" ? body.product_name : null,
+      bag_count: typeof body.bag_count === "number" ? body.bag_count : null,
       weight_kg: typeof body.weight_kg === "number" ? body.weight_kg : null,
       received_weight_kg: typeof body.received_weight_kg === "number" ? body.received_weight_kg : null,
       truck_number: typeof body.truck_number === "string" ? body.truck_number : null,
+      driver_name: typeof body.driver_name === "string" ? body.driver_name : null,
+      driver_phone: typeof body.driver_phone === "string" ? body.driver_phone : null,
     },
     resolvedExcludeId
   );

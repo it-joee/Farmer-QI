@@ -26,6 +26,7 @@ const FLAG_TYPE_LABELS: Record<string, string> = {
   duplicate_profile: "Possible duplicate profile",
   boundary_overlap: "Farm boundary overlap",
   duplicate_waybill_dispatch: "Duplicate waybill dispatch",
+  duplicate_waybill_driver: "Duplicate driver on same date",
   duplicate_waybill_load: "Duplicate waybill load",
   waybill_weight_discrepancy: "Waybill weight discrepancy",
   ai_data_check: "AI accuracy check",
