@@ -1,5 +1,14 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import { canAccessDrivers, canAccessOfftakers, canAccessOperations, canAccessReports } from "./auth";
+import {
+  canAccessDrivers,
+  canAccessOfftakers,
+  canAccessOperations,
+  canAccessReports,
+  canRegisterAggregators,
+  canRegisterDrivers,
+  canRegisterFarmers,
+  canRegisterOfftakers,
+} from "./auth";
 import { useRequireAuth } from "./hooks/useFarmers";
 import { AppLayout } from "./components/layout/AppLayout";
 import { AddFarmerPage } from "./pages/AddFarmerPage";
@@ -39,6 +48,51 @@ import { WaybillsPage } from "./pages/WaybillsPage";
 import { AddWaybillPage } from "./pages/AddWaybillPage";
 import { EditWaybillPage } from "./pages/EditWaybillPage";
 import { WaybillDetailPage } from "./pages/WaybillDetailPage";
+
+function RequireFarmersRegister({ children }: { children: React.ReactNode }) {
+  const user = useRequireAuth();
+  if (!user) return null;
+  if (!canRegisterFarmers(user)) {
+    return <Navigate to="/farmers" replace />;
+  }
+  return <>{children}</>;
+}
+
+function RequireAggregatorsRegister({ children }: { children: React.ReactNode }) {
+  const user = useRequireAuth();
+  if (!user) return null;
+  if (!canRegisterAggregators(user)) {
+    return <Navigate to="/aggregators" replace />;
+  }
+  return <>{children}</>;
+}
+
+function RequireOfftakersRegister({ children }: { children: React.ReactNode }) {
+  const user = useRequireAuth();
+  if (!user) return null;
+  if (!canRegisterOfftakers(user)) {
+    return <Navigate to="/offtakers" replace />;
+  }
+  return <>{children}</>;
+}
+
+function RequireDriversRegister({ children }: { children: React.ReactNode }) {
+  const user = useRequireAuth();
+  if (!user) return null;
+  if (!canRegisterDrivers(user)) {
+    return <Navigate to="/drivers" replace />;
+  }
+  return <>{children}</>;
+}
+
+function RequireEventsRegister({ children }: { children: React.ReactNode }) {
+  const user = useRequireAuth();
+  if (!user) return null;
+  if (!canRegisterFarmers(user)) {
+    return <Navigate to="/events" replace />;
+  }
+  return <>{children}</>;
+}
 
 function RequireOfftakersAccess({ children }: { children: React.ReactNode }) {
   const user = useRequireAuth();
@@ -84,15 +138,43 @@ export function App() {
       <Route element={<AppLayout />}>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/farmers" element={<FarmersPage />} />
-        <Route path="/farmers/new" element={<AddFarmerPage />} />
+        <Route
+          path="/farmers/new"
+          element={
+            <RequireFarmersRegister>
+              <AddFarmerPage />
+            </RequireFarmersRegister>
+          }
+        />
         <Route path="/farmers/import" element={<Navigate to="/farmers" replace />} />
-        <Route path="/farmers/pending/:localId/edit" element={<EditPendingFarmerPage />} />
+        <Route
+          path="/farmers/pending/:localId/edit"
+          element={
+            <RequireFarmersRegister>
+              <EditPendingFarmerPage />
+            </RequireFarmersRegister>
+          }
+        />
         <Route path="/farmers/pending/:localId" element={<PendingFarmerDetailPage />} />
         <Route path="/farmers/:id/edit" element={<EditFarmerPage />} />
         <Route path="/farmers/:id" element={<FarmerDetailPage />} />
         <Route path="/aggregators" element={<AggregatorsPage />} />
-        <Route path="/aggregators/new" element={<AddAggregatorPage />} />
-        <Route path="/aggregators/pending/:localId/edit" element={<EditPendingAggregatorPage />} />
+        <Route
+          path="/aggregators/new"
+          element={
+            <RequireAggregatorsRegister>
+              <AddAggregatorPage />
+            </RequireAggregatorsRegister>
+          }
+        />
+        <Route
+          path="/aggregators/pending/:localId/edit"
+          element={
+            <RequireAggregatorsRegister>
+              <EditPendingAggregatorPage />
+            </RequireAggregatorsRegister>
+          }
+        />
         <Route path="/aggregators/pending/:localId" element={<PendingAggregatorDetailPage />} />
         <Route path="/aggregators/:id/edit" element={<EditAggregatorPage />} />
         <Route path="/aggregators/:id" element={<AggregatorDetailPage />} />
@@ -107,17 +189,17 @@ export function App() {
         <Route
           path="/offtakers/new"
           element={
-            <RequireOfftakersAccess>
+            <RequireOfftakersRegister>
               <AddOfftakerPage />
-            </RequireOfftakersAccess>
+            </RequireOfftakersRegister>
           }
         />
         <Route
           path="/offtakers/pending/:localId/edit"
           element={
-            <RequireOfftakersAccess>
+            <RequireOfftakersRegister>
               <EditPendingOfftakerPage />
-            </RequireOfftakersAccess>
+            </RequireOfftakersRegister>
           }
         />
         <Route
@@ -155,9 +237,9 @@ export function App() {
         <Route
           path="/drivers/new"
           element={
-            <RequireDriversAccess>
+            <RequireDriversRegister>
               <AddDriverPage />
-            </RequireDriversAccess>
+            </RequireDriversRegister>
           }
         />
         <Route
@@ -220,8 +302,22 @@ export function App() {
         <Route path="/trash" element={<TrashPage />} />
         <Route path="/change-password" element={<ChangePasswordPage />} />
         <Route path="/events" element={<EventsPage />} />
-        <Route path="/events/new" element={<NewEventPage />} />
-        <Route path="/events/pending/:localId/edit" element={<EditEventPage />} />
+        <Route
+          path="/events/new"
+          element={
+            <RequireEventsRegister>
+              <NewEventPage />
+            </RequireEventsRegister>
+          }
+        />
+        <Route
+          path="/events/pending/:localId/edit"
+          element={
+            <RequireEventsRegister>
+              <EditEventPage />
+            </RequireEventsRegister>
+          }
+        />
         <Route path="/events/pending/:localId" element={<EventDetailPage />} />
         <Route path="/events/:id/edit" element={<EditEventPage />} />
         <Route path="/events/:id" element={<EventDetailPage />} />

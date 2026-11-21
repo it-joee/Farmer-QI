@@ -104,9 +104,17 @@ async function createFarmerOnServer(
   }
 
   if (!res.ok) {
+    if (res.status >= 500) {
+      throw new SubmitError("Server error while saving farmer", true);
+    }
+    const errBody = (await res.json().catch(() => null)) as { error?: unknown } | null;
+    const apiMessage =
+      typeof errBody?.error === "string" && errBody.error.trim()
+        ? errBody.error.trim()
+        : null;
     throw new SubmitError(
-      res.status >= 500 ? "Server error while saving farmer" : "Could not save farmer. Check required fields.",
-      res.status >= 500
+      apiMessage ?? "Could not save farmer. Check required fields.",
+      false
     );
   }
 

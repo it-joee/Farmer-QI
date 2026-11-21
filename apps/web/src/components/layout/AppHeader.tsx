@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { User } from "@farmeriq/shared";
-import { canAccessDrivers, canAccessOfftakers, canAccessOperations } from "../../auth";
+import {
+  canAccessOperations,
+  canManageUsers,
+  canRegisterAggregators,
+  canRegisterDrivers,
+  canRegisterFarmers,
+  canRegisterOfftakers,
+} from "../../auth";
 import { useOfflineSyncContext } from "../../context/OfflineSyncContext";
 import {
   fetchNotifications,
@@ -178,19 +185,27 @@ export function AppHeader({ user }: AppHeaderProps) {
   }, []);
 
   const addOptions: { label: string; desc: string; path: string; icon: NavIconKey }[] = [
-    {
-      label: "Register Farmer",
-      desc: "Add a new farmer record",
-      path: "/farmers/new",
-      icon: "farmers",
-    },
-    {
-      label: "Add Aggregator",
-      desc: "Register a commodity aggregator",
-      path: "/aggregators/new",
-      icon: "aggregators",
-    },
-    ...(canAccessOfftakers(user)
+    ...(canRegisterFarmers(user)
+      ? [
+          {
+            label: "Register Farmer",
+            desc: "Add a new farmer record",
+            path: "/farmers/new",
+            icon: "farmers" as NavIconKey,
+          },
+        ]
+      : []),
+    ...(canRegisterAggregators(user)
+      ? [
+          {
+            label: "Add Aggregator",
+            desc: "Register a commodity aggregator",
+            path: "/aggregators/new",
+            icon: "aggregators" as NavIconKey,
+          },
+        ]
+      : []),
+    ...(canRegisterOfftakers(user)
       ? [
           {
             label: "Add Offtaker",
@@ -200,7 +215,7 @@ export function AppHeader({ user }: AppHeaderProps) {
           },
         ]
       : []),
-    ...(canAccessDrivers(user)
+    ...(canRegisterDrivers(user)
       ? [
           {
             label: "Add Driver",
@@ -220,13 +235,17 @@ export function AppHeader({ user }: AppHeaderProps) {
           },
         ]
       : []),
-    {
-      label: "Create Event",
-      desc: "Schedule a field event",
-      path: "/events/new",
-      icon: "events",
-    },
-    ...(user.role === "admin"
+    ...(canRegisterFarmers(user)
+      ? [
+          {
+            label: "Create Event",
+            desc: "Schedule a field event",
+            path: "/events/new",
+            icon: "events" as NavIconKey,
+          },
+        ]
+      : []),
+    ...(canManageUsers(user)
       ? [
           {
             label: "Add User",
