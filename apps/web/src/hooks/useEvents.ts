@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { EventRecord } from "@farmeriq/shared";
 import { getCurrentUser, USER_CHANGED_EVENT } from "../auth";
+import { isOfflineError } from "../lib/api-client";
 import { EVENTS_SYNCED_EVENT } from "../lib/offline/event-sync";
 import { listPendingEvents } from "../lib/offline/store";
 import { fetchEvents } from "../lib/events";
@@ -23,8 +24,12 @@ export function useEvents() {
     try {
       const data = await fetchEvents();
       setEvents(data);
-    } catch {
-      setError("Could not load events from server.");
+    } catch (err) {
+      setError(
+        isOfflineError(err) && err instanceof Error
+          ? err.message
+          : "Could not load events from server."
+      );
     } finally {
       setLoading(false);
     }

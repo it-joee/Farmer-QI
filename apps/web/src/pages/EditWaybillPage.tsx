@@ -8,6 +8,7 @@ import { useAllAggregators } from "../hooks/useAggregators";
 import { useDrivers } from "../hooks/useDrivers";
 import { useRequireAuth } from "../hooks/useFarmers";
 import { useAllOfftakers } from "../hooks/useOfftakers";
+import { isOfflineError } from "../lib/api-client";
 import {
   applyFieldValidation,
   clearFieldError,
@@ -87,7 +88,11 @@ export function EditWaybillPage() {
         );
         setRemovedPhotoIds([]);
       })
-      .catch(() => setError("Could not load waybill."))
+      .catch((err) =>
+        setError(
+          isOfflineError(err) && err instanceof Error ? err.message : "Could not load waybill."
+        )
+      )
       .finally(() => setLoading(false));
   }, [id]);
 

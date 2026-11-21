@@ -11,6 +11,7 @@ import { FarmerPhotosSection } from "../components/FarmerPhotosSection";
 import { FarmerProfileAvatar } from "../components/FarmerProfileAvatar";
 import { FarmerProfileGrid, profileFieldsFromFarmer } from "../components/FarmerProfileGrid";
 import { normalizeFarmer, useRequireAuth } from "../hooks/useFarmers";
+import { isOfflineError } from "../lib/api-client";
 import { fetchFarmerConflicts } from "../lib/conflicts";
 import { fetchCropCycles } from "../lib/crop-cycles";
 import { fetchFarmer, fetchFarmerPhotos } from "../lib/farmers";
@@ -48,8 +49,12 @@ export function FarmerDetailPage() {
       setCropCycles(cyclesData);
       setConflicts(conflictsData);
       setPhotos(photosData);
-    } catch {
-      setError("Could not load farmer record.");
+    } catch (err) {
+      setError(
+        isOfflineError(err) && err instanceof Error
+          ? err.message
+          : "Could not load farmer record."
+      );
       setFarmer(null);
     } finally {
       setLoading(false);
