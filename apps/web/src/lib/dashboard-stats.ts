@@ -66,13 +66,13 @@ function countCommodities(farmers: Farmer[]): StatBucket[] {
     }
   }
 
-  const withCommodities =
-    farmers.filter((f) => (f.primary_crops ?? []).length > 0).length || farmers.length;
-  return [...counts.values()]
+  const entries = [...counts.values()];
+  const totalEntries = entries.reduce((sum, item) => sum + item.count, 0);
+  return entries
     .map(({ label, count }) => ({
       label,
       count,
-      percentage: pct(count, withCommodities),
+      percentage: pct(count, totalEntries),
     }))
     .sort((a, b) => b.count - a.count);
 }

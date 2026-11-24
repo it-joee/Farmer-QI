@@ -31,5 +31,6 @@ export interface UserListItem {
   office_region?: string | null;
   can_access_operations?: boolean;
   is_active: boolean;
+  must_set_password?: boolean;
   created_at: string;
 }

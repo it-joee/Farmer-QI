@@ -86,7 +86,7 @@ export function CropChart({ data, selectedCommodity, onSelectCommodity }: CropCh
             {(activeItem ? activeItem.value : totalCount).toLocaleString()}
           </span>
           <span className="crop-chart__center-label">
-            {activeItem ? activeItem.name : "Total"}
+            {activeItem ? activeItem.name : "Crop entries"}
           </span>
         </div>
       </div>

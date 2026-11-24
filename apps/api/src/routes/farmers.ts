@@ -244,7 +244,8 @@ farmerRoutes.get("/stats", async (c) => {
     }
   }
 
-  const commodityDenom = withCommodities || total;
+  const commodityEntries = [...commodityMap.values()];
+  const commodityDenom = commodityEntries.reduce((sum, item) => sum + item.count, 0);
   const sortDesc = <T extends { count: number }>(list: T[]) => list.sort((a, b) => b.count - a.count);
 
   const payload = {
@@ -253,7 +254,7 @@ farmerRoutes.get("/stats", async (c) => {
     regions: regionKeys.size,
     male,
     female,
-    by_commodity: sortDesc([...commodityMap.values()]).map((r) => ({
+    by_commodity: sortDesc(commodityEntries).map((r) => ({
       label: r.label,
       count: r.count,
       percentage: toPct(r.count, commodityDenom),

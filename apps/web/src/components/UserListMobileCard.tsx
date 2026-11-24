@@ -13,6 +13,7 @@ interface UserListMobileCardProps {
   roleLabel: string;
   officeName: string | null;
   isActive: boolean;
+  mustSetPassword?: boolean;
   menuItems: FarmerActionItem[];
   onOpen?: () => void;
 }
@@ -23,9 +24,21 @@ export function UserListMobileCard({
   roleLabel,
   officeName,
   isActive,
+  mustSetPassword,
   menuItems,
   onOpen,
 }: UserListMobileCardProps) {
+  const statusLabel = !isActive
+    ? "Inactive"
+    : mustSetPassword
+      ? "Pending activation"
+      : "Active";
+  const statusBadgeClass = !isActive
+    ? "sync-badge--failed"
+    : mustSetPassword
+      ? "sync-badge--pending"
+      : "sync-badge--synced";
+
   return (
     <article className="farmer-list-card">
       <button
@@ -42,10 +55,10 @@ export function UserListMobileCard({
           <h3 className="farmer-list-card__name">
             {name}
             <span
-              className={`sync-badge ${isActive ? "sync-badge--synced" : "sync-badge--failed"}`}
+              className={`sync-badge ${statusBadgeClass}`}
               style={{ marginLeft: "0.4rem" }}
             >
-              {isActive ? "Active" : "Inactive"}
+              {statusLabel}
             </span>
           </h3>
           <p className="farmer-list-card__community">{roleLabel}</p>

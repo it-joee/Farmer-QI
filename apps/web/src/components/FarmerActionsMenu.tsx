@@ -5,6 +5,7 @@ export interface FarmerActionItem {
   label: string;
   onClick: () => void;
   variant?: "default" | "danger";
+  disabled?: boolean;
 }
 
 interface FarmerActionsMenuProps {
@@ -41,6 +42,7 @@ export function FarmerActionsMenu({ items, label = "Farmer actions" }: FarmerAct
   }, [open]);
 
   function runAction(item: FarmerActionItem) {
+    if (item.disabled) return;
     setOpen(false);
     item.onClick();
   }
@@ -76,6 +78,7 @@ export function FarmerActionsMenu({ items, label = "Farmer actions" }: FarmerAct
               type="button"
               className={`row-actions__item${item.variant === "danger" ? " row-actions__item--danger" : ""}`}
               role="menuitem"
+              disabled={item.disabled}
               onClick={() => runAction(item)}
             >
               {item.label}

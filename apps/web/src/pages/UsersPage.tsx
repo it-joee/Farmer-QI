@@ -4,6 +4,7 @@ import { Navigate } from "react-router-dom";
 import { canManageUsers, USER_CHANGED_EVENT } from "../auth";
 import { ROLE_LABELS } from "../components/layout/AppNav";
 import { SelectField } from "../components/fields/SelectField";
+import { FarmerActionsMenu } from "../components/FarmerActionsMenu";
 import { UserListMobileCard } from "../components/UserListMobileCard";
 import { Pagination } from "../components/Pagination";
 import { useRequireAuth } from "../hooks/useFarmers";
@@ -397,41 +398,48 @@ export function UsersPage() {
                           )}
                       </td>
                       <td>{formatOffice(row.office_name, row.office_region)}</td>
-                      <td>{row.is_active ? "Active" : "Inactive"}</td>
                       <td>
-                        <div style={{ display: "flex", gap: "0.5rem" }}>
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => startEdit(row)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => void handleResetPassword(row)}
-                          >
-                            Reset Password
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => void toggleActive(row)}
-                            disabled={row.id === user.id}
-                          >
-                            {row.is_active ? "Deactivate" : "Activate"}
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => void handleDelete(row)}
-                            disabled={row.id === user.id}
-                            style={{ color: "var(--color-danger, #ef4444)" }}
-                          >
-                            Delete
-                          </button>
-                        </div>
+                        <span
+                          className={`sync-badge ${
+                            !row.is_active
+                              ? "sync-badge--failed"
+                              : row.must_set_password
+                                ? "sync-badge--pending"
+                                : "sync-badge--synced"
+                          }`}
+                        >
+                          {!row.is_active
+                            ? "Inactive"
+                            : row.must_set_password
+                              ? "Pending activation"
+                              : "Active"}
+                        </span>
+                      </td>
+                      <td>
+                        <FarmerActionsMenu
+                          label={`Actions for ${row.full_name}`}
+                          items={[
+                            {
+                              label: "Edit",
+                              onClick: () => startEdit(row),
+                            },
+                            {
+                              label: "Reset Password",
+                              onClick: () => void handleResetPassword(row),
+                            },
+                            {
+                              label: row.is_active ? "Deactivate" : "Activate",
+                              disabled: row.id === user.id,
+                              onClick: () => void toggleActive(row),
+                            },
+                            {
+                              label: "Delete",
+                              variant: "danger",
+                              disabled: row.id === user.id,
+                              onClick: () => void handleDelete(row),
+                            },
+                          ]}
+                        />
                       </td>
                     </tr>
                   ))}
@@ -447,6 +455,7 @@ export function UsersPage() {
                   roleLabel={`${ROLE_LABELS[row.role]}${(row.role === "agent" || row.role === "team_lead") && row.can_access_operations ? " · Operations" : ""}`}
                   officeName={formatOffice(row.office_name, row.office_region)}
                   isActive={row.is_active}
+                  mustSetPassword={row.must_set_password}
                   onOpen={() => startEdit(row)}
                   menuItems={[
                     {
