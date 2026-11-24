@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import type { GpsPin } from "@farmeriq/shared";
 import { BackButton } from "../components/BackButton";
+import { FormStepProgress } from "../components/FormStepProgress";
 import type { CapturedPhoto } from "../lib/photos";
 import { createCapturedPhoto } from "../lib/photos";
 import { useOfflineSyncContext } from "../context/OfflineSyncContext";
@@ -216,33 +217,15 @@ export function EditPendingFarmerPage() {
       <h2>Edit farmer</h2>
       <p className="muted">Changes are saved on this device until sync succeeds.</p>
 
-      <div className="step-progress">
-        {EDIT_FORM_STEPS.map((s) => (
-          <div
-            key={s.id}
-            role="button"
-            tabIndex={0}
-            style={{ cursor: "pointer" }}
-            onClick={() => {
-              setFormError("");
-              setFieldErrors({});
-              setStep(s.id);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                setFormError("");
-                setFieldErrors({});
-                setStep(s.id);
-              }
-            }}
-            className={`step-progress__item ${step === s.id ? "step-progress__item--active" : ""} ${step > s.id ? "step-progress__item--done" : ""}`}
-          >
-            <span className="step-progress__number">{s.id}</span>
-            <span className="step-progress__label">{s.title}</span>
-          </div>
-        ))}
-      </div>
+      <FormStepProgress
+        steps={EDIT_FORM_STEPS}
+        currentStep={step}
+        onStepSelect={(id) => {
+          setFormError("");
+          setFieldErrors({});
+          setStep(id);
+        }}
+      />
 
       <div className="card card--form">
         <div className="section-header">{currentStep.title}</div>

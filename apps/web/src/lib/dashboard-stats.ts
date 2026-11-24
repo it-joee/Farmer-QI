@@ -146,16 +146,18 @@ export function getCommodityFilterOptions(
  * so each bar and pie slice is distinct and visually clear.
  */
 export const CHART_COLORS = [
-  "#00a067",           // Primary Brand Green
-  "#facc15",           // Golden Yellow (Corn / Maize)
-  palette.orange[600],  // #c9925a — Warm Harvest Ochre
-  "#8b5a2b",           // Earth Soil Brown
-  "#10b981",           // Emerald Green
-  "#f59e0b",           // Amber Gold
-  "#deb781",           // Wheat Tan
-  "#6c431b",           // Rich Cocoa Brown
-  "#eab308",           // Sunlit Gold
-  "#a2673a",           // Terracotta Brown
+  "#00a067", // Primary Brand Emerald
+  "#f59e0b", // Warm Amber Gold
+  "#3b82f6", // Sky Blue
+  "#8b5cf6", // Soft Indigo / Violet
+  "#e11d48", // Rose Crimson
+  "#0d9488", // Deep Teal
+  "#b45309", // Harvest Ochre
+  "#65a30d", // Fresh Olive Lime
+  "#0284c7", // Cerulean Blue
+  "#ec4899", // Berry Pink
+  "#ea580c", // Terracotta Orange
+  "#6366f1", // Periwinkle Indigo
 ] as const;
 
 export const NOT_SPECIFIED_COLOR = "#94a3b8"; // Neutral slate for "Not specified"

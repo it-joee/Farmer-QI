@@ -203,7 +203,7 @@ export function WaybillsPage() {
                 maximumFractionDigits: 2,
               })}
             </span>
-            <span className="kpi-card__icon" aria-hidden="true">
+            <span className="kpi-card__icon kpi-card__icon--green" aria-hidden="true">
               <ScaleWeightIcon />
             </span>
           </div>
@@ -217,7 +217,7 @@ export function WaybillsPage() {
             <span className="kpi-card__value">
               <AnimatedNumber value={summary.total_bags} />
             </span>
-            <span className="kpi-card__icon" aria-hidden="true">
+            <span className="kpi-card__icon kpi-card__icon--amber" aria-hidden="true">
               <PackageBagIcon />
             </span>
           </div>
@@ -229,7 +229,7 @@ export function WaybillsPage() {
             <span className="kpi-card__value">
               <AnimatedNumber value={summary.total_waybills} />
             </span>
-            <span className="kpi-card__icon" aria-hidden="true">
+            <span className="kpi-card__icon kpi-card__icon--sky" aria-hidden="true">
               <WaybillDocIcon />
             </span>
           </div>
@@ -241,7 +241,7 @@ export function WaybillsPage() {
             <span className="kpi-card__value">
               <AnimatedNumber value={summary.in_transit_count} />
             </span>
-            <span className="kpi-card__icon" aria-hidden="true">
+            <span className="kpi-card__icon kpi-card__icon--indigo" aria-hidden="true">
               <TruckTransitIcon />
             </span>
           </div>

@@ -15,6 +15,13 @@ function generateToken(): string {
   return crypto.randomBytes(32).toString("hex");
 }
 
+const CORPORATE_DOMAIN = "@jniagri.ag";
+
+function isEmailAllowedForRole(email: string, role: string): boolean {
+  if (role === "agent") return true;
+  return email.trim().toLowerCase().endsWith(CORPORATE_DOMAIN);
+}
+
 userRoutes.get("/", async (c) => {
   const actorResult = requireActor(c);
   if (actorResult instanceof Response) return actorResult;
@@ -91,8 +98,11 @@ userRoutes.post("/", async (c) => {
   const data = parsed.data;
   const role = data.role;
 
-  if (!data.email.toLowerCase().endsWith("@jniagri.ag")) {
-    return c.json({ error: "Only @jniagri.ag email addresses can be registered." }, 400);
+  if (!isEmailAllowedForRole(data.email, role)) {
+    return c.json(
+      { error: "Team Lead, Operations, and Administrator accounts must use an @jniagri.ag email address." },
+      400
+    );
   }
 
   if ((role === "agent" || role === "team_lead") && !data.office_id) {
@@ -177,6 +187,13 @@ userRoutes.patch("/:id", async (c) => {
   const data = parsed.data;
   const current = existing.rows[0];
   const nextRole = data.role ?? current.role;
+  if (!isEmailAllowedForRole(current.email, nextRole)) {
+    return c.json(
+      { error: "Only Field Agent accounts can use a non-@jniagri.ag email address. Promoting to this role requires an @jniagri.ag email." },
+      400
+    );
+  }
+
   const nextOfficeId =
     data.office_id !== undefined ? data.office_id : current.office_id;
 

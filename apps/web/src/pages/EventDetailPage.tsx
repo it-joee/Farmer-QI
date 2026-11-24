@@ -466,7 +466,7 @@ export function EventDetailPage() {
             <span className="kpi-card__value">
               <AnimatedNumber value={totalAttendees} />
             </span>
-            <span className="kpi-card__icon" aria-hidden="true">
+            <span className="kpi-card__icon kpi-card__icon--green" aria-hidden="true">
               <NavIconUsers />
             </span>
           </div>
@@ -477,7 +477,7 @@ export function EventDetailPage() {
             <span className="kpi-card__value">
               <AnimatedNumber value={genderCounts.male} />
             </span>
-            <span className="kpi-card__icon" aria-hidden="true">
+            <span className="kpi-card__icon kpi-card__icon--sky" aria-hidden="true">
               <MaleIcon />
             </span>
           </div>
@@ -488,7 +488,7 @@ export function EventDetailPage() {
             <span className="kpi-card__value">
               <AnimatedNumber value={genderCounts.female} />
             </span>
-            <span className="kpi-card__icon" aria-hidden="true">
+            <span className="kpi-card__icon kpi-card__icon--rose" aria-hidden="true">
               <FemaleIcon />
             </span>
           </div>

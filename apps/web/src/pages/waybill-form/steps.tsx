@@ -53,7 +53,7 @@ export function StepWaybillRoute({
   ];
 
   const aggregatorOptions = [
-    { value: "", label: "Select aggregator (optional)" },
+    { value: "", label: "Select aggregator" },
     { value: "__direct__", label: "Direct Company Sourcing" },
     { value: "__custom__", label: "Add new aggregator" },
     ...aggregators.map((a) => ({
@@ -130,19 +130,12 @@ export function StepWaybillRoute({
         )}
       </FormGroup>
 
-      <FormGroup
-        fieldId="aggregator_selection"
-        label={
-          <>
-            Aggregator name <span className="optional">(optional)</span>
-          </>
-        }
-      >
+      <FormGroup fieldId="aggregator_selection" label="Aggregator name">
         <SelectField
           id="aggregator_selection"
           value={form.aggregator_selection}
           onChange={onSelectAggregator}
-          placeholder="Select aggregator (optional)"
+          placeholder="Select aggregator"
           options={aggregatorOptions}
         />
         {showCustomAggregatorInput && (
@@ -160,14 +153,7 @@ export function StepWaybillRoute({
         )}
       </FormGroup>
 
-      <FormGroup
-        fieldId="loading_location"
-        label={
-          <>
-            Place of loading (Origin) <span className="optional">(optional)</span>
-          </>
-        }
-      >
+      <FormGroup fieldId="loading_location" label="Place of loading (Origin)">
         <input
           id="loading_location"
           placeholder="e.g. Wa, Tamale, Techiman"
@@ -176,14 +162,7 @@ export function StepWaybillRoute({
         />
       </FormGroup>
 
-      <FormGroup
-        fieldId="loading_region"
-        label={
-          <>
-            Loading region <span className="optional">(optional)</span>
-          </>
-        }
-      >
+      <FormGroup fieldId="loading_region" label="Loading region">
         <SelectField
           id="loading_region"
           value={form.loading_region}
@@ -196,14 +175,7 @@ export function StepWaybillRoute({
         />
       </FormGroup>
 
-      <FormGroup
-        fieldId="discharge_location"
-        label={
-          <>
-            Place of discharge (Destination) <span className="optional">(optional)</span>
-          </>
-        }
-      >
+      <FormGroup fieldId="discharge_location" label="Place of discharge (Destination)">
         <input
           id="discharge_location"
           placeholder="e.g. Tema Port Warehouse, Kumasi"
@@ -249,7 +221,7 @@ export function StepWaybillCommodity({
   const receivedKgNum = rawReceivedKg ? Number(rawReceivedKg) : NaN;
 
   let receivedHint: string | undefined =
-    "Optional discharge weight recorded at the buyer's weighbridge.";
+    "Discharge weight recorded at the buyer's weighbridge.";
   if (!Number.isNaN(receivedKgNum) && receivedKgNum >= 0) {
     const receivedMt = (receivedKgNum / 1000).toFixed(3);
     if (!Number.isNaN(loadingKgNum) && loadingKgNum > 0) {
@@ -267,12 +239,9 @@ export function StepWaybillCommodity({
     <div className="form-grid">
       <FormGroup
         fieldId="product_name"
-        label={
-          <>
-            Product / Commodity name <span className="optional">(optional)</span>
-          </>
-        }
+        label="Product / Commodity name"
         labelFor={null}
+        error={errors?.product_name}
         className="form-group--full"
       >
         <div className="commodity-chips">
@@ -333,11 +302,7 @@ export function StepWaybillCommodity({
 
       <FormGroup
         fieldId="bag_count"
-        label={
-          <>
-            Quantity (Number of bags) <span className="optional">(optional)</span>
-          </>
-        }
+        label="Quantity (Number of bags)"
         error={errors?.bag_count}
       >
         <input
@@ -350,14 +315,7 @@ export function StepWaybillCommodity({
         />
       </FormGroup>
 
-      <FormGroup
-        fieldId="bag_unit"
-        label={
-          <>
-            Packaging type <span className="optional">(optional)</span>
-          </>
-        }
-      >
+      <FormGroup fieldId="bag_unit" label="Packaging type">
         <SelectField
           id="bag_unit"
           value={form.bag_unit}
@@ -391,11 +349,7 @@ export function StepWaybillCommodity({
 
       <FormGroup
         fieldId="weight_tons"
-        label={
-          <>
-            Weight (Metric Tons / MT) <span className="optional">(auto)</span>
-          </>
-        }
+        label="Weight (Metric Tons / MT)"
         hint="Auto-calculated from Weight (kg)."
       >
         <input
@@ -428,11 +382,7 @@ export function StepWaybillCommodity({
 
       <FormGroup
         fieldId="received_weight_kg"
-        label={
-          <>
-            Received / Offtaker weighbridge weight (kg) <span className="optional">(optional)</span>
-          </>
-        }
+        label="Received / Offtaker weighbridge weight (kg)"
         hint={receivedHint}
         className="form-group--full"
       >
@@ -489,11 +439,7 @@ export function StepWaybillTransport({
     <div className="form-grid">
       <FormGroup
         fieldId="driver_selection"
-        label={
-          <>
-            Select registered driver <span className="optional">(optional)</span>
-          </>
-        }
+        label="Select registered driver"
         hint="Choose from the list of our registered drivers, or select Add new driver."
       >
         <SelectField
@@ -505,14 +451,7 @@ export function StepWaybillTransport({
         />
       </FormGroup>
 
-      <FormGroup
-        fieldId="driver_name"
-        label={
-          <>
-            Driver's name <span className="optional">(optional)</span>
-          </>
-        }
-      >
+      <FormGroup fieldId="driver_name" label="Driver's name" error={errors?.driver_name}>
         <input
           id="driver_name"
           placeholder="e.g. Ibrahim Musa"
@@ -521,14 +460,7 @@ export function StepWaybillTransport({
         />
       </FormGroup>
 
-      <FormGroup
-        fieldId="driver_phone"
-        label={
-          <>
-            Driver's contact <span className="optional">(optional)</span>
-          </>
-        }
-      >
+      <FormGroup fieldId="driver_phone" label="Driver's contact">
         <input
           id="driver_phone"
           type="tel"
@@ -569,7 +501,7 @@ export function StepWaybillTransport({
       <div className="photo-fields-row">
         <PhotoCaptureField
           label="Truck photos"
-          hint="Take or upload photos of the loaded truck or plate number (optional)."
+          hint="Take or upload photos of the loaded truck or plate number."
           photos={truckPhotos}
           onChange={onTruckPhotosChange}
           multiple
@@ -578,7 +510,7 @@ export function StepWaybillTransport({
 
         <PhotoCaptureField
           label="Waybill / Weighbridge files"
-          hint="Upload images or PDF copies of the signed waybill or weighbridge ticket (optional)."
+          hint="Upload images or PDF copies of the signed waybill or weighbridge ticket."
           photos={docPhotos}
           onChange={onDocPhotosChange}
           multiple

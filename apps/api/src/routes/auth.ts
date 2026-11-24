@@ -48,10 +48,6 @@ authRoutes.post("/login", async (c) => {
 
   const cleanEmail = parsed.data.email.trim().toLowerCase();
 
-  if (!cleanEmail.endsWith("@jniagri.ag")) {
-    return c.json({ error: "Invalid email or password" }, 401);
-  }
-
   // --- Brute-force check (keyed by email) ---
   const lockoutMins = getLockoutMinutes(cleanEmail);
   if (lockoutMins > 0) {
@@ -83,6 +79,12 @@ authRoutes.post("/login", async (c) => {
   }
 
   const user = result.rows[0];
+
+  // Enforce @jniagri.ag domain for elevated roles (defense-in-depth)
+  if (user.role !== "agent" && !user.email.toLowerCase().endsWith("@jniagri.ag")) {
+    recordFailedAttempt(cleanEmail);
+    return c.json({ error: "Invalid email or password" }, 401);
+  }
 
   // Block login if account has not been activated via invite link yet
   if (user.must_set_password) {

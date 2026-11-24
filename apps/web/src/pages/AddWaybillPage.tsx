@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BackButton } from "../components/BackButton";
+import { FormStepProgress } from "../components/FormStepProgress";
 import { useConfirmDialog } from "../context/ConfirmDialogContext";
 import { useToast } from "../context/ToastContext";
 import { useAllAggregators } from "../hooks/useAggregators";
@@ -188,19 +189,7 @@ export function AddWaybillPage() {
         </p>
       </div>
 
-      <div className="step-progress step-progress--3">
-        {WAYBILL_FORM_STEPS.map((s) => (
-          <div
-            key={s.id}
-            className={`step-progress__item ${step === s.id ? "step-progress__item--active" : ""} ${
-              step > s.id ? "step-progress__item--done" : ""
-            }`}
-          >
-            <span className="step-progress__number">{s.id}</span>
-            <span className="step-progress__label">{s.title}</span>
-          </div>
-        ))}
-      </div>
+      <FormStepProgress steps={WAYBILL_FORM_STEPS} currentStep={step} />
 
       <div className="card card--form">
         <div className="section-header">{currentStep.title}</div>

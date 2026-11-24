@@ -45,6 +45,7 @@ import { PendingOfftakerDetailPage } from "./pages/PendingOfftakerDetailPage";
 import { OfftakerDetailPage } from "./pages/OfftakerDetailPage";
 import { TrashPage } from "./pages/TrashPage";
 import { WaybillsPage } from "./pages/WaybillsPage";
+import { InvoicesPage } from "./pages/InvoicesPage";
 import { AddWaybillPage } from "./pages/AddWaybillPage";
 import { EditWaybillPage } from "./pages/EditWaybillPage";
 import { WaybillDetailPage } from "./pages/WaybillDetailPage";
@@ -287,6 +288,14 @@ export function App() {
           element={
             <RequireOperationsAccess>
               <WaybillDetailPage />
+            </RequireOperationsAccess>
+          }
+        />
+        <Route
+          path="/invoices"
+          element={
+            <RequireOperationsAccess>
+              <InvoicesPage />
             </RequireOperationsAccess>
           }
         />

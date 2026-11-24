@@ -78,7 +78,7 @@ export function DriversPage() {
             <span className="kpi-card__value">
               <AnimatedNumber value={summary.total_all} />
             </span>
-            <span className="kpi-card__icon" aria-hidden="true">
+            <span className="kpi-card__icon kpi-card__icon--sky" aria-hidden="true">
               <DriverIcon />
             </span>
           </div>
@@ -89,7 +89,7 @@ export function DriversPage() {
             <span className="kpi-card__value">
               <AnimatedNumber value={summary.active_count} />
             </span>
-            <span className="kpi-card__icon" aria-hidden="true">
+            <span className="kpi-card__icon kpi-card__icon--green" aria-hidden="true">
               <DriverIcon />
             </span>
           </div>
@@ -100,7 +100,7 @@ export function DriversPage() {
             <span className="kpi-card__value">
               <AnimatedNumber value={summary.inactive_count} />
             </span>
-            <span className="kpi-card__icon" aria-hidden="true">
+            <span className="kpi-card__icon kpi-card__icon--rose" aria-hidden="true">
               <DriverIcon />
             </span>
           </div>

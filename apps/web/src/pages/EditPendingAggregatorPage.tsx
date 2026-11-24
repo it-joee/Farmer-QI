@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { BackButton } from "../components/BackButton";
+import { FormStepProgress } from "../components/FormStepProgress";
 import type { CapturedPhoto } from "../lib/photos";
 import { createCapturedPhoto } from "../lib/photos";
 import { useOfflineSyncContext } from "../context/OfflineSyncContext";
@@ -175,19 +176,7 @@ export function EditPendingAggregatorPage() {
       <BackButton to={`/aggregators/pending/${localId}`} />
       <h2>Edit Pending Aggregator: {form.full_name || "Draft (Unnamed)"}</h2>
 
-      <div className="step-progress">
-        {AGGREGATOR_FORM_STEPS.map((s) => (
-          <div
-            key={s.id}
-            className={`step-progress__item ${
-              step === s.id ? "step-progress__item--active" : ""
-            } ${step > s.id ? "step-progress__item--done" : ""}`}
-          >
-            <span className="step-progress__number">{s.id}</span>
-            <span className="step-progress__label">{s.title}</span>
-          </div>
-        ))}
-      </div>
+      <FormStepProgress steps={AGGREGATOR_FORM_STEPS} currentStep={step} />
 
       <div className="card card--form">
         <div className="section-header">{currentStep.title}</div>

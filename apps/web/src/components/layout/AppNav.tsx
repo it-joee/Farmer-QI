@@ -86,13 +86,22 @@ function getNavItems(user: User) {
   }
 
   if (canAccessOperations(user)) {
-    items.push({
-      to: "/waybills",
-      label: "Waybills",
-      tabLabel: "Waybills",
-      end: false,
-      icon: "waybills",
-    });
+    items.push(
+      {
+        to: "/waybills",
+        label: "Waybills",
+        tabLabel: "Waybills",
+        end: false,
+        icon: "waybills",
+      },
+      {
+        to: "/invoices",
+        label: "Invoices",
+        tabLabel: "Invoices",
+        end: false,
+        icon: "invoices",
+      }
+    );
   }
 
   items.push({ to: "/events", label: "Events", tabLabel: "Events", end: true, icon: "events" });

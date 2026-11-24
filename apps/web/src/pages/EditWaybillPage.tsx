@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import type { WaybillPhoto } from "@farmeriq/shared";
 import { BackButton } from "../components/BackButton";
+import { FormStepProgress } from "../components/FormStepProgress";
 import { useConfirmDialog } from "../context/ConfirmDialogContext";
 import { useToast } from "../context/ToastContext";
 import { useAllAggregators } from "../hooks/useAggregators";
@@ -267,35 +268,15 @@ export function EditWaybillPage() {
         </p>
       </div>
 
-      <div className="step-progress step-progress--3">
-        {WAYBILL_FORM_STEPS.map((s) => (
-          <div
-            key={s.id}
-            role="button"
-            tabIndex={0}
-            style={{ cursor: "pointer" }}
-            onClick={() => {
-              setFormError("");
-              setFieldErrors({});
-              setStep(s.id);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                setFormError("");
-                setFieldErrors({});
-                setStep(s.id);
-              }
-            }}
-            className={`step-progress__item ${step === s.id ? "step-progress__item--active" : ""} ${
-              step > s.id ? "step-progress__item--done" : ""
-            }`}
-          >
-            <span className="step-progress__number">{s.id}</span>
-            <span className="step-progress__label">{s.title}</span>
-          </div>
-        ))}
-      </div>
+      <FormStepProgress
+        steps={WAYBILL_FORM_STEPS}
+        currentStep={step}
+        onStepSelect={(id) => {
+          setFormError("");
+          setFieldErrors({});
+          setStep(id);
+        }}
+      />
 
       <div className="card card--form">
         <div className="section-header">{currentStep.title}</div>

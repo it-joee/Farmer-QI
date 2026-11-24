@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useDropdownPlacement } from "../../hooks/useDropdownPlacement";
 import { SelectField } from "./SelectField";
 const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"] as const;
@@ -111,6 +111,7 @@ export function DateField({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  const [alignRight, setAlignRight] = useState(false);
   const placement = useDropdownPlacement({ open, triggerRef, menuRef: panelRef });
   const { minYear, maxYear } = defaultYearBounds();
   const yearMin = minYearProp ?? minYear;
@@ -135,6 +136,28 @@ export function DateField({
       setViewMonth(date.getMonth());
     }
   }, [value, yearMin, yearMax]);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setAlignRight(false);
+      return;
+    }
+
+    function updateHorizontalAlignment() {
+      const trigger = triggerRef.current;
+      const panel = panelRef.current;
+      if (!trigger || !panel) return;
+      const triggerRect = trigger.getBoundingClientRect();
+      const panelWidth = panel.offsetWidth;
+      const overflowsRight = triggerRect.left + panelWidth > window.innerWidth - 16;
+      const fitsLeft = triggerRect.right - panelWidth >= 16;
+      setAlignRight(overflowsRight && fitsLeft);
+    }
+
+    updateHorizontalAlignment();
+    window.addEventListener("resize", updateHorizontalAlignment);
+    return () => window.removeEventListener("resize", updateHorizontalAlignment);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -209,7 +232,7 @@ export function DateField({
       {open && (
         <div
           ref={panelRef}
-          className={`date-field__popover${placement === "above" ? " dropdown-panel--above" : ""}`}
+          className={`date-field__popover${placement === "above" ? " dropdown-panel--above" : ""}${alignRight ? " date-field__popover--align-right" : ""}`}
           role="dialog"
           aria-label="Choose date"
         >

@@ -237,7 +237,7 @@ export function ReportsPage() {
             <span className="reports-kpi__value">
               {loading ? "—" : <AnimatedNumber value={summary.total_farmers} />}
             </span>
-            <span className="kpi-card__icon" aria-hidden="true">
+            <span className="kpi-card__icon kpi-card__icon--green" aria-hidden="true">
               <FarmerTractorIcon />
             </span>
           </div>
@@ -248,7 +248,7 @@ export function ReportsPage() {
             <span className="reports-kpi__value">
               {loading ? "—" : <AnimatedNumber value={summary.with_ghana_card} />}
             </span>
-            <span className="kpi-card__icon" aria-hidden="true">
+            <span className="kpi-card__icon kpi-card__icon--sky" aria-hidden="true">
               <IdCardIcon />
             </span>
           </div>
@@ -259,7 +259,7 @@ export function ReportsPage() {
             <span className="reports-kpi__value">
               {loading ? "—" : <AnimatedNumber value={summary.with_boundary} />}
             </span>
-            <span className="kpi-card__icon" aria-hidden="true">
+            <span className="kpi-card__icon kpi-card__icon--indigo" aria-hidden="true">
               <BoundaryIcon />
             </span>
           </div>
@@ -270,7 +270,7 @@ export function ReportsPage() {
             <span className="reports-kpi__value">
               {loading ? "—" : <AnimatedNumber value={summary.open_conflicts} />}
             </span>
-            <span className="kpi-card__icon" aria-hidden="true">
+            <span className="kpi-card__icon kpi-card__icon--rose" aria-hidden="true">
               <FlagAlertIcon />
             </span>
           </div>

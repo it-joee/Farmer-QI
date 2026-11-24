@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { BackButton } from "../components/BackButton";
+import { FormStepProgress } from "../components/FormStepProgress";
 
 import type { CapturedPhoto } from "../lib/photos";
 
@@ -289,27 +290,7 @@ export function AddFarmerPage() {
 
 
 
-        <div className="step-progress">
-
-          {FORM_STEPS.map((s) => (
-
-            <div
-
-              key={s.id}
-
-              className={`step-progress__item ${step === s.id ? "step-progress__item--active" : ""} ${step > s.id ? "step-progress__item--done" : ""}`}
-
-            >
-
-              <span className="step-progress__number">{s.id}</span>
-
-              <span className="step-progress__label">{s.title}</span>
-
-            </div>
-
-          ))}
-
-        </div>
+        <FormStepProgress steps={FORM_STEPS} currentStep={step} />
 
 
 

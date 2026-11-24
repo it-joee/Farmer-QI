@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { User } from "@farmeriq/shared";
 import {
   canAccessOperations,
@@ -47,7 +47,9 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ user }: AppHeaderProps) {
+  const location = useLocation();
   const navigate = useNavigate();
+  const isOverview = location.pathname === "/";
   const { online, pendingCount, lastSyncError } = useOfflineSyncContext();
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -397,19 +399,21 @@ export function AppHeader({ user }: AppHeaderProps) {
         </div>
       </header>
 
-      {/* ── Mobile-only welcome banner (below topbar) ── */}
-      <div className="mobile-welcome">
-        <span className="mobile-welcome__greeting">
-          Welcome back, <strong>{user.full_name.split(" ")[0]}</strong>
-        </span>
-      </div>
+      {/* ── Mobile-only welcome banner (below topbar, overview only) ── */}
+      {isOverview && (
+        <div className="mobile-welcome">
+          <span className="mobile-welcome__greeting">
+            Hi <strong>{user.full_name.split(" ")[0]}</strong>
+          </span>
+        </div>
+      )}
 
       {/* ── Desktop-only header card (welcome left, add + notif right) ── */}
       <div className="top-header-card">
         {/* Welcome — desktop only, hidden on mobile via CSS */}
         <div className="top-header-card__welcome">
           <h2 className="top-header-card__title">
-            Welcome, <span className="top-header-card__name">{user.full_name}</span>
+            Hi <span className="top-header-card__name">{user.full_name}</span>
           </h2>
         </div>
 

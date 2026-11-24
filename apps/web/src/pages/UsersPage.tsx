@@ -250,9 +250,19 @@ export function UsersPage() {
               id="user-email"
               type="email"
               required
+              placeholder={
+                form.role === "agent"
+                  ? "e.g. officer@gmail.com or name@jniagri.ag"
+                  : "e.g. name@jniagri.ag"
+              }
               value={form.email}
               onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
             />
+            <span className="field-hint">
+              {form.role === "agent"
+                ? "Field Agents can use a personal or @jniagri.ag email."
+                : "Requires an @jniagri.ag email address."}
+            </span>
           </div>
           <div className="form-group">
             <label htmlFor="user-name">Full name</label>
@@ -573,6 +583,11 @@ export function UsersPage() {
                     { value: "admin", label: "Administrator" },
                   ]}
                 />
+                {!editingUser.email.toLowerCase().endsWith("@jniagri.ag") && (
+                  <span className="field-hint">
+                    Personal email accounts are restricted to the Field Agent role.
+                  </span>
+                )}
               </div>
 
               {(editForm.role === "agent" || editForm.role === "team_lead") && (

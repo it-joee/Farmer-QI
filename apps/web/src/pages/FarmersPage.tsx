@@ -223,7 +223,7 @@ export function FarmersPage() {
             <span className="kpi-card__value">
               <AnimatedNumber value={farmerStats.totalRegistered} />
             </span>
-            <span className="kpi-card__icon" aria-hidden="true">
+            <span className="kpi-card__icon kpi-card__icon--green" aria-hidden="true">
               <FarmerTractorIcon />
             </span>
           </div>
@@ -234,7 +234,7 @@ export function FarmersPage() {
             <span className="kpi-card__value">
               <AnimatedNumber value={farmerStats.districts} />
             </span>
-            <span className="kpi-card__icon" aria-hidden="true">
+            <span className="kpi-card__icon kpi-card__icon--sky" aria-hidden="true">
               <MapPinIcon />
             </span>
           </div>
@@ -245,7 +245,7 @@ export function FarmersPage() {
             <span className="kpi-card__value">
               <AnimatedNumber value={farmerStats.regions} />
             </span>
-            <span className="kpi-card__icon" aria-hidden="true">
+            <span className="kpi-card__icon kpi-card__icon--amber" aria-hidden="true">
               <RegionsMapIcon />
             </span>
           </div>
@@ -256,7 +256,7 @@ export function FarmersPage() {
             <span className="kpi-card__value">
               <AnimatedNumber value={farmerStats.male} />
             </span>
-            <span className="kpi-card__icon" aria-hidden="true">
+            <span className="kpi-card__icon kpi-card__icon--indigo" aria-hidden="true">
               <MaleIcon />
             </span>
           </div>
@@ -267,7 +267,7 @@ export function FarmersPage() {
             <span className="kpi-card__value">
               <AnimatedNumber value={farmerStats.female} />
             </span>
-            <span className="kpi-card__icon" aria-hidden="true">
+            <span className="kpi-card__icon kpi-card__icon--rose" aria-hidden="true">
               <FemaleIcon />
             </span>
           </div>

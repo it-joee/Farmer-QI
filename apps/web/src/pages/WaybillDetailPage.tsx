@@ -31,9 +31,11 @@ export function WaybillDetailPage() {
   const navigate = useNavigate();
   const { waybill, loading, error, refetch } = useWaybill(id ?? "");
   const [photos, setPhotos] = useState<WaybillPhoto[]>([]);
+  const [photosLoading, setPhotosLoading] = useState(true);
   const [conflicts, setConflicts] = useState<ConflictFlag[]>([]);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [preview, setPreview] = useState<WaybillPhoto | null>(null);
+  const [avatarError, setAvatarError] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const { confirm, alert } = useConfirmDialog();
   const { showSuccess } = useToast();
@@ -47,10 +49,23 @@ export function WaybillDetailPage() {
 
   useEffect(() => {
     if (!id) return;
+    let cancelled = false;
+    setPhotosLoading(true);
+    setAvatarError(false);
     fetchWaybillPhotos(id)
-      .then(setPhotos)
-      .catch(() => setPhotos([]));
+      .then((list) => {
+        if (!cancelled) setPhotos(list);
+      })
+      .catch(() => {
+        if (!cancelled) setPhotos([]);
+      })
+      .finally(() => {
+        if (!cancelled) setPhotosLoading(false);
+      });
     loadConflicts();
+    return () => {
+      cancelled = true;
+    };
   }, [id, loadConflicts]);
 
   async function handleResolveConflict(conflictId: string, status: "resolved" | "dismissed") {
@@ -135,6 +150,7 @@ export function WaybillDetailPage() {
   }
 
   const truckPhotos = photos.filter((p) => p.photo_type === "truck");
+  const primaryTruckPhoto = truckPhotos.find((p) => !isWaybillPdf(p)) ?? null;
   const docPhotos = photos.filter((p) => p.photo_type === "waybill_doc");
 
   const weightVariance =
@@ -207,13 +223,21 @@ export function WaybillDetailPage() {
       <div className="page-header farmer-detail__header">
         <div className="farmer-detail__identity">
           <div className="farmer-profile-avatar">
-            <span
-              className="farmer-profile-avatar__placeholder"
-              style={{ display: "inline-flex" }}
-              aria-hidden="true"
-            >
-              <TruckTransitIcon size={38} />
-            </span>
+            {primaryTruckPhoto && !avatarError ? (
+              <img
+                src={apiAssetUrl(primaryTruckPhoto.url)}
+                alt={`Truck for Waybill #${waybill.waybill_number}`}
+                onError={() => setAvatarError(true)}
+              />
+            ) : !photosLoading ? (
+              <span
+                className="farmer-profile-avatar__placeholder"
+                style={{ display: "inline-flex" }}
+                aria-hidden="true"
+              >
+                <TruckTransitIcon size={38} />
+              </span>
+            ) : null}
           </div>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", flexWrap: "wrap" }}>

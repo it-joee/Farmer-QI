@@ -25,7 +25,10 @@ export function AppSidebar({ user, onLogout }: { user: User; onLogout: () => voi
   ];
 
   const operationsItems = canAccessOperations(user)
-    ? [{ to: "/waybills", label: "Waybills", icon: "waybills" as NavIconKey }]
+    ? [
+        { to: "/waybills", label: "Waybills", icon: "waybills" as NavIconKey },
+        { to: "/invoices", label: "Invoices", icon: "invoices" as NavIconKey },
+      ]
     : [];
 
   const activitiesItems = [

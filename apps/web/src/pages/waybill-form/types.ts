@@ -198,7 +198,10 @@ export function validateWaybillKeyFields(
   ) {
     return { fieldId: "buyer_name", message: "Enter buyer / company name." };
   }
-  if (step === 2) {
+  if (step === undefined || step === 2) {
+    if (!form.product_name.trim()) {
+      return { fieldId: "product_name", message: "Product / Commodity name is required." };
+    }
     const rawBagCount = stripNumericCommas(form.bag_count).trim();
     if (rawBagCount && (Number.isNaN(Number(rawBagCount)) || Number(rawBagCount) < 0)) {
       return { fieldId: "bag_count", message: "Quantity must be a valid non-negative number." };
@@ -211,7 +214,10 @@ export function validateWaybillKeyFields(
       return { fieldId: "weight_kg", message: "Weight must be a valid non-negative number." };
     }
   }
-  if (step === 3 && !form.truck_number.trim()) {
+  if ((step === undefined || step === 3) && !form.driver_name.trim()) {
+    return { fieldId: "driver_name", message: "Driver's name is required." };
+  }
+  if ((step === undefined || step === 3) && !form.truck_number.trim()) {
     return { fieldId: "truck_number", message: "Truck number is required." };
   }
   return null;

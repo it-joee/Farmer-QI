@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BackButton } from "../components/BackButton";
+import { FormStepProgress } from "../components/FormStepProgress";
 import type { CapturedPhoto } from "../lib/photos";
 import { useOfflineSyncContext } from "../context/OfflineSyncContext";
 import { useToast } from "../context/ToastContext";
@@ -146,19 +147,7 @@ export function AddAggregatorPage() {
       <h2>Add Aggregator</h2>
       <p className="muted">An ID is generated automatically when you save.</p>
 
-      <div className="step-progress">
-        {AGGREGATOR_FORM_STEPS.map((s) => (
-          <div
-            key={s.id}
-            className={`step-progress__item ${
-              step === s.id ? "step-progress__item--active" : ""
-            } ${step > s.id ? "step-progress__item--done" : ""}`}
-          >
-            <span className="step-progress__number">{s.id}</span>
-            <span className="step-progress__label">{s.title}</span>
-          </div>
-        ))}
-      </div>
+      <FormStepProgress steps={AGGREGATOR_FORM_STEPS} currentStep={step} />
 
       <div className="card card--form">
         <div className="section-header">{currentStep.title}</div>

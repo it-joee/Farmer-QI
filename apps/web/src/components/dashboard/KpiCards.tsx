@@ -28,15 +28,15 @@ export function KpiCards({
   showOfftakers = true,
   showDrivers = true,
 }: KpiCardsProps) {
-  const cards: { label: string; value: number; to: string; icon: ReactNode }[] = [
-    { label: "Total farmers", value: totalFarmers, to: "/farmers", icon: <FarmerTractorIcon /> },
-    { label: "Total aggregators", value: totalAggregators, to: "/aggregators", icon: <NavIconAggregators /> },
+  const cards: { label: string; value: number; to: string; icon: ReactNode; tone: string }[] = [
+    { label: "Total farmers", value: totalFarmers, to: "/farmers", icon: <FarmerTractorIcon />, tone: "green" },
+    { label: "Total aggregators", value: totalAggregators, to: "/aggregators", icon: <NavIconAggregators />, tone: "indigo" },
     ...(showOfftakers
-      ? [{ label: "Total offtakers", value: totalOfftakers, to: "/offtakers", icon: <NavIconOfftakers /> }]
+      ? [{ label: "Total offtakers", value: totalOfftakers, to: "/offtakers", icon: <NavIconOfftakers />, tone: "sky" }]
       : []),
-    { label: "Total events", value: totalEvents, to: "/events", icon: <NavIconEvents /> },
+    { label: "Total events", value: totalEvents, to: "/events", icon: <NavIconEvents />, tone: "amber" },
     ...(showDrivers
-      ? [{ label: "Total drivers", value: totalDrivers, to: "/drivers", icon: <DriverIcon /> }]
+      ? [{ label: "Total drivers", value: totalDrivers, to: "/drivers", icon: <DriverIcon />, tone: "rose" }]
       : []),
   ];
 
@@ -48,7 +48,7 @@ export function KpiCards({
             <span className="kpi-card__value">
               <AnimatedNumber value={card.value} />
             </span>
-            <span className="kpi-card__icon" aria-hidden="true">
+            <span className={`kpi-card__icon kpi-card__icon--${card.tone}`} aria-hidden="true">
               {card.icon}
             </span>
           </div>
