@@ -251,18 +251,11 @@ export function UsersPage() {
               type="email"
               required
               placeholder={
-                form.role === "agent"
-                  ? "e.g. officer@gmail.com or name@jniagri.ag"
-                  : "e.g. name@jniagri.ag"
+                form.role === "agent" ? "email@example.com" : "name@jniagri.ag"
               }
               value={form.email}
               onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
             />
-            <span className="field-hint">
-              {form.role === "agent"
-                ? "Field Agents can use a personal or @jniagri.ag email."
-                : "Requires an @jniagri.ag email address."}
-            </span>
           </div>
           <div className="form-group">
             <label htmlFor="user-name">Full name</label>
